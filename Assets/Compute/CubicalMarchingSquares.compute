@@ -1,0 +1,355 @@
+#pragma kernel GenerateMesh
+#pragma multi_compile FLAT_SHADING __
+
+#include "Assets/Compute/Include/CubicalMarchingSquares.cginc"
+#include "Assets/Compute/Include/ThreadCount.cginc"
+#include "Assets/Compute/Include/Vertex.cginc"
+#include "Assets/Compute/Include/VoxelVolume.cginc"
+
+float sharpFeatureAngle;
+uint maxIterations;
+float stepSize;
+
+RWStructuredBuffer<Vertex> generatedVertices;
+AppendStructuredBuffer<uint3> generatedTriangles;
+
+Vertex CalculateVertexAlongEdge(uint3 id, uint2 edge)
+{
+    Vertex edgeVertex;
+
+    uint3 cornerA = voxelCorners[edge[0]];
+    uint3 cornerB = voxelCorners[edge[1]];
+
+    float sampleDensityA = densityVolume[CalculateDensityIndex(id + cornerA)];
+    float sampleDensityB = densityVolume[CalculateDensityIndex(id + cornerB)];
+
+    float3 sampleGradientA = densityGradient[CalculateDensityIndex(id + cornerA)];
+    float3 sampleGradientB = densityGradient[CalculateDensityIndex(id + cornerB)];
+
+    float interpolant = -sampleDensityA / (sampleDensityB - sampleDensityA);
+
+    edgeVertex.position = lerp(cornerA, cornerB, interpolant) - 0.5;
+    edgeVertex.normal = normalize(lerp(sampleGradientA, sampleGradientB, interpolant));
+
+    return edgeVertex;
+}
+
+Vertex CalculateSegmentSharpFeatureVertex(Vertex edgeVertexA, float3 planeTangentA, Vertex edgeVertexB, float3 planeTangentB)
+{
+    Vertex sharpFeatureVertex;
+
+    float3 lineVec3 = edgeVertexB.position - edgeVertexA.position;
+    float3 crossVec1and2 = cross(planeTangentA, planeTangentB);
+    float3 crossVec3and2 = cross(lineVec3, planeTangentB);
+    float s = dot(crossVec3and2, crossVec1and2) / dot(crossVec1and2, crossVec1and2);
+    float3 faceSharpFeaturePosition = edgeVertexA.position + (planeTangentA * s);
+
+    sharpFeatureVertex.position = clamp(faceSharpFeaturePosition, voxelCorners[0] - 0.5, voxelCorners[6] - 0.5);;
+    sharpFeatureVertex.normal = normalize(edgeVertexA.normal + edgeVertexB.normal);
+
+    return sharpFeatureVertex;
+}
+
+void GenerateTriangle(uint3 id, uint vertexAIndex, uint vertexBIndex, uint vertexCIndex, bool hasSharpFeature)
+{
+    Vertex vertexA = generatedVertices[vertexAIndex];
+    Vertex vertexB = generatedVertices[vertexBIndex];
+    Vertex vertexC = generatedVertices[vertexCIndex];
+
+    uint3 indices = uint3(vertexAIndex, vertexBIndex, vertexCIndex);
+
+    float3 localPosition = CalculateLocalPosition(id);
+
+    vertexA.position = stride * voxelSpacing * vertexA.position + localPosition;
+    vertexB.position = stride * voxelSpacing * vertexB.position + localPosition;
+    vertexC.position = stride * voxelSpacing * vertexC.position + localPosition;
+
+    float3 normal = -normalize(cross(vertexB.position - vertexA.position, vertexC.position - vertexA.position));
+
+#ifdef FLAT_SHADING
+    vertexA.normal = normal;
+    vertexB.normal = normal;
+    vertexC.normal = normal;
+#else
+    if (hasSharpFeature)
+    {
+        vertexA.normal = normal;
+        vertexC.normal = normal;
+    }
+#endif
+
+    generatedVertices[vertexAIndex] = vertexA;
+    generatedVertices[vertexBIndex] = vertexB;
+    generatedVertices[vertexCIndex] = vertexC;
+
+    generatedTriangles.Append(indices.xzy);
+}
+
+[numthreads(threadCountCubicalMarchingSquares, threadCountCubicalMarchingSquares, threadCountCubicalMarchingSquares)]
+void GenerateMesh(uint3 id : SV_DispatchThreadID)
+{
+    if (IsOutOfVoxelBounds(id))
+    {
+        return;
+    }
+
+    Segment segments[12];
+    uint segmentsCount = 0;
+
+    for (uint faceIndex = 0; faceIndex < 6; faceIndex++)
+    {
+        // >>> Calculate face segments.
+        uint4 faceSampleIndices = voxelFaceSampleIndices[faceIndex];
+        uint segmentsIndex = 0;
+
+        for (uint sampleIndex = 0; sampleIndex < 4; sampleIndex++)
+        {
+            segmentsIndex |= (densityVolume[CalculateDensityIndex(id + voxelCorners[faceSampleIndices[sampleIndex]])] >= 0.0) << sampleIndex;
+        }
+
+        uint4 face = voxelFaces[faceIndex];
+        uint4 faceSegments = marchingSquaresSegments[segmentsIndex];
+
+        for (uint faceSegmentsIndex = 0; faceSegmentsIndex < 4; faceSegmentsIndex += 2)
+        {
+            if (faceSegments[faceSegmentsIndex] == -1)
+            {
+                break;
+            }
+
+            uint edgeIndexA = face[faceSegments[faceSegmentsIndex + 0]];
+            uint edgeIndexB = face[faceSegments[faceSegmentsIndex + 1]];
+
+            uint2 edgeA = voxelEdges[edgeIndexA];
+            uint2 edgeB = voxelEdges[edgeIndexB];
+
+            Vertex edgeVertexA = CalculateVertexAlongEdge(id, edgeA);
+            Vertex edgeVertexB = CalculateVertexAlongEdge(id, edgeB);
+
+            float3 planeTangentA = normalize(mul(normalToFaceTangentMatrices[faceIndex], edgeVertexA.normal));
+            float3 planeTangentB = normalize(mul(normalToFaceTangentMatrices[faceIndex], edgeVertexB.normal));
+            Vertex sharpFeatureVertex = CalculateSegmentSharpFeatureVertex(edgeVertexA, planeTangentA, edgeVertexB, planeTangentB);
+
+            Segment segment;
+            segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB = uint4(edgeIndexA, generatedVertices.IncrementCounter(), edgeIndexB, generatedVertices.IncrementCounter());
+            segment.sharpFeatureVertexIndices = acos(dot(edgeVertexA.normal, edgeVertexB.normal)) >= sharpFeatureAngle ? uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter()) : -1;
+            segments[segmentsCount++] = segment;
+
+            generatedVertices[segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1]] = edgeVertexA;
+            generatedVertices[segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[3]] = edgeVertexB;
+
+            if (segment.sharpFeatureVertexIndices[0] != -1)
+            {
+                generatedVertices[segment.sharpFeatureVertexIndices[0]] = sharpFeatureVertex;
+                generatedVertices[segment.sharpFeatureVertexIndices[1]] = sharpFeatureVertex;
+            }
+        }
+        // <<<
+    }
+
+    if (segmentsCount == 0)
+    {
+        return;
+    }
+
+    Component components[4];
+    uint componentIndex;
+
+    // >>> Trace components.
+    for (componentIndex = 0; componentIndex < 4; componentIndex++)
+    {
+        initializeComponent(components[componentIndex]);
+    }
+
+    uint segmentsAssigned = 0;
+    uint componentsCount = 0;
+    uint segmentsIndex = -1;
+    uint remainingSegmentsToAssign = segmentsCount;
+
+    while (remainingSegmentsToAssign > 0)
+    {
+        segmentsIndex = (segmentsIndex + 1) % segmentsCount;
+
+        if (((segmentsAssigned >> segmentsIndex) & 1) == 1)
+        {
+            continue;
+        }
+
+        uint componentLength = 0;
+        uint start = segments[segmentsIndex].edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[0];
+        uint end = segments[segmentsIndex].edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[2];
+        segmentsAssigned |= 1 << segmentsIndex;
+        components[componentsCount].packetSegmentsIndices[componentLength >> 2] += segmentsIndex * uint4x4Identity[componentLength & 3];
+        componentLength++;
+        remainingSegmentsToAssign--;
+
+        while (start != end)
+        {
+            segmentsIndex = (segmentsIndex + 1) % segmentsCount;
+
+            if (((segmentsAssigned >> segmentsIndex) & 1) == 1)
+            {
+                continue;
+            }
+
+            Segment segment = segments[segmentsIndex];
+
+            if (end == segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[0] || end == segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[2])
+            {
+                bool flipped = end == segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[2];
+
+                if (flipped)
+                {
+                    segments[segmentsIndex].edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB = uint4
+                    (
+                        segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB.zw,
+                        segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB.xy
+                    );
+                }
+                end = segments[segmentsIndex].edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[2];
+                segmentsAssigned |= 1 << segmentsIndex;
+                components[componentsCount].packetSegmentsIndices[componentLength >> 2] += segmentsIndex * uint4x4Identity[componentLength & 3];
+                componentLength++;
+                remainingSegmentsToAssign--;
+            }
+        }
+        components[componentsCount].packetSegmentsIndices[1].w = componentLength;
+        componentsCount++;
+    }
+    // <<<
+
+    for (componentIndex = 0; componentIndex < componentsCount; componentIndex++)
+    {
+        Component component = components[componentIndex];
+
+        // >>> Generate Component Sharp Feature.
+        // >> Calculate component center vertex.
+        Vertex componentSharpFeatureVertex;
+        componentSharpFeatureVertex.position = 0;
+        componentSharpFeatureVertex.normal = 0;
+
+        uint index;
+
+        for (index = 0; index < component.packetSegmentsIndices[1][3]; index++)
+        {
+            Segment segment = segments[component.packetSegmentsIndices[index >> 2][index & 3]];
+            Vertex edgeVertex = generatedVertices[segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1]];
+            componentSharpFeatureVertex.position += edgeVertex.position;
+            componentSharpFeatureVertex.normal += edgeVertex.normal;
+        }
+
+        componentSharpFeatureVertex.position /= index;
+        componentSharpFeatureVertex.normal = normalize(componentSharpFeatureVertex.normal);
+        // <<
+
+        // >> Check for component sharp feature.
+        float cosOfAngle = 1.0;
+
+        for (uint indexA = 0; indexA < component.packetSegmentsIndices[1][3]; indexA++)
+        {
+            Segment segmentA = segments[component.packetSegmentsIndices[indexA >> 2][indexA & 3]];
+            Vertex edgeVertexA = generatedVertices[segmentA.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1]];
+
+            for (uint indexB = 0; indexB < component.packetSegmentsIndices[1][3]; indexB++)
+            {
+                Segment segmentB = segments[component.packetSegmentsIndices[indexB >> 2][indexB & 3]];
+                Vertex edgeVertexB = generatedVertices[segmentB.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1]];
+                float newCosOfAngle = dot(edgeVertexA.normal, edgeVertexB.normal);
+                cosOfAngle = cosOfAngle > newCosOfAngle ? newCosOfAngle : cosOfAngle;
+            }
+        }  
+        bool hasComponentSharpFeature = acos(cosOfAngle) >= sharpFeatureAngle;
+        // <<
+
+        if (hasComponentSharpFeature)
+        {
+            // >> Calculate forces.
+            float3 forces[8];
+
+            for (uint cornerIndex = 0; cornerIndex < 8; cornerIndex++)
+            {
+                forces[cornerIndex] = 0.0;
+                float3 corner = voxelCorners[cornerIndex] - 0.5;
+                float3 force = 0;
+
+                for (index = 0; index < component.packetSegmentsIndices[1][3]; index++)
+                {
+                    Segment segment = segments[component.packetSegmentsIndices[index >> 2][index & 3]];
+                    Vertex edgeVertex = generatedVertices[segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1]];
+                    float distance = dot(edgeVertex.normal, corner - edgeVertex.position);
+                    forces[cornerIndex] -= distance * edgeVertex.normal;
+                }
+            }
+            // <<
+
+            // >> Calculate combined force and adjust component sharp feature vertex.
+            for (uint iterations = 0; iterations < maxIterations; iterations++)
+            {
+                float alpha = componentSharpFeatureVertex.position.z + 0.5;
+
+                float3 force03 = (1.0 - alpha) * forces[0] + alpha * forces[3];
+                float3 force12 = (1.0 - alpha) * forces[1] + alpha * forces[2];
+                float3 force47 = (1.0 - alpha) * forces[4] + alpha * forces[7];
+                float3 force56 = (1.0 - alpha) * forces[5] + alpha * forces[6];
+
+                float beta = componentSharpFeatureVertex.position.y + 0.5;
+
+                float3 force0347 = (1.0 - beta) * force03 + beta * force47;
+                float3 force1256 = (1.0 - beta) * force12 + beta * force56;
+
+                float gamma = componentSharpFeatureVertex.position.x + 0.5;
+
+                float3 combinedForce = (1.0 - gamma) * force0347 + gamma * force1256;
+
+                componentSharpFeatureVertex.position += stepSize * combinedForce;
+                componentSharpFeatureVertex.position = clamp(componentSharpFeatureVertex.position, voxelCorners[0] - 0.5, voxelCorners[6] - 0.5);
+            }
+            // <<
+        }
+        // <<<
+
+        // >>> Generate triangles.
+        for (index = 0; index < component.packetSegmentsIndices[1][3]; index++)
+        {
+            Segment segment = segments[component.packetSegmentsIndices[index >> 2][index & 3]];
+
+            uint componentSharpFeatureVertexIndex = generatedVertices.IncrementCounter();
+            generatedVertices[componentSharpFeatureVertexIndex] = componentSharpFeatureVertex;
+
+            if (segment.sharpFeatureVertexIndices[0] != -1)
+            {
+                GenerateTriangle
+                (
+                    id, 
+                    componentSharpFeatureVertexIndex, 
+                    segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1], 
+                    segment.sharpFeatureVertexIndices[0], 
+                    hasComponentSharpFeature
+                );
+
+                componentSharpFeatureVertexIndex = generatedVertices.IncrementCounter();
+                generatedVertices[componentSharpFeatureVertexIndex] = componentSharpFeatureVertex;
+                GenerateTriangle
+                (
+                    id,
+                    segment.sharpFeatureVertexIndices[1], 
+                    segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[3], 
+                    componentSharpFeatureVertexIndex, 
+                    hasComponentSharpFeature
+                );
+            }
+            else
+            {
+                GenerateTriangle
+                (
+                    id,
+                    componentSharpFeatureVertexIndex,
+                    segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[1],
+                    segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB[3],
+                    hasComponentSharpFeature
+                );
+            }
+        }
+        // <<<
+    }
+}
