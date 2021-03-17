@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 [RequireComponent(typeof(DensityVolume))]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class Chunk : MonoBehaviour
+public class Chunk : MonoBehaviour, IMeshifier
 {
     [Header("Chunk")]
     [Range(1, 64)]
