@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 [RequireComponent(typeof(DensityVolume))]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class Chunk : MonoBehaviour, IMeshifier
+public class Chunk : MonoBehaviour
 {
     [Header("Chunk")]
     [Range(1, 64)]
@@ -66,7 +66,8 @@ public class Chunk : MonoBehaviour, IMeshifier
     {
         get
         {
-            return NumberOfVoxels * 3 * 2 * Voxel.s_faces.Length * CubicalMarchingSquaresTables.s_segments[0].Length;
+            // 3 indices per triangle * 2 triangles per segment * 2 segments per face * 6 faces per voxel * number of voxels
+            return 3 * 2 * 2 * 6 * NumberOfVoxels;
         }
     }
 
