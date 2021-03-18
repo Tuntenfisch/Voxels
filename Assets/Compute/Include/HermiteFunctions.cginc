@@ -1,5 +1,5 @@
-#ifndef DENSITY_FUNCTIONS
-#define DENSITY_FUNCTIONS
+#ifndef HERMITE_FUNCTIONS
+#define HERMITE_FUNCTIONS
 
 // Several distance functions taken from https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm.
 

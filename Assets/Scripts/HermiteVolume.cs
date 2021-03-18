@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(Chunk))]
-public class DensityVolume : MonoBehaviour
+public class HermiteVolume : MonoBehaviour
 {
     [Header("Noise Parameters")]
     public int m_seed;
@@ -33,7 +33,7 @@ public class DensityVolume : MonoBehaviour
     private ComputeBuffer m_octaveOffsetsBuffer;
     private Texture2D m_heightMapScalingTexture;
     private IMeshifier m_meshifier;
-    private DensityVolumeManipulatorFlags m_flags;
+    private HermiteVolumeFlags m_flags;
 
     private void Awake()
     {
@@ -56,7 +56,7 @@ public class DensityVolume : MonoBehaviour
 
     private void Update()
     {
-        if (m_flags.HasFlag(DensityVolumeManipulatorFlags.SettingsUpdated))
+        if (m_flags.HasFlag(HermiteVolumeFlags.SettingsUpdated))
         {
             OnSettingsUpdated();
         }
@@ -64,7 +64,7 @@ public class DensityVolume : MonoBehaviour
 
     private void OnSettingsUpdated()
     {
-        m_flags &= ~DensityVolumeManipulatorFlags.SettingsUpdated;
+        m_flags &= ~HermiteVolumeFlags.SettingsUpdated;
 
         ReleaseBuffers();
         CreateBuffers();
@@ -73,7 +73,7 @@ public class DensityVolume : MonoBehaviour
 
         if (m_meshifier != null)
         {
-            m_meshifier.OnDensitiesChanged();
+            m_meshifier.OnHermiteVolumeChanged();
         }
     }
 
@@ -100,21 +100,20 @@ public class DensityVolume : MonoBehaviour
 
     public void Generate
     (
-        ComputeBuffer densityVolumeBuffer,
-        ComputeBuffer densityGradientBuffer,
-        int numberOfDensitySamplesAlongAxis,
+        ComputeBuffer hermiteVolumeBuffer,
+        int numberOfHermiteSamplesAlongAxis,
         int numberOfVoxelsAlongAxis,
         float voxelSpacing,
-        Vector3 offset
+        Vector3 localToWorldOffset
     )
     {
-        int stride = 1;
+        int voxelStride = 1;
 
-        m_shader.SetInts("densityDimensions", numberOfDensitySamplesAlongAxis, numberOfDensitySamplesAlongAxis, numberOfDensitySamplesAlongAxis);
+        m_shader.SetInts("hermiteDimensions", numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride);
         m_shader.SetInts("voxelDimensions", numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
-        m_shader.SetInt("stride", stride);
+        m_shader.SetInt("voxelStride", voxelStride);
         m_shader.SetFloat("voxelSpacing", voxelSpacing);
-        m_shader.SetVector("offset", offset);
+        m_shader.SetVector("localToWorldOffset", localToWorldOffset);
         m_shader.SetFloat("noiseScale", m_noiseScale);
         m_shader.SetInt("octaves", m_octaves);
         m_shader.SetFloat("initialAmplitude", m_initialAmplitude);
@@ -124,10 +123,9 @@ public class DensityVolume : MonoBehaviour
         m_shader.SetFloat("sharpness", m_sharpness);
         m_shader.SetFloat("centralDifferenceSpacing", m_centralDifferenceSpacing);
 
-        int numberOfThreads = Mathf.CeilToInt((numberOfDensitySamplesAlongAxis / stride) / (float)ThreadCount.c_threadCountDensityVolumeManipulator);
+        int numberOfThreads = Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)ThreadCount.c_threadCountHermiteVolume);
 
-        m_shader.SetBuffer(0, "densityVolume", densityVolumeBuffer);
-        m_shader.SetBuffer(0, "densityGradient", densityGradientBuffer);
+        m_shader.SetBuffer(0, "hermiteVolume", hermiteVolumeBuffer);
         m_shader.SetBuffer(0, "octaveOffsets", m_octaveOffsetsBuffer);
         m_shader.SetTexture(0, "heightMapScaling", m_heightMapScalingTexture);
         m_shader.Dispatch(0, numberOfThreads, numberOfThreads, numberOfThreads);
@@ -140,10 +138,10 @@ public class DensityVolume : MonoBehaviour
 
     private void OnValidate()
     {
-        m_flags |= DensityVolumeManipulatorFlags.SettingsUpdated;
+        m_flags |= HermiteVolumeFlags.SettingsUpdated;
     }
 
-    private enum DensityVolumeManipulatorFlags
+    private enum HermiteVolumeFlags
     {
         SettingsUpdated = 1
     }

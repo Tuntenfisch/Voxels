@@ -1,25 +1,26 @@
 #ifndef VOXEL_VOLUME
 #define VOXEL_VOLUME
 
-#include "Assets/Compute/Include/DensityVolume.cginc"
+#include "Assets/Compute/Include/HermiteVolume.cginc"
 
 uint3 voxelDimensions;
 float voxelSpacing;
-float3 offset;
+uint voxelStride;
+float3 localToWorldOffset;
 
-bool IsOutOfVoxelBounds(uint3 id)
+bool IsOutOfVoxelBounds(uint3 position)
 {
-    return any(step(voxelDimensions, id));
+    return any(step(voxelDimensions, position));
 }
 
-float3 CalculateLocalPosition(uint3 id)
+float3 CalculateLocalPosition(uint3 position)
 {
-    return stride * voxelSpacing * (id - 0.5 * voxelDimensions + 0.5);
+    return voxelStride * voxelSpacing * (position - 0.5 * voxelDimensions + 0.5);
 }
 
-float3 CalculateWorldPosition(uint3 id)
+float3 CalculateWorldPosition(uint3 position)
 {
-    return CalculateLocalPosition(id) + offset;
+    return CalculateLocalPosition(position) + localToWorldOffset;
 }
 
 #endif

@@ -1,6 +1,6 @@
-#pragma kernel GenerateDensityVolume
+#pragma kernel GenerateHermiteVolume
 
-#include "Assets/Compute/Include/DensityFunctions.cginc"
+#include "Assets/Compute/Include/HermiteFunctions.cginc"
 #include "Assets/Compute/Include/ThreadCount.cginc"
 #include "Assets/Compute/Include/VoxelVolume.cginc"
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
@@ -30,16 +30,7 @@ float CalculateHeight(float2 position)
         float simplexNoise = snoise(frequency * float3(samplePosition.x, 0.0, samplePosition.y));
         float billowNoise = abs(simplexNoise);
         float ridgeNoise = 1.0 - billowNoise;
-        float noise = 0.0;
-
-        if (sharpness < 0.0)
-        {
-            noise = lerp(simplexNoise, billowNoise, abs(sharpness));
-        }
-        else
-        {
-            noise = lerp(simplexNoise, ridgeNoise, sharpness);
-        }
+        float noise = sharpness < 0.0 ? lerp(simplexNoise, billowNoise, abs(sharpness)) : lerp(simplexNoise, ridgeNoise, sharpness);
 
         noiseHeight += amplitude * noise * heightMapScaling.SampleLevel(LinearClampSampler, float2(0.5 * (noise + 1.0), 0), 0);
         amplitude *= persistence;
@@ -66,17 +57,18 @@ float3 CalculateGradient(float3 position)
     return gradient;
 }
 
-[numthreads(threadCountDensityVolumeManipulator, threadCountDensityVolumeManipulator, threadCountDensityVolumeManipulator)]
-void GenerateDensityVolume(uint3 id : SV_DispatchThreadID)
+[numthreads(threadCountHermiteVolume, threadCountHermiteVolume, threadCountHermiteVolume)]
+void GenerateHermiteVolume(uint3 id : SV_DispatchThreadID)
 {
-    if (IsOutOfDensityBounds(id))
+    if (IsOutOfHermiteBounds(id))
     {
         return;
     }
 
-    uint index = CalculateDensityIndex(id);
+    uint index = CalculateHermiteIndex(id);
     float3 worldPosition = CalculateWorldPosition(id);
 
-    densityVolume[index] = CalculateDensity(worldPosition);
-    densityGradient[index] = CalculateGradient(worldPosition);
+    HermiteData sample;
+    InitializeHermiteData(sample, CalculateDensity(worldPosition), CalculateGradient(worldPosition));
+    hermiteVolume[index] = sample;
 }

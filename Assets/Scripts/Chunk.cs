@@ -3,25 +3,26 @@ using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-[RequireComponent(typeof(DensityVolume))]
+[RequireComponent(typeof(HermiteVolume))]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class Chunk : MonoBehaviour, IMeshifier
 {
     [Header("Chunk")]
-    [Range(1, 64)]
+    [Range(1, 128)]
     public int m_numberOfVoxelsAlongAxis = 16;
     [Range(0.25f, 4.0f)]
     public float m_voxelSpacing = 0.5f;
-    [Range(0, 6)]
+    [Range(0, 7)]
     public int m_LODLevel;
+    public ChunkFaces m_subSampleChunkFaces;
 
     [Header("Shader")]
     public ComputeShader m_shader;
     [Range(0, 50)]
     public int m_maxIterations = 10;
-    [Range(0.0f, 0.5f)]
+    [Range(0.0f, 0.4f)]
     public float m_stepSize = 0.2f;
-    [Range(5.0f, 180.0f)]
+    [Range(0.0f, 180.0f)]
     public float m_sharpFeatureAngle = 40.0f;
     public bool m_flatShading = true;
     public bool m_asyncReadback = false;
@@ -38,7 +39,7 @@ public class Chunk : MonoBehaviour, IMeshifier
         }
     }
 
-    private int NumberOfDensitySamplesAlongAxis
+    private int NumberOfHermiteSamplesAlongAxis
     {
         get
         {
@@ -46,11 +47,11 @@ public class Chunk : MonoBehaviour, IMeshifier
         }
     }
 
-    private int NumberOfDensitySamples
+    private int NumberOfHermiteSamples
     {
         get
         {
-            return NumberOfDensitySamplesAlongAxis * NumberOfDensitySamplesAlongAxis * NumberOfDensitySamplesAlongAxis;
+            return NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis;
         }
     }
 
@@ -76,9 +77,8 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private Bounds m_localBounds;
 
-    private DensityVolume m_densityVolumeManipulator;
-    private ComputeBuffer m_densityVolumeBuffer;
-    private ComputeBuffer m_densityGradientBuffer;
+    private HermiteVolume m_hermiteVolume;
+    private ComputeBuffer m_hermiteVolumeBuffer;
     private ComputeBuffer m_vertexBuffer;
     private ComputeBuffer m_triangleBuffer;
     private ComputeBuffer m_vertexCountBuffer;
@@ -91,7 +91,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private ChunkFlags m_flags;
 
-    public void OnDensitiesChanged()
+    public void OnHermiteVolumeChanged()
     {
         m_flags |= ChunkFlags.SettingsUpdated;
     }
@@ -100,22 +100,21 @@ public class Chunk : MonoBehaviour, IMeshifier
     {
         CreateBuffers();
         InitializeMeshComponents();
-        m_densityVolumeManipulator = GetComponent<DensityVolume>();
-        GenerateDensityVolume(transform.position);
+        m_hermiteVolume = GetComponent<HermiteVolume>();
+        GenerateHermiteVolume(transform.position);
         CalculateLocalBounds();
         UpdateMesh();
     }
 
-    private void GenerateDensityVolume(Vector3 offset)
+    private void GenerateHermiteVolume(Vector3 localToWorldOffset)
     {
-        m_densityVolumeManipulator.Generate
+        m_hermiteVolume.Generate
         (
-            m_densityVolumeBuffer,
-            m_densityGradientBuffer,
-            NumberOfDensitySamplesAlongAxis,
+            m_hermiteVolumeBuffer,
+            NumberOfHermiteSamplesAlongAxis,
             m_numberOfVoxelsAlongAxis,
             m_voxelSpacing,
-            offset
+            localToWorldOffset
         );
     }
 
@@ -129,8 +128,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void CreateBuffers()
     {
-        m_densityVolumeBuffer = new ComputeBuffer(NumberOfDensitySamples, sizeof(float));
-        m_densityGradientBuffer = new ComputeBuffer(NumberOfDensitySamples, 3 * sizeof(float));
+        m_hermiteVolumeBuffer = new ComputeBuffer(NumberOfHermiteSamples, 4 * sizeof(float));
         m_vertexBuffer = new ComputeBuffer(MaxNumberOfVertices, 6 * sizeof(float), ComputeBufferType.Counter);
         m_triangleBuffer = new ComputeBuffer(MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
         m_vertexCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
@@ -139,8 +137,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void ReleaseBuffers()
     {
-        m_densityVolumeBuffer.Release();
-        m_densityGradientBuffer.Release();
+        m_hermiteVolumeBuffer.Release();
         m_vertexBuffer.Release();
         m_triangleBuffer.Release();
         m_vertexCountBuffer.Release();
@@ -161,7 +158,7 @@ public class Chunk : MonoBehaviour, IMeshifier
         if (transform.hasChanged)
         {
             transform.hasChanged = false;
-            GenerateDensityVolume(transform.position);
+            GenerateHermiteVolume(transform.position);
             UpdateMesh();
         }
 
@@ -242,7 +239,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
         ReleaseBuffers();
         CreateBuffers();
-        GenerateDensityVolume(transform.position);
+        GenerateHermiteVolume(transform.position);
         CalculateLocalBounds();
         UpdateMesh();
     }
@@ -252,21 +249,21 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_vertexBuffer.SetCounterValue(0);
         m_triangleBuffer.SetCounterValue(0);
 
-        int stride = 1 << m_LODLevel;
+        int voxelStride = 1 << m_LODLevel;
 
-        m_shader.SetInts("densityDimensions", NumberOfDensitySamplesAlongAxis, NumberOfDensitySamplesAlongAxis, NumberOfDensitySamplesAlongAxis);
-        m_shader.SetInts("voxelDimensions", m_numberOfVoxelsAlongAxis / stride, m_numberOfVoxelsAlongAxis / stride, m_numberOfVoxelsAlongAxis / stride);
-        m_shader.SetInt("stride", stride);
+        m_shader.SetInts("hermiteDimensions", NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
+        m_shader.SetInts("voxelDimensions", m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
+        m_shader.SetInt("voxelStride", voxelStride);
         m_shader.SetFloat("voxelSpacing", m_voxelSpacing);
-        m_shader.SetVector("offset", transform.position);
+        m_shader.SetVector("localToWorldOffset", transform.position);
+        m_shader.SetInt("subSampleChunkFaces", (int)m_subSampleChunkFaces);
+        m_shader.SetFloat("sharpFeatureAngle", m_sharpFeatureAngle * Mathf.Deg2Rad);
         m_shader.SetInt("maxIterations", m_maxIterations);
         m_shader.SetFloat("stepSize", m_stepSize);
-        m_shader.SetFloat("sharpFeatureAngle", m_sharpFeatureAngle * Mathf.Deg2Rad);
 
-        int numberOfThreads = Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / stride) / (float)ThreadCount.c_threadCountCubicalMarchingSquares);
+        int numberOfThreads = Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)ThreadCount.c_threadCountCubicalMarchingSquares);
 
-        m_shader.SetBuffer(0, "densityVolume", m_densityVolumeBuffer);
-        m_shader.SetBuffer(0, "densityGradient", m_densityGradientBuffer);
+        m_shader.SetBuffer(0, "hermiteVolume", m_hermiteVolumeBuffer);
         m_shader.SetBuffer(0, "generatedVertices", m_vertexBuffer);
         m_shader.SetBuffer(0, "generatedTriangles", m_triangleBuffer);
         m_shader.Dispatch(0, numberOfThreads, numberOfThreads, numberOfThreads);
@@ -288,7 +285,8 @@ public class Chunk : MonoBehaviour, IMeshifier
     private void OnValidate()
     {
         m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
-        m_LODLevel = Mathf.Clamp(m_LODLevel, 0, Mathf.Max(Mathf.RoundToInt(Mathf.Log(m_numberOfVoxelsAlongAxis, 2.0f)) - 2, 0));
+        m_LODLevel = Mathf.Clamp(m_LODLevel, 0, Mathf.Max(Mathf.RoundToInt(Mathf.Log(m_numberOfVoxelsAlongAxis, 2.0f)), 0));
+        m_subSampleChunkFaces = m_LODLevel == 7 ? 0 : m_subSampleChunkFaces;
         m_flags |= ChunkFlags.SettingsUpdated;
     }
 
@@ -308,5 +306,16 @@ public class Chunk : MonoBehaviour, IMeshifier
         SettingsUpdated = 1,
         RetrievingVertexAndTriangleCount = 2,
         RetrievingMeshData = 4
+    }
+
+    [Flags]
+    public enum ChunkFaces
+    {
+        Rear = 1,
+        Right = 2,
+        Front = 4,
+        Left = 8,
+        Bottom = 16,
+        Top = 32
     }
 }

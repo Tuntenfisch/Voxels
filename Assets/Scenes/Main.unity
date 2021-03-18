@@ -453,10 +453,11 @@ MonoBehaviour:
   m_numberOfVoxelsAlongAxis: 64
   m_voxelSpacing: 1
   m_LODLevel: 0
+  m_subSampleChunkFaces: 0
   m_shader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
   m_maxIterations: 10
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 40
+  m_sharpFeatureAngle: 35
   m_flatShading: 1
   m_asyncReadback: 0
   m_showBounds: 1
