@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.Profiling;
 
 [RequireComponent(typeof(Chunk))]
 public class HermiteVolume : MonoBehaviour
@@ -30,15 +31,36 @@ public class HermiteVolume : MonoBehaviour
     [Header("Shader")]
     public ComputeShader m_shader;
 
+    private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
+    private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
+    private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
+    private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
+    private static readonly int s_localToWorldOffsetID = Shader.PropertyToID("localToWorldOffset");
+    private static readonly int s_noiseScaleID = Shader.PropertyToID("noiseScale");
+    private static readonly int s_octavesID = Shader.PropertyToID("octaves");
+    private static readonly int s_initialAmplitudeID = Shader.PropertyToID("initialAmplitude");
+    private static readonly int s_persistenceID = Shader.PropertyToID("persistence");
+    private static readonly int s_initialFrequencyID = Shader.PropertyToID("initialFrequency");
+    private static readonly int s_lacunarityID = Shader.PropertyToID("lacunarity");
+    private static readonly int s_sharpnessID = Shader.PropertyToID("sharpness");
+    private static readonly int s_centralDifferenceSpacingID = Shader.PropertyToID("centralDifferenceSpacing");
+    private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
+    private static readonly int s_octaveOffsetsID = Shader.PropertyToID("octaveOffsets");
+    private static readonly int s_heightMapScalingID = Shader.PropertyToID("heightMapScaling");
+
+    private Vector3Int m_numberOfThreads;
     private ComputeBuffer m_octaveOffsetsBuffer;
     private Texture2D m_heightMapScalingTexture;
+
     private IMeshifier m_meshifier;
+
     private HermiteVolumeFlags m_flags;
 
-    private void Awake()
+    private void OnEnable()
     {
         m_meshifier = GetComponent<IMeshifier>();
-
+        m_shader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+        m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
         CreateBuffers();
         CalculateOctaveOffsets();
     }
@@ -52,6 +74,7 @@ public class HermiteVolume : MonoBehaviour
     private void ReleaseBuffers()
     {
         m_octaveOffsetsBuffer.Release();
+        m_octaveOffsetsBuffer = null;
     }
 
     private void Update()
@@ -107,31 +130,39 @@ public class HermiteVolume : MonoBehaviour
         Vector3 localToWorldOffset
     )
     {
+        Profiler.BeginSample("HermiteVolume.Generate");
+
         int voxelStride = 1;
 
-        m_shader.SetInts("hermiteDimensions", numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride);
-        m_shader.SetInts("voxelDimensions", numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
-        m_shader.SetInt("voxelStride", voxelStride);
-        m_shader.SetFloat("voxelSpacing", voxelSpacing);
-        m_shader.SetVector("localToWorldOffset", localToWorldOffset);
-        m_shader.SetFloat("noiseScale", m_noiseScale);
-        m_shader.SetInt("octaves", m_octaves);
-        m_shader.SetFloat("initialAmplitude", m_initialAmplitude);
-        m_shader.SetFloat("persistence", m_persistence);
-        m_shader.SetFloat("initialFrequency", m_initialFrequency);
-        m_shader.SetFloat("lacunarity", m_lacunarity);
-        m_shader.SetFloat("sharpness", m_sharpness);
-        m_shader.SetFloat("centralDifferenceSpacing", m_centralDifferenceSpacing);
+        m_shader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride);
+        m_shader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
+        m_shader.SetInt(s_voxelStrideID, voxelStride);
+        m_shader.SetFloat(s_voxelSpacingID, voxelSpacing);
+        m_shader.SetVector(s_localToWorldOffsetID, localToWorldOffset);
+        m_shader.SetFloat(s_noiseScaleID, m_noiseScale);
+        m_shader.SetInt(s_octavesID, m_octaves);
+        m_shader.SetFloat(s_initialAmplitudeID, m_initialAmplitude);
+        m_shader.SetFloat(s_persistenceID, m_persistence);
+        m_shader.SetFloat(s_initialFrequencyID, m_initialFrequency);
+        m_shader.SetFloat(s_lacunarityID, m_lacunarity);
+        m_shader.SetFloat(s_sharpnessID, m_sharpness);
+        m_shader.SetFloat(s_centralDifferenceSpacingID, m_centralDifferenceSpacing);
 
-        int numberOfThreads = Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)ThreadCount.c_threadCountHermiteVolume);
+        m_shader.SetBuffer(0, s_hermiteVolumeID, hermiteVolumeBuffer);
+        m_shader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
+        m_shader.SetTexture(0, s_heightMapScalingID, m_heightMapScalingTexture);
+        m_shader.Dispatch
+        (
+            0,
+            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.x),
+            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.y),
+            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.z)
+        );
 
-        m_shader.SetBuffer(0, "hermiteVolume", hermiteVolumeBuffer);
-        m_shader.SetBuffer(0, "octaveOffsets", m_octaveOffsetsBuffer);
-        m_shader.SetTexture(0, "heightMapScaling", m_heightMapScalingTexture);
-        m_shader.Dispatch(0, numberOfThreads, numberOfThreads, numberOfThreads);
+        Profiler.EndSample();
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         ReleaseBuffers();
     }

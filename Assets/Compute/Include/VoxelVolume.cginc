@@ -15,7 +15,7 @@ bool IsOutOfVoxelBounds(uint3 position)
 
 float3 CalculateLocalPosition(uint3 position)
 {
-    return voxelStride * voxelSpacing * (position - 0.5 * voxelDimensions + 0.5);
+    return voxelStride * voxelSpacing * (position - 0.5 * voxelDimensions);
 }
 
 float3 CalculateWorldPosition(uint3 position)

@@ -1,6 +1,7 @@
 ﻿using System;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 [RequireComponent(typeof(HermiteVolume))]
@@ -72,18 +73,34 @@ public class Chunk : MonoBehaviour, IMeshifier
         }
     }
 
+    private static readonly string s_flatShadingKeyword = "FLAT_SHADING";
+
+    private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
+    private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
+    private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
+    private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
+    private static readonly int s_localToWorldOffsetID = Shader.PropertyToID("localToWorldOffset");
+    private static readonly int s_subSampleChunkFacesID = Shader.PropertyToID("subSampleChunkFaces");
+    private static readonly int s_sharpFeatureAngleID = Shader.PropertyToID("sharpFeatureAngle");
+    private static readonly int s_maxIterationsID = Shader.PropertyToID("maxIterations");
+    private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
+    private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
+    private static readonly int s_generatedVerticesID = Shader.PropertyToID("generatedVertices");
+    private static readonly int s_generatedTrianglesID = Shader.PropertyToID("generatedTriangles");
+
     private Mesh m_mesh;
     private MeshFilter m_meshFilter;
 
     private Bounds m_localBounds;
 
     private HermiteVolume m_hermiteVolume;
+
+    private Vector3Int m_numberOfThreads;
     private ComputeBuffer m_hermiteVolumeBuffer;
     private ComputeBuffer m_vertexBuffer;
     private ComputeBuffer m_triangleBuffer;
     private ComputeBuffer m_vertexCountBuffer;
     private ComputeBuffer m_triangleCountBuffer;
-
     private AsyncGPUReadbackRequest m_vertexCountRequest;
     private AsyncGPUReadbackRequest m_triangleCountRequest;
     private AsyncGPUReadbackRequest m_vertexRequest;
@@ -96,9 +113,16 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_flags |= ChunkFlags.SettingsUpdated;
     }
 
-    private void Start()
+    private void OnEnable()
     {
         CreateBuffers();
+    }
+
+    private void Start()
+    {
+        m_shader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+        m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
+
         InitializeMeshComponents();
         m_hermiteVolume = GetComponent<HermiteVolume>();
         GenerateHermiteVolume(transform.position);
@@ -138,10 +162,15 @@ public class Chunk : MonoBehaviour, IMeshifier
     private void ReleaseBuffers()
     {
         m_hermiteVolumeBuffer.Release();
+        m_hermiteVolumeBuffer = null;
         m_vertexBuffer.Release();
+        m_vertexBuffer = null;
         m_triangleBuffer.Release();
+        m_triangleBuffer = null;
         m_vertexCountBuffer.Release();
+        m_vertexCountBuffer = null;
         m_triangleCountBuffer.Release();
+        m_triangleCountBuffer = null;
     }
     private void InitializeMeshComponents()
     {
@@ -180,6 +209,8 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void OnVertexAndTriangleCountRetrieved()
     {
+        Profiler.BeginSample("Chunk.OnVertexAndTriangleCountRetrieved");
+
         m_flags &= ~ChunkFlags.RetrievingVertexAndTriangleCount;
 
         m_vertexCountRequest.WaitForCompletion();
@@ -199,10 +230,14 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_vertexRequest = AsyncGPUReadback.Request(m_vertexBuffer, vertexCount * m_vertexBuffer.stride, 0);
         m_triangleRequest = AsyncGPUReadback.Request(m_triangleBuffer, triangleCount * m_triangleBuffer.stride, 0);
         m_flags |= ChunkFlags.RetrievingMeshData;
+
+        Profiler.EndSample();
     }
 
     private void OnMeshDataRetrieved()
     {
+        Profiler.BeginSample("Chunk.OnMeshDataRetrieved");
+
         m_flags &= ~ChunkFlags.RetrievingMeshData;
 
         m_vertexRequest.WaitForCompletion();
@@ -222,6 +257,8 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
         m_mesh.RecalculateBounds();
         m_meshFilter.sharedMesh = m_mesh;
+
+        Profiler.EndSample();
     }
 
     private void OnSettingsUpdated()
@@ -230,11 +267,11 @@ public class Chunk : MonoBehaviour, IMeshifier
 
         if (m_flatShading)
         {
-            m_shader.EnableKeyword("FLAT_SHADING");
+            m_shader.EnableKeyword(s_flatShadingKeyword);
         }
         else
         {
-            m_shader.DisableKeyword("FLAT_SHADING");
+            m_shader.DisableKeyword(s_flatShadingKeyword);
         }
 
         ReleaseBuffers();
@@ -246,27 +283,33 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void UpdateMesh()
     {
+        Profiler.BeginSample("Chunk.UpdateMesh");
+
         m_vertexBuffer.SetCounterValue(0);
         m_triangleBuffer.SetCounterValue(0);
 
         int voxelStride = 1 << m_LODLevel;
 
-        m_shader.SetInts("hermiteDimensions", NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
-        m_shader.SetInts("voxelDimensions", m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
-        m_shader.SetInt("voxelStride", voxelStride);
-        m_shader.SetFloat("voxelSpacing", m_voxelSpacing);
-        m_shader.SetVector("localToWorldOffset", transform.position);
-        m_shader.SetInt("subSampleChunkFaces", (int)m_subSampleChunkFaces);
-        m_shader.SetFloat("sharpFeatureAngle", m_sharpFeatureAngle * Mathf.Deg2Rad);
-        m_shader.SetInt("maxIterations", m_maxIterations);
-        m_shader.SetFloat("stepSize", m_stepSize);
+        m_shader.SetInts(s_hermiteDimensionsID, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
+        m_shader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
+        m_shader.SetInt(s_voxelStrideID, voxelStride);
+        m_shader.SetFloat(s_voxelSpacingID, m_voxelSpacing);
+        m_shader.SetVector(s_localToWorldOffsetID, transform.position);
+        m_shader.SetInt(s_subSampleChunkFacesID, (int)m_subSampleChunkFaces);
+        m_shader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
+        m_shader.SetInt(s_maxIterationsID, m_maxIterations);
+        m_shader.SetFloat(s_stepSizeID, m_stepSize);
 
-        int numberOfThreads = Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)ThreadCount.c_threadCountCubicalMarchingSquares);
-
-        m_shader.SetBuffer(0, "hermiteVolume", m_hermiteVolumeBuffer);
-        m_shader.SetBuffer(0, "generatedVertices", m_vertexBuffer);
-        m_shader.SetBuffer(0, "generatedTriangles", m_triangleBuffer);
-        m_shader.Dispatch(0, numberOfThreads, numberOfThreads, numberOfThreads);
+        m_shader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
+        m_shader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
+        m_shader.SetBuffer(0, s_generatedTrianglesID, m_triangleBuffer);
+        m_shader.Dispatch
+        (
+            0,
+            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.x),
+            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.y),
+            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.z)
+        );
 
         ComputeBuffer.CopyCount(m_vertexBuffer, m_vertexCountBuffer, 0);
         ComputeBuffer.CopyCount(m_triangleBuffer, m_triangleCountBuffer, 0);
@@ -274,10 +317,13 @@ public class Chunk : MonoBehaviour, IMeshifier
         // Retrieve vertex and triangle count asynchronously.
         m_vertexCountRequest = AsyncGPUReadback.Request(m_vertexCountBuffer, m_vertexCountBuffer.stride, 0);
         m_triangleCountRequest = AsyncGPUReadback.Request(m_triangleCountBuffer, m_triangleCountBuffer.stride, 0);
+
         m_flags |= ChunkFlags.RetrievingVertexAndTriangleCount;
+
+        Profiler.EndSample();
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         ReleaseBuffers();
     }
@@ -311,11 +357,11 @@ public class Chunk : MonoBehaviour, IMeshifier
     [Flags]
     public enum ChunkFaces
     {
-        Rear = 1,
-        Right = 2,
-        Front = 4,
         Left = 8,
+        Right = 2,
         Bottom = 16,
-        Top = 32
+        Top = 32,
+        Rear = 1,
+        Front = 4
     }
 }

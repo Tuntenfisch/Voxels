@@ -2,7 +2,6 @@
 #pragma multi_compile FLAT_SHADING __
 
 #include "Assets/Compute/Include/CubicalMarchingSquares.cginc"
-#include "Assets/Compute/Include/ThreadCount.cginc"
 #include "Assets/Compute/Include/Vertex.cginc"
 #include "Assets/Compute/Include/VoxelVolume.cginc"
 
@@ -58,9 +57,9 @@ void GenerateTriangle(uint3 id, uint vertexAIndex, uint vertexBIndex, uint verte
 
     float3 localPosition = CalculateLocalPosition(id);
 
-    vertexA.position = voxelStride * voxelSpacing * (vertexA.position - 0.5) + localPosition;
-    vertexB.position = voxelStride * voxelSpacing * (vertexB.position - 0.5) + localPosition;
-    vertexC.position = voxelStride * voxelSpacing * (vertexC.position - 0.5) + localPosition;
+    vertexA.position = voxelStride * voxelSpacing * vertexA.position + localPosition;
+    vertexB.position = voxelStride * voxelSpacing * vertexB.position + localPosition;
+    vertexC.position = voxelStride * voxelSpacing * vertexC.position + localPosition;
 
     float3 normal = -normalize(cross(vertexB.position - vertexA.position, vertexC.position - vertexA.position));
 
@@ -83,7 +82,7 @@ void GenerateTriangle(uint3 id, uint vertexAIndex, uint vertexBIndex, uint verte
     generatedTriangles.Append(indices.xzy);
 }
 
-[numthreads(threadCountCubicalMarchingSquares, threadCountCubicalMarchingSquares, threadCountCubicalMarchingSquares)]
+[numthreads(4, 4, 4)]
 void GenerateMesh(uint3 id : SV_DispatchThreadID)
 {
     if (IsOutOfVoxelBounds(id))

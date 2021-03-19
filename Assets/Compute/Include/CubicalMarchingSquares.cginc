@@ -1,8 +1,6 @@
 #ifndef CUBICAL_MARCHING_SQUARES
 #define CUBICAL_MARCHING_SQUARES
 
-#include "Assets/Compute/Include/Vertex.cginc"
-
 // >>> Flags
 struct Flags
 {

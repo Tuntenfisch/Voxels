@@ -1,7 +1,6 @@
 #pragma kernel GenerateHermiteVolume
 
 #include "Assets/Compute/Include/HermiteFunctions.cginc"
-#include "Assets/Compute/Include/ThreadCount.cginc"
 #include "Assets/Compute/Include/VoxelVolume.cginc"
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
 
@@ -57,7 +56,7 @@ float3 CalculateGradient(float3 position)
     return gradient;
 }
 
-[numthreads(threadCountHermiteVolume, threadCountHermiteVolume, threadCountHermiteVolume)]
+[numthreads(4, 4, 4)]
 void GenerateHermiteVolume(uint3 id : SV_DispatchThreadID)
 {
     if (IsOutOfHermiteBounds(id))
