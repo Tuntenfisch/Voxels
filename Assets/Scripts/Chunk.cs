@@ -1,15 +1,16 @@
 ﻿using System;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 [RequireComponent(typeof(HermiteVolume))]
-[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
 public class Chunk : MonoBehaviour, IMeshifier
 {
     [Header("Chunk")]
-    [Range(1, 128)]
+    [Range(2, 128)]
     public int m_numberOfVoxelsAlongAxis = 16;
     [Range(0.25f, 4.0f)]
     public float m_voxelSpacing = 0.5f;
@@ -30,8 +31,6 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     [Header("Editor")]
     public bool m_showBounds = false;
-    public Color m_gizmoColor = Color.green;
-
     private int NumberOfVoxels
     {
         get
@@ -90,6 +89,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private Mesh m_mesh;
     private MeshFilter m_meshFilter;
+    private MeshCollider m_meshCollider;
 
     private Bounds m_localBounds;
 
@@ -105,6 +105,7 @@ public class Chunk : MonoBehaviour, IMeshifier
     private AsyncGPUReadbackRequest m_triangleCountRequest;
     private AsyncGPUReadbackRequest m_vertexRequest;
     private AsyncGPUReadbackRequest m_triangleRequest;
+    private JobHandle m_bakeJobHandle;
 
     private ChunkFlags m_flags;
 
@@ -180,6 +181,8 @@ public class Chunk : MonoBehaviour, IMeshifier
         };
         m_meshFilter = GetComponent<MeshFilter>();
         m_meshFilter.sharedMesh = m_mesh;
+        m_meshCollider = GetComponent<MeshCollider>();
+        m_meshCollider.sharedMesh = m_mesh;
     }
 
     private void Update()
@@ -199,6 +202,11 @@ public class Chunk : MonoBehaviour, IMeshifier
         if (m_flags.HasFlag(ChunkFlags.RetrievingMeshData) && (m_vertexRequest.done && m_triangleRequest.done || !m_asyncReadback))
         {
             OnMeshDataRetrieved();
+        }
+
+        if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
+        {
+            OnMeshBaked();
         }
 
         if (m_flags.HasFlag(ChunkFlags.SettingsUpdated))
@@ -222,6 +230,7 @@ public class Chunk : MonoBehaviour, IMeshifier
         if (triangleCount == 0)
         {
             m_meshFilter.sharedMesh = null;
+            m_meshCollider.sharedMesh = null;
 
             return;
         }
@@ -258,7 +267,20 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_mesh.RecalculateBounds();
         m_meshFilter.sharedMesh = m_mesh;
 
+        m_bakeJobHandle = new BakeJob()
+        {
+            m_meshID = m_mesh.GetInstanceID(),
+            m_convex = false
+        }.Schedule();
+        m_flags |= ChunkFlags.BakingMesh;
+
         Profiler.EndSample();
+    }
+
+    private void OnMeshBaked()
+    {
+        m_flags &= ~ChunkFlags.BakingMesh;
+        m_meshCollider.sharedMesh = m_mesh;
     }
 
     private void OnSettingsUpdated()
@@ -274,8 +296,12 @@ public class Chunk : MonoBehaviour, IMeshifier
             m_shader.DisableKeyword(s_flatShadingKeyword);
         }
 
-        ReleaseBuffers();
-        CreateBuffers();
+        if (m_hermiteVolumeBuffer.count != NumberOfHermiteSamples)
+        {
+            ReleaseBuffers();
+            CreateBuffers();
+        }
+
         GenerateHermiteVolume(transform.position);
         CalculateLocalBounds();
         UpdateMesh();
@@ -299,7 +325,6 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_shader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
         m_shader.SetInt(s_maxIterationsID, m_maxIterations);
         m_shader.SetFloat(s_stepSizeID, m_stepSize);
-
         m_shader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
         m_shader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
         m_shader.SetBuffer(0, s_generatedTrianglesID, m_triangleBuffer);
@@ -338,7 +363,7 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = m_gizmoColor;
+        Gizmos.color = Color.green;
 
         if (m_showBounds)
         {
@@ -351,7 +376,8 @@ public class Chunk : MonoBehaviour, IMeshifier
     {
         SettingsUpdated = 1,
         RetrievingVertexAndTriangleCount = 2,
-        RetrievingMeshData = 4
+        RetrievingMeshData = 4,
+        BakingMesh = 8
     }
 
     [Flags]

@@ -1,7 +1,7 @@
 #ifndef VOXEL_VOLUME
 #define VOXEL_VOLUME
 
-#include "Assets/Compute/Include/HermiteVolume.cginc"
+#include "HermiteVolume.hlsl"
 
 uint3 voxelDimensions;
 float voxelSpacing;
@@ -15,7 +15,7 @@ bool IsOutOfVoxelBounds(uint3 position)
 
 float3 CalculateLocalPosition(uint3 position)
 {
-    return voxelStride * voxelSpacing * (position - 0.5 * voxelDimensions);
+    return voxelStride * voxelSpacing * (position - 0.5f * voxelDimensions);
 }
 
 float3 CalculateWorldPosition(uint3 position)

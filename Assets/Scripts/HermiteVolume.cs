@@ -6,27 +6,22 @@ public class HermiteVolume : MonoBehaviour
 {
     [Header("Noise Parameters")]
     public int m_seed;
-    public float m_noiseScale = 10.0f;
-    public Vector2 m_noiseOffset;
+    public Vector3 m_offset;
+
 
     [Header("Height Map")]
-    [Range(1, 16)]
-    public int m_octaves = 3;
     [Range(1.0f, 100.0f)]
-    public float m_initialAmplitude = 1.0f;
+    public float m_height = 15.0f;
+    [Range(1.0f, 100.0f)]
+    public float m_wavelength = 35.0f;
+
+    [Header("FBM")]
+    [Range(1, 16)]
+    public int m_numberOfOctaves = 4;
     [Range(0.0f, 1.0f)]
     public float m_persistence = 0.5f;
-    [Range(0.01f, 2.0f)]
-    public float m_initialFrequency = 1.0f;
     [Range(1.0f, 4.0f)]
     public float m_lacunarity = 2.0f;
-    [Range(-1.0f, 1.0f)]
-    public float m_sharpness = 0.0f;
-    public AnimationCurve m_scaling;
-
-    [Header("Other")]
-    [Range(0.01f, 1.0f)]
-    public float m_centralDifferenceSpacing = 0.01f;
 
     [Header("Shader")]
     public ComputeShader m_shader;
@@ -36,24 +31,17 @@ public class HermiteVolume : MonoBehaviour
     private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
     private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
     private static readonly int s_localToWorldOffsetID = Shader.PropertyToID("localToWorldOffset");
-    private static readonly int s_noiseScaleID = Shader.PropertyToID("noiseScale");
-    private static readonly int s_octavesID = Shader.PropertyToID("octaves");
-    private static readonly int s_initialAmplitudeID = Shader.PropertyToID("initialAmplitude");
+    private static readonly int s_wavelengthID = Shader.PropertyToID("wavelength");
+    private static readonly int s_numberOfOctavesID = Shader.PropertyToID("numberOfOctaves");
     private static readonly int s_persistenceID = Shader.PropertyToID("persistence");
-    private static readonly int s_initialFrequencyID = Shader.PropertyToID("initialFrequency");
     private static readonly int s_lacunarityID = Shader.PropertyToID("lacunarity");
-    private static readonly int s_sharpnessID = Shader.PropertyToID("sharpness");
-    private static readonly int s_centralDifferenceSpacingID = Shader.PropertyToID("centralDifferenceSpacing");
+    private static readonly int s_heightID = Shader.PropertyToID("height");
     private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
     private static readonly int s_octaveOffsetsID = Shader.PropertyToID("octaveOffsets");
-    private static readonly int s_heightMapScalingID = Shader.PropertyToID("heightMapScaling");
 
     private Vector3Int m_numberOfThreads;
     private ComputeBuffer m_octaveOffsetsBuffer;
-    private Texture2D m_heightMapScalingTexture;
-
     private IMeshifier m_meshifier;
-
     private HermiteVolumeFlags m_flags;
 
     private void OnEnable()
@@ -67,8 +55,7 @@ public class HermiteVolume : MonoBehaviour
 
     private void CreateBuffers()
     {
-        m_octaveOffsetsBuffer = new ComputeBuffer(m_octaves, 2 * sizeof(float));
-        m_heightMapScalingTexture = new Texture2D(256, 1, TextureFormat.RFloat, false);
+        m_octaveOffsetsBuffer = new ComputeBuffer(m_numberOfOctaves, 3 * sizeof(float));
     }
 
     private void ReleaseBuffers()
@@ -89,10 +76,13 @@ public class HermiteVolume : MonoBehaviour
     {
         m_flags &= ~HermiteVolumeFlags.SettingsUpdated;
 
-        ReleaseBuffers();
-        CreateBuffers();
+        if (m_octaveOffsetsBuffer.count != m_numberOfOctaves)
+        {
+            ReleaseBuffers();
+            CreateBuffers();
+        }
+
         CalculateOctaveOffsets();
-        CalculateHeightMapScalingTexture();
 
         if (m_meshifier != null)
         {
@@ -103,22 +93,13 @@ public class HermiteVolume : MonoBehaviour
     private void CalculateOctaveOffsets()
     {
         System.Random random = new System.Random(m_seed);
-        Vector2[] octaveOffsets = new Vector2[m_octaves];
+        Vector3[] octaveOffsets = new Vector3[m_numberOfOctaves];
 
-        for (int index = 0; index < m_octaves; index++)
+        for (int index = 0; index < m_numberOfOctaves; index++)
         {
-            octaveOffsets[index] = new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000)) + m_noiseOffset;
+            octaveOffsets[index] = new Vector3(random.Next(-100000, 100000), random.Next(-100000, 100000), random.Next(-100000, 100000)) + m_offset;
         }
         m_octaveOffsetsBuffer.SetData(octaveOffsets);
-    }
-    private void CalculateHeightMapScalingTexture()
-    {
-        for (int x = 0; x < m_heightMapScalingTexture.width; x++)
-        {
-            float value = m_scaling.Evaluate(x / (float)(m_heightMapScalingTexture.width - 1));
-            m_heightMapScalingTexture.SetPixel(x, 1, new Color(value, 0.0f, 0.0f));
-        }
-        m_heightMapScalingTexture.Apply();
     }
 
     public void Generate
@@ -134,23 +115,18 @@ public class HermiteVolume : MonoBehaviour
 
         int voxelStride = 1;
 
-        m_shader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride, numberOfHermiteSamplesAlongAxis / voxelStride);
-        m_shader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
+        m_shader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis);
+        m_shader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride);
         m_shader.SetInt(s_voxelStrideID, voxelStride);
         m_shader.SetFloat(s_voxelSpacingID, voxelSpacing);
         m_shader.SetVector(s_localToWorldOffsetID, localToWorldOffset);
-        m_shader.SetFloat(s_noiseScaleID, m_noiseScale);
-        m_shader.SetInt(s_octavesID, m_octaves);
-        m_shader.SetFloat(s_initialAmplitudeID, m_initialAmplitude);
+        m_shader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
+        m_shader.SetFloat(s_wavelengthID, m_wavelength);
         m_shader.SetFloat(s_persistenceID, m_persistence);
-        m_shader.SetFloat(s_initialFrequencyID, m_initialFrequency);
         m_shader.SetFloat(s_lacunarityID, m_lacunarity);
-        m_shader.SetFloat(s_sharpnessID, m_sharpness);
-        m_shader.SetFloat(s_centralDifferenceSpacingID, m_centralDifferenceSpacing);
-
+        m_shader.SetFloat(s_heightID, m_height);
         m_shader.SetBuffer(0, s_hermiteVolumeID, hermiteVolumeBuffer);
         m_shader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
-        m_shader.SetTexture(0, s_heightMapScalingID, m_heightMapScalingTexture);
         m_shader.Dispatch
         (
             0,

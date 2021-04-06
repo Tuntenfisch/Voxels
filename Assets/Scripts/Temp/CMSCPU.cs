@@ -127,12 +127,12 @@ public class CMSCPU : MonoBehaviour
         new int[] {  0,  1, -1, -1 },
         new int[] {  3,  1, -1, -1 },
         new int[] {  1,  2, -1, -1 },
-        new int[] {  3,  2,  1,  0 },  // ambiguous case
+        new int[] {  3,  2,  0,  1 },
         new int[] {  0,  2, -1, -1 },
         new int[] {  3,  2, -1, -1 },
         new int[] {  2,  3, -1, -1 },
         new int[] {  2,  0, -1, -1 },
-        new int[] {  3,  0,  2,  1 },  // ambiguous case
+        new int[] {  3,  0,  2,  1 },
         new int[] {  2,  1, -1, -1 },
         new int[] {  1,  3, -1, -1 },
         new int[] {  1,  0, -1, -1 },
@@ -153,7 +153,7 @@ public class CMSCPU : MonoBehaviour
     [Header("General")]
     [Range(0, 3)]
     public int m_LODLevel;
-    public Faces m_subSampleChunkFaces;
+    public Faces m_subSampleFaces;
 
     [Header("Shader")]
     public Material m_lineMaterial;
@@ -214,17 +214,9 @@ public class CMSCPU : MonoBehaviour
         if (m_flags.HasFlag(CMSCPUFlags.SettingsUpdated))
         {
             m_flags &= ~CMSCPUFlags.SettingsUpdated;
+            GenerateHermiteVolume();
             UpdateCubicalMarchingSquares();
         }
-    }
-
-    private Vector3 ClampPositionToVoxel(Vector3 position)
-    {
-        position.x = Mathf.Clamp(position.x, s_voxelCorners[0].x, s_voxelCorners[6].x);
-        position.y = Mathf.Clamp(position.y, s_voxelCorners[0].y, s_voxelCorners[6].y);
-        position.z = Mathf.Clamp(position.z, s_voxelCorners[0].z, s_voxelCorners[6].z);
-
-        return position;
     }
 
     private void GenerateHermiteVolume()
@@ -239,21 +231,36 @@ public class CMSCPU : MonoBehaviour
                 {
                     Vector3 worldPosition = CalculateWorldPosition(id);
                     HermiteData hermiteData;
-                    hermiteData.m_density = 4.0f - (worldPosition - new Vector3(0.0f, 0.0f, 0.0f)).magnitude;
-                    hermiteData.m_normal = (worldPosition - new Vector3(0.0f, 0.0f, 0.0f)).normalized;
+                    hermiteData.m_density = worldPosition.y;
+                    hermiteData.m_gradient = Vector3.up;
                     m_hermiteVolume[CalculateHermiteIndex(id)] = hermiteData;
                 }
             }
         }
     }
 
-    private bool IsOnVoxelEdge(Vector3 position)
+    private bool IsOnHermiteSurface(Vector3Int position)
     {
-        bool x = position.x == 0.0 || position.x == 1;
-        bool y = position.y == 0.0 || position.y == 1;
-        bool z = position.z == 0.0 || position.z == 1;
+        if (position.x == 0 || position.y == 0 || position.z == 0)
+        {
+            return true;
+        }
 
-        return x && (y || z) || (y && z);
+        if (position.x == c_hermiteDimensions.x - 1 || position.y == c_hermiteDimensions.y - 1 || position.z == c_hermiteDimensions.z - 1)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private Vector3 ClampPositionToVoxel(Vector3 position)
+    {
+        position.x = Mathf.Clamp(position.x, s_voxelCorners[0].x, s_voxelCorners[6].x);
+        position.y = Mathf.Clamp(position.y, s_voxelCorners[0].y, s_voxelCorners[6].y);
+        position.z = Mathf.Clamp(position.z, s_voxelCorners[0].z, s_voxelCorners[6].z);
+
+        return position;
     }
 
     private int CalculateHermiteIndex(Vector3Int position)
@@ -275,15 +282,15 @@ public class CMSCPU : MonoBehaviour
     {
         Vertex edgeVertex;
 
-        Vector3Int cornerA = s_voxelCorners[edge.m_cornerIndexA];
-        Vector3Int cornerB = s_voxelCorners[edge.m_cornerIndexB];
+        Vector3Int voxelCornerA = s_voxelCorners[edge.m_cornerIndexA];
+        Vector3Int voxelCornerB = s_voxelCorners[edge.m_cornerIndexB];
 
-        HermiteData sampleA = m_hermiteVolume[CalculateHermiteIndex(VoxelStride * (id + cornerA))];
-        HermiteData sampleB = m_hermiteVolume[CalculateHermiteIndex(VoxelStride * (id + cornerB))];
+        HermiteData sampleA = m_hermiteVolume[CalculateHermiteIndex(VoxelStride * (id + voxelCornerA))];
+        HermiteData sampleB = m_hermiteVolume[CalculateHermiteIndex(VoxelStride * (id + voxelCornerB))];
         float interpolant = -sampleA.m_density / (sampleB.m_density - sampleA.m_density);
 
-        edgeVertex.m_position = Vector3.Lerp(cornerA, cornerB, interpolant);
-        edgeVertex.m_normal = Vector3.Lerp(sampleA.m_normal, sampleB.m_normal, interpolant).normalized;
+        edgeVertex.m_position = Vector3.Lerp(voxelCornerA, voxelCornerB, interpolant);
+        edgeVertex.m_normal = Vector3.Lerp(sampleA.m_gradient, sampleB.m_gradient, interpolant).normalized;
 
         return edgeVertex;
     }
@@ -336,21 +343,15 @@ public class CMSCPU : MonoBehaviour
 
     private void GenerateFaceSegments(Vector3Int id, int faceIndex, ref Segment[] segments, ref int segmentsCount)
     {
-        bool subSample = ((int)m_subSampleChunkFaces >> faceIndex & 1) == 1;
-
         int[] faceSampleIndices = s_faceSampleIndices[faceIndex];
 
         int segmentsIndex = 0;
-        Vector3Int position;
         
-        position = VoxelStride * (id + s_voxelCorners[faceSampleIndices[0]]);
-        segmentsIndex |= (m_hermiteVolume[CalculateHermiteIndex(position)].m_density >= 0.0 ? 1 : 0) << 0;
-        position = VoxelStride * (id + s_voxelCorners[faceSampleIndices[1]]);
-        segmentsIndex |= (m_hermiteVolume[CalculateHermiteIndex(position)].m_density >= 0.0 ? 1 : 0) << 1;
-        position = VoxelStride * (id + s_voxelCorners[faceSampleIndices[2]]);
-        segmentsIndex |= (m_hermiteVolume[CalculateHermiteIndex(position)].m_density >= 0.0 ? 1 : 0) << 2;
-        position = VoxelStride * (id + s_voxelCorners[faceSampleIndices[3]]);
-        segmentsIndex |= (m_hermiteVolume[CalculateHermiteIndex(position)].m_density >= 0.0 ? 1 : 0) << 3;
+        for (int sampleIndex = 0; sampleIndex < faceSampleIndices.Length; sampleIndex++)
+        {
+            Vector3Int position = VoxelStride * (id + s_voxelCorners[faceSampleIndices[sampleIndex]]);
+            segmentsIndex |= (m_hermiteVolume[CalculateHermiteIndex(position)].m_density < 0.0 ? 1 : 0) << sampleIndex;
+        }
 
         int[] voxelFace = s_faces[faceIndex];
         int[] faceSegments = s_segments[segmentsIndex];
@@ -471,12 +472,8 @@ public class CMSCPU : MonoBehaviour
         {
             Segment segment = segments[component.m_segmentsIndices[index++]];
             Vertex edgeVertex = segment.m_endPointA.m_edgeVertex;
-
-            if (IsOnVoxelEdge(edgeVertex.m_position))
-            {
-                vertex.m_position += edgeVertex.m_position;
-                vertex.m_normal += edgeVertex.m_normal;
-            }
+            vertex.m_position += edgeVertex.m_position;
+            vertex.m_normal += edgeVertex.m_normal;
         }
 
         vertex.m_position /= index;
@@ -502,12 +499,8 @@ public class CMSCPU : MonoBehaviour
             {
                 Segment segmentB = segments[component.m_segmentsIndices[indexB++]];
                 Vertex edgeVertexB = segmentB.m_endPointA.m_edgeVertex;
-
-                if (IsOnVoxelEdge(edgeVertexA.m_position) && IsOnVoxelEdge(edgeVertexB.m_position))
-                {
-                    float newCosOfAngle = Vector3.Dot(edgeVertexA.m_normal, edgeVertexB.m_normal);
-                    cosOfAngle = cosOfAngle > newCosOfAngle ? newCosOfAngle : cosOfAngle;
-                }
+                float newCosOfAngle = Vector3.Dot(edgeVertexA.m_normal, edgeVertexB.m_normal);
+                cosOfAngle = cosOfAngle > newCosOfAngle ? newCosOfAngle : cosOfAngle;
             }
         }
         return Mathf.Acos(cosOfAngle) >= m_sharpFeatureAngle;
@@ -523,12 +516,8 @@ public class CMSCPU : MonoBehaviour
         {
             Segment segment = segments[component.m_segmentsIndices[index++]];
             Vertex edgeVertex = segment.m_endPointA.m_edgeVertex;
-
-            if (IsOnVoxelEdge(edgeVertex.m_position))
-            {
-                float distance = Vector3.Dot(edgeVertex.m_normal, corner - edgeVertex.m_position);
-                force -= distance * edgeVertex.m_normal;
-            }
+            float distance = Vector3.Dot(edgeVertex.m_normal, corner - edgeVertex.m_position);
+            force -= distance * edgeVertex.m_normal;
         }
         return force;
     }
@@ -721,6 +710,7 @@ public class CMSCPU : MonoBehaviour
 
     private void OnValidate()
     {
+        m_subSampleFaces = m_LODLevel == 3 ? 0 : m_subSampleFaces;
         m_flags |= CMSCPUFlags.SettingsUpdated;
     }
 
@@ -744,7 +734,7 @@ public class CMSCPU : MonoBehaviour
     private struct HermiteData
     {
         public float m_density;
-        public Vector3 m_normal;
+        public Vector3 m_gradient;
     }
 
     private struct VoxelEdge
