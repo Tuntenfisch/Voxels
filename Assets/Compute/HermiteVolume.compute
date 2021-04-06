@@ -1,59 +1,25 @@
 #pragma kernel GenerateHermiteVolume
 
-#include "Assets/Compute/Include/HermiteFunctions.cginc"
-#include "Assets/Compute/Include/VoxelVolume.cginc"
-#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
+#include "Include/Noise.hlsl"
+#include "Include/VoxelVolume.hlsl"
 
-float noiseScale;
-int octaves;
-Buffer<float2> octaveOffsets;
-float initialAmplitude;
+float wavelength;
+uint numberOfOctaves;
+Buffer<float3> octaveOffsets;
 float persistence;
-float initialFrequency;
 float lacunarity;
-float sharpness;
-Texture2D<float> heightMapScaling;
-SamplerState LinearClampSampler;
-float centralDifferenceSpacing;
+float height;
 
-float CalculateHeight(float2 position)
+float4 GenerateHeight(float3 position)
 {
-    float density = 0.0;
-    float amplitude = initialAmplitude;
-    float frequency = initialFrequency;
-    float noiseHeight = 0.0;
+    SimplexNoise2D noise;
+    float4 value_gradient = GenerateFBMNoise(noise, position, numberOfOctaves, octaveOffsets, 1.0f / wavelength, persistence, lacunarity);
+    
+    value_gradient *= height;
+    value_gradient.x += position.y;
+    value_gradient.z += 1.0f;
 
-    for (int index = 0; index < octaves; index++)
-    {
-        float2 samplePosition = position / noiseScale + octaveOffsets[index];
-        float simplexNoise = snoise(frequency * float3(samplePosition.x, 0.0, samplePosition.y));
-        float billowNoise = abs(simplexNoise);
-        float ridgeNoise = 1.0 - billowNoise;
-        float noise = sharpness < 0.0 ? lerp(simplexNoise, billowNoise, abs(sharpness)) : lerp(simplexNoise, ridgeNoise, sharpness);
-
-        noiseHeight += amplitude * noise * heightMapScaling.SampleLevel(LinearClampSampler, float2(0.5 * (noise + 1.0), 0), 0);
-        amplitude *= persistence;
-        frequency *= lacunarity;
-    }
-    return noiseHeight;
-}
-
-float CalculateDensity(float3 position)
-{
-    return CalculateHeight(position.xz) - position.y;
-}
-
-float3 CalculateGradient(float3 position)
-{
-    float3 gradient;
-
-    float halfSpacing = 0.5 * centralDifferenceSpacing * voxelSpacing;
-
-    gradient.x = CalculateDensity(position - float3(halfSpacing, 0.0, 0.0)) - CalculateDensity(position + float3(halfSpacing, 0.0, 0.0));
-    gradient.y = CalculateDensity(position - float3(0.0, halfSpacing, 0.0)) - CalculateDensity(position + float3(0.0, halfSpacing, 0.0));
-    gradient.z = CalculateDensity(position - float3(0.0, 0.0, halfSpacing)) - CalculateDensity(position + float3(0.0, 0.0, halfSpacing));
-
-    return gradient;
+    return value_gradient;
 }
 
 [numthreads(4, 4, 4)]
@@ -64,10 +30,8 @@ void GenerateHermiteVolume(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint index = CalculateHermiteIndex(id);
     float3 worldPosition = CalculateWorldPosition(id);
+    float4 value_gradient = GenerateHeight(worldPosition);
 
-    HermiteData sample;
-    InitializeHermiteData(sample, CalculateDensity(worldPosition), CalculateGradient(worldPosition));
-    hermiteVolume[index] = sample;
+    hermiteVolume[CalculateHermiteIndex(id)] = HermiteSampleConstructor(value_gradient.x, value_gradient.yzw);
 }
