@@ -26,14 +26,14 @@ static const uint3 voxelCorners[voxelCornersCount] =
     uint3(0, 1, 1)
 };
 
-bool IsOutsideVoxel(float3 position)
+bool IsOutsideVoxel(float3 position, float epsilon = 0.0f)
 {
-    return any(position < (float3) voxelCorners[0] || position > (float3) voxelCorners[6]);
+    return any(position < (float3) (voxelCorners[0] - epsilon) || position > (float3) (voxelCorners[6] + epsilon));
 }
 
-float3 ClampToVoxel(float3 position)
+float3 ClampToVoxel(float3 position, float epsilon = 0.0f)
 {
-    return clamp(position, voxelCorners[0], voxelCorners[6]);
+    return clamp(position, voxelCorners[0] - epsilon, voxelCorners[6] + epsilon);
 }
 
 struct VoxelEdge
@@ -94,6 +94,21 @@ struct VoxelFace
     uint4 voxelEdgeIndices;
     uint4 voxelCornerIndices;
     float3x3 normalToFaceTangentMatrix;
+    
+    float3 GetFaceTangent(float3 normal)
+    {
+        const float epsilon = 1e-4f;
+        
+        float3 tangent = mul(normalToFaceTangentMatrix, normal);
+        
+        // Ensure that the tangent doesn't equal the zero vector. 
+        if (dot(tangent, tangent) < epsilon)
+        {
+            tangent += mul(normalToFaceTangentMatrix, float3(epsilon, epsilon, epsilon));
+        }
+        
+        return tangent;
+    }
 };
 
 VoxelFace VoxelFaceConstructor(uint4 voxelEdgeIndices, uint4 voxelCornerIndices, float3x3 normalToFaceTangentMatrix)
@@ -108,10 +123,10 @@ VoxelFace VoxelFaceConstructor(uint4 voxelEdgeIndices, uint4 voxelCornerIndices,
 
 static const VoxelFace voxelFaces[voxelFacesCount] =
 {
-    VoxelFaceConstructor // Rear face (xy plane, z = 1)
+    VoxelFaceConstructor // Front face (xy plane, z = 0)
     (
-        uint4(2, 11, 6, 10),
-        uint4(2, 3, 7, 6),
+        uint4(0, 9, 4, 8),
+        uint4(0, 1, 5, 4),
         float3x3
         (
             0.0, -1.0, 0.0,
@@ -130,10 +145,10 @@ static const VoxelFace voxelFaces[voxelFacesCount] =
             0.0, 1.0, 0.0
         )
     ),
-    VoxelFaceConstructor // Front face (xy plane, z = 0)
+    VoxelFaceConstructor // Rear face (xy plane, z = 1)
     (
-        uint4(0, 9, 4, 8),
-        uint4(0, 1, 5, 4),
+        uint4(2, 11, 6, 10),
+        uint4(2, 3, 7, 6),
         float3x3
         (
             0.0, -1.0, 0.0,

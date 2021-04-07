@@ -24,8 +24,8 @@ public class Chunk : MonoBehaviour, IMeshifier
     public int m_maxIterations = 10;
     [Range(0.0f, 0.4f)]
     public float m_stepSize = 0.2f;
-    [Range(0.0f, 180.0f)]
-    public float m_sharpFeatureAngle = 40.0f;
+    [Range(0.1f, 180.0f)]
+    public float m_sharpFeatureAngle = 35.0f;
     public bool m_flatShading = true;
     public bool m_asyncReadback = false;
 
@@ -387,7 +387,7 @@ public class Chunk : MonoBehaviour, IMeshifier
         Right = 2,
         Bottom = 16,
         Top = 32,
-        Rear = 1,
-        Front = 4
+        Rear = 4,
+        Front = 1
     }
 }

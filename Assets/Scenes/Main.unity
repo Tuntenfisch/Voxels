@@ -557,7 +557,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1380290538}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0.04}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -577,7 +577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_seed: 0
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 15
+  m_height: 10
   m_wavelength: 35
   m_numberOfOctaves: 10
   m_persistence: 0.45
@@ -595,13 +595,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb5cf6e8a6b58044ba026fc65baa66fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 1
+  m_numberOfVoxelsAlongAxis: 128
+  m_voxelSpacing: 0.5
   m_LODLevel: 0
   m_subSampleChunkFaces: 0
   m_shader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 10
-  m_stepSize: 0.2
+  m_maxIterations: 15
+  m_stepSize: 0.25
   m_sharpFeatureAngle: 35
   m_flatShading: 0
   m_asyncReadback: 0

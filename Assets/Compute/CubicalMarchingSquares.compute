@@ -46,8 +46,8 @@ uint2 GenerateSegmentSharpFeatureVertices(VoxelFace voxelFace, Vertex vertexA, V
         return -1;
     }
 
-    float3 faceTangentA = mul(voxelFace.normalToFaceTangentMatrix, vertexA.normal);
-    float3 faceTangentB = mul(voxelFace.normalToFaceTangentMatrix, vertexB.normal);
+    float3 faceTangentA = voxelFace.GetFaceTangent(vertexA.normal);   
+    float3 faceTangentB = voxelFace.GetFaceTangent(vertexB.normal);
     
     float3 lineVec3 = vertexB.position - vertexA.position;
     float3 crossVec1and2 = cross(faceTangentA, faceTangentB);
@@ -55,7 +55,12 @@ uint2 GenerateSegmentSharpFeatureVertices(VoxelFace voxelFace, Vertex vertexA, V
     float s = dot(crossVec3and2, crossVec1and2) / dot(crossVec1and2, crossVec1and2);
     float3 segmentSharpFeatureVertexPosition = vertexA.position + (faceTangentA * s);
 
-    if (IsOutsideVoxel(segmentSharpFeatureVertexPosition))
+    // A single segment sharp feature is shared between exactly two segments, one segment belonging to the current voxel
+    // and the other belonging to the adjacent voxel sharing the same voxel face. Therefore the position of the sharp feature
+    // will be independently calculated twice. Due to floating point errors both calculated sharp feature positions can be
+    // slightly different. This can result in one of both being "outside" the voxel while the other one isn't.
+    // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
+    if (IsOutsideVoxel(segmentSharpFeatureVertexPosition, 1e-4f) || any(isnan(segmentSharpFeatureVertexPosition)))
     {
         return -1;
     }
@@ -94,8 +99,8 @@ uint GenerateFaceSegments(uint3 id, VoxelFace voxelFace, uint segmentsCount)
         VoxelEdge voxelEdgeA = voxelEdges[edgeIndexA];
         VoxelEdge voxelEdgeB = voxelEdges[edgeIndexB];
 
-        Vertex edgeVertexA = CalculateVertexAlongVoxelEdge(id, voxelEdgeA);
-        Vertex edgeVertexB = CalculateVertexAlongVoxelEdge(id, voxelEdgeB);
+        Vertex vertexA = CalculateVertexAlongVoxelEdge(id, voxelEdgeA);
+        Vertex vertexB = CalculateVertexAlongVoxelEdge(id, voxelEdgeB);
         
         Segment segment = SegmentConstructor
         (
@@ -103,11 +108,11 @@ uint GenerateFaceSegments(uint3 id, VoxelFace voxelFace, uint segmentsCount)
             generatedVertices.IncrementCounter(),
             edgeIndexB,
             generatedVertices.IncrementCounter(),
-            GenerateSegmentSharpFeatureVertices(voxelFace, edgeVertexA, edgeVertexB)
+            GenerateSegmentSharpFeatureVertices(voxelFace, vertexA, vertexB)
         );
 
-        generatedVertices[segment.GetEdgeVertexIndexA()] = edgeVertexA;
-        generatedVertices[segment.GetEdgeVertexIndexB()] = edgeVertexB;
+        generatedVertices[segment.GetEdgeVertexIndexA()] = vertexA;
+        generatedVertices[segment.GetEdgeVertexIndexB()] = vertexB;
         
         segments[segmentsCount++] = segment;
     }
@@ -183,9 +188,9 @@ Vertex CalculateComponentCenterVertex(Component component)
     for (uint index = 0; index < component.GetLength(); index++)
     {
         Segment segment = segments[component.GetPackedSegmentsIndex(index)];
-        Vertex edgeVertex = generatedVertices[segment.GetEdgeVertexIndexA()];
-        componentSharpFeatureVertex.position += edgeVertex.position;
-        componentSharpFeatureVertex.normal += edgeVertex.normal;
+        Vertex vertex = generatedVertices[segment.GetEdgeVertexIndexA()];
+        componentSharpFeatureVertex.position += vertex.position;
+        componentSharpFeatureVertex.normal += vertex.normal;
     }
 
     componentSharpFeatureVertex.position /= index;
@@ -201,13 +206,13 @@ bool HasComponentSharpFeature(Component component)
     for (uint indexA = 0; indexA < component.GetLength(); indexA++)
     {
         Segment segmentA = segments[component.GetPackedSegmentsIndex(indexA)];
-        Vertex edgeVertexA = generatedVertices[segmentA.GetEdgeVertexIndexA()];
+        Vertex vertexA = generatedVertices[segmentA.GetEdgeVertexIndexA()];
 
         for (uint indexB = 0; indexB < component.GetLength(); indexB++)
         {
             Segment segmentB = segments[component.GetPackedSegmentsIndex(indexB)];
-            Vertex edgeVertexB = generatedVertices[segmentB.GetEdgeVertexIndexA()];
-            float newCosOfAngle = dot(edgeVertexA.normal, edgeVertexB.normal);
+            Vertex vertexB = generatedVertices[segmentB.GetEdgeVertexIndexA()];
+            float newCosOfAngle = dot(vertexA.normal, vertexB.normal);
             cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
         }
     }
@@ -223,9 +228,9 @@ void CalculateForces(Component component)
         for (uint index = 0; index < component.GetLength(); index++)
         {
             Segment segment = segments[component.GetPackedSegmentsIndex(index)];
-            Vertex edgeVertex = generatedVertices[segment.GetEdgeVertexIndexA()];
-            float distance = dot(edgeVertex.normal, voxelCorners[cornerIndex] - edgeVertex.position);
-            forces[cornerIndex] -= distance * edgeVertex.normal;
+            Vertex vertex = generatedVertices[segment.GetEdgeVertexIndexA()];
+            float distance = dot(vertex.normal, voxelCorners[cornerIndex] - vertex.position);
+            forces[cornerIndex] -= distance * vertex.normal;
         }
     }
 }
@@ -254,12 +259,11 @@ Vertex CalculateComponentSharpFeatureVertex(Component component, out bool hasCom
 
         for (uint iterations = 0; iterations < maxIterations; iterations++)
         {
-            float3 combinedForce = CalculateCombinedForce(componentSharpFeatureVertex.position.zyx);
-
-            componentSharpFeatureVertex.position += stepSize * combinedForce;
-            componentSharpFeatureVertex.position = ClampToVoxel(componentSharpFeatureVertex.position);
+            componentSharpFeatureVertex.position += stepSize * CalculateCombinedForce(componentSharpFeatureVertex.position.zyx);
         }
     }
+    componentSharpFeatureVertex.position = ClampToVoxel(componentSharpFeatureVertex.position, 1e-1f);
+    
     return componentSharpFeatureVertex;
 }
 
@@ -309,7 +313,7 @@ void GenerateTriangles(uint3 id, Component component, Vertex componentSharpFeatu
             (
                 id,
                 uint3(componentSharpFeatureVertexIndex, segment.GetSharpFeatureVertexIndexA(), segment.GetEdgeVertexIndexA()),
-                bool3(hasComponentSharpFeature, hasComponentSharpFeature, false)
+                bool3(hasComponentSharpFeature, true, false)
             );
 
             componentSharpFeatureVertexIndex = generatedVertices.IncrementCounter();
@@ -319,7 +323,7 @@ void GenerateTriangles(uint3 id, Component component, Vertex componentSharpFeatu
             (
                 id,
                 uint3(segment.GetSharpFeatureVertexIndexB(), componentSharpFeatureVertexIndex, segment.GetEdgeVertexIndexB()),
-                bool3(hasComponentSharpFeature, hasComponentSharpFeature, false)
+                bool3(hasComponentSharpFeature, true, false)
             );
         }
         else
