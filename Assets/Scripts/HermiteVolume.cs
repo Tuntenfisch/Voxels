@@ -10,9 +10,9 @@ public class HermiteVolume : MonoBehaviour
 
 
     [Header("Height Map")]
-    [Range(1.0f, 100.0f)]
+    [Range(0.0f, 100.0f)]
     public float m_height = 15.0f;
-    [Range(1.0f, 100.0f)]
+    [Range(0.0f, 100.0f)]
     public float m_wavelength = 35.0f;
 
     [Header("FBM")]
