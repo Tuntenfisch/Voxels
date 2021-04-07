@@ -16,7 +16,7 @@ float4 GenerateHeight(float3 position)
     SimplexNoise2D noise;
     float4 value_gradient = GenerateFBMNoise(noise, position, numberOfOctaves, octaveOffsets, 1.0f / wavelength, persistence, lacunarity);
 
-    value_gradient *= height;
+    value_gradient *= -height;
     value_gradient.x += position.y;
     value_gradient.z += 1.0f;
 
@@ -32,7 +32,20 @@ void GenerateHermiteVolume(uint3 id : SV_DispatchThreadID)
     }
 
     float3 worldPosition = CalculateWorldPosition(id);
-    float4 value_gradient = Union(Cube(worldPosition, 0.0f, float3(15.0f, 3.0f, 15.0f)), Sphere(worldPosition, 0.0f, 5.0f));
+    float4 value_gradient = Union
+    (
+        Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 2.0f),
+        Difference
+        (
+            SmoothUnion
+            (
+                GenerateHeight(worldPosition),
+                Cube(worldPosition, float3(0.0f, 2.5f, 0.0f), float3(15.0f, 3.0f, 20.0f)),
+                2.0f
+            ),
+            Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 5.0f)
+        )
+    );
 
     hermiteVolume[CalculateHermiteIndex(id)] = HermiteSampleConstructor(value_gradient.x, value_gradient.yzw);
 }

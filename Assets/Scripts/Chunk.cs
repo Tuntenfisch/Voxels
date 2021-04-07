@@ -2,12 +2,11 @@
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
-using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 [RequireComponent(typeof(HermiteVolume))]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-public class Chunk : MonoBehaviour, IMeshifier
+public class Chunk : MonoBehaviour
 {
     [Header("Chunk")]
     [Range(2, 128)]
@@ -109,13 +108,11 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private ChunkFlags m_flags;
 
-    public void OnHermiteVolumeChanged()
-    {
-        m_flags |= ChunkFlags.SettingsUpdated;
-    }
-
     private void OnEnable()
     {
+        m_hermiteVolume = GetComponent<HermiteVolume>();
+        m_hermiteVolume.OnHermiteVolumeChanged += OnSettingsUpdated;
+
         CreateBuffers();
     }
 
@@ -125,7 +122,6 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
 
         InitializeMeshComponents();
-        m_hermiteVolume = GetComponent<HermiteVolume>();
         GenerateHermiteVolume(transform.position);
         CalculateLocalBounds();
         UpdateMesh();
@@ -217,12 +213,16 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void OnVertexAndTriangleCountRetrieved()
     {
-        Profiler.BeginSample("Chunk.OnVertexAndTriangleCountRetrieved");
-
         m_flags &= ~ChunkFlags.RetrievingVertexAndTriangleCount;
 
         m_vertexCountRequest.WaitForCompletion();
         m_triangleCountRequest.WaitForCompletion();
+
+        if (m_vertexCountRequest.hasError || m_triangleCountRequest.hasError)
+        {
+            Debug.Log("GPU readback error detected.");
+            return;
+        }
 
         int vertexCount = m_vertexCountRequest.GetData<int>()[0];
         int triangleCount = m_triangleCountRequest.GetData<int>()[0];
@@ -239,18 +239,20 @@ public class Chunk : MonoBehaviour, IMeshifier
         m_vertexRequest = AsyncGPUReadback.Request(m_vertexBuffer, vertexCount * m_vertexBuffer.stride, 0);
         m_triangleRequest = AsyncGPUReadback.Request(m_triangleBuffer, triangleCount * m_triangleBuffer.stride, 0);
         m_flags |= ChunkFlags.RetrievingMeshData;
-
-        Profiler.EndSample();
     }
 
     private void OnMeshDataRetrieved()
     {
-        Profiler.BeginSample("Chunk.OnMeshDataRetrieved");
-
         m_flags &= ~ChunkFlags.RetrievingMeshData;
 
         m_vertexRequest.WaitForCompletion();
         m_triangleRequest.WaitForCompletion();
+
+        if (m_vertexRequest.hasError || m_triangleRequest.hasError)
+        {
+            Debug.Log("GPU readback error detected.");
+            return;
+        }
 
         NativeArray<Vertex> vertices = m_vertexRequest.GetData<Vertex>();
         NativeArray<int> triangles = m_triangleRequest.GetData<int>();
@@ -273,8 +275,6 @@ public class Chunk : MonoBehaviour, IMeshifier
             m_convex = false
         }.Schedule();
         m_flags |= ChunkFlags.BakingMesh;
-
-        Profiler.EndSample();
     }
 
     private void OnMeshBaked()
@@ -309,8 +309,6 @@ public class Chunk : MonoBehaviour, IMeshifier
 
     private void UpdateMesh()
     {
-        Profiler.BeginSample("Chunk.UpdateMesh");
-
         m_vertexBuffer.SetCounterValue(0);
         m_triangleBuffer.SetCounterValue(0);
 
@@ -342,14 +340,13 @@ public class Chunk : MonoBehaviour, IMeshifier
         // Retrieve vertex and triangle count asynchronously.
         m_vertexCountRequest = AsyncGPUReadback.Request(m_vertexCountBuffer, m_vertexCountBuffer.stride, 0);
         m_triangleCountRequest = AsyncGPUReadback.Request(m_triangleCountBuffer, m_triangleCountBuffer.stride, 0);
-
         m_flags |= ChunkFlags.RetrievingVertexAndTriangleCount;
-
-        Profiler.EndSample();
     }
 
     private void OnDisable()
     {
+        m_hermiteVolume.OnHermiteVolumeChanged -= OnSettingsUpdated;
+
         ReleaseBuffers();
     }
 

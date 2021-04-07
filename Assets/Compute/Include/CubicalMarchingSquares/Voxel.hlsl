@@ -101,7 +101,8 @@ struct VoxelFace
         
         float3 tangent = mul(normalToFaceTangentMatrix, normal);
         
-        // Ensure that the tangent doesn't equal the zero vector. 
+        // Ensure that the tangent isn't zero length. This can happen when 
+        // the normal lies in the same plane as the voxel face itself.
         if (dot(tangent, tangent) < epsilon)
         {
             tangent += mul(normalToFaceTangentMatrix, float3(epsilon, epsilon, epsilon));

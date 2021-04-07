@@ -60,7 +60,7 @@ uint2 GenerateSegmentSharpFeatureVertices(VoxelFace voxelFace, Vertex vertexA, V
     // will be independently calculated twice. Due to floating point errors both calculated sharp feature positions can be
     // slightly different. This can result in one of both being "outside" the voxel while the other one isn't.
     // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
-    if (IsOutsideVoxel(segmentSharpFeatureVertexPosition, 1e-4f) || any(isnan(segmentSharpFeatureVertexPosition)))
+    if (IsOutsideVoxel(segmentSharpFeatureVertexPosition, 0.75f) || any(isnan(segmentSharpFeatureVertexPosition)))
     {
         return -1;
     }
