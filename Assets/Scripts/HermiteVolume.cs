@@ -1,9 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Profiling;
 
-[RequireComponent(typeof(Chunk))]
 public class HermiteVolume : MonoBehaviour
 {
+    public event Action OnHermiteVolumeChanged;
+
     [Header("Noise Parameters")]
     public int m_seed;
     public Vector3 m_offset;
@@ -41,12 +43,10 @@ public class HermiteVolume : MonoBehaviour
 
     private Vector3Int m_numberOfThreads;
     private ComputeBuffer m_octaveOffsetsBuffer;
-    private IMeshifier m_meshifier;
     private HermiteVolumeFlags m_flags;
 
     private void OnEnable()
     {
-        m_meshifier = GetComponent<IMeshifier>();
         m_shader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
         m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
         CreateBuffers();
@@ -84,10 +84,7 @@ public class HermiteVolume : MonoBehaviour
 
         CalculateOctaveOffsets();
 
-        if (m_meshifier != null)
-        {
-            m_meshifier.OnHermiteVolumeChanged();
-        }
+        OnHermiteVolumeChanged();
     }
 
     private void CalculateOctaveOffsets()
