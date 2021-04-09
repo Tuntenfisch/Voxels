@@ -1,9 +1,9 @@
 #pragma kernel GenerateHermiteVolume
 
-#include "Include/Noise.hlsl"
-#include "Include/SDF.hlsl"
 #include "Include/HermiteSample.hlsl"
 #include "Include/HermiteVolume.hlsl"
+#include "Include/Noise.hlsl"
+#include "Include/SDF.hlsl"
 #include "Include/VoxelVolume.hlsl"
 
 float wavelength;
@@ -36,10 +36,10 @@ void GenerateHermiteVolume(uint3 hermiteID: SV_DispatchThreadID)
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(hermiteID));
 
     float4 cube = Cube(worldPosition, float3(0.0f, 2.5f, 0.0f), float3(15.0f, 3.0f, 20.0f));
-    float4 sphere1 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 2.0f);
-    float4 sphere2 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 5.0f);
+    float4 sphere0 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 2.0f);
+    float4 sphere1 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 5.0f);
 
-    float4 value_gradient = Union(sphere1, Difference(SmoothUnion(GenerateHeight(worldPosition), cube, 2.0f), sphere2));
+    float4 value_gradient = Union(sphere0, Difference(SmoothUnion(GenerateHeight(worldPosition), cube, 2.0f), sphere1));
 
     hermiteVolume[CalculateHermiteIndex(hermiteID)] = HermiteSampleConstructor(value_gradient.x, value_gradient.yzw);
 }

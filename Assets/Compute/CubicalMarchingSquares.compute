@@ -16,8 +16,8 @@
 
 #include "Include/HermiteSample.hlsl"
 #include "Include/HermiteVolume.hlsl"
-#include "Include/VoxelVolume.hlsl"
 #include "Include/Vertex.hlsl"
+#include "Include/VoxelVolume.hlsl"
 
 static const uint3 voxelEdgeIndicesForFlatVertexGeneration = uint3(0, 3, 8);
 
