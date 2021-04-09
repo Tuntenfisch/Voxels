@@ -415,6 +415,8 @@
         "m_GuidSerialized": "1e2ce71a-b663-42ad-9c9f-cf69914d9e94"
     },
     "m_Name": "Position",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector3_22ef30fe98234c3ab0d8ef2c0cfb2d5d",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -438,6 +440,8 @@
         "m_GuidSerialized": "0eb08c3f-c490-4bce-a73c-bb2147523adf"
     },
     "m_Name": "Tiling Y",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_24e4e5c12a2445bcbd2418abd00f6998",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -817,6 +821,8 @@
         "m_GuidSerialized": "f4fd02ad-e077-4436-b16d-e2ba7b438ca8"
     },
     "m_Name": "Tiling Z",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "",
     "m_OverrideReferenceName": "Vector1_1",
     "m_GeneratePropertyBlock": true,
@@ -1055,6 +1061,8 @@
         "m_GuidSerialized": "a154e264-5d7c-439e-8355-37d0df798aaf"
     },
     "m_Name": "Tiling X",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_77501979a0ae4af1a45b90bf22fa48bc",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,

@@ -400,6 +400,8 @@
         "m_GuidSerialized": "c7895170-dc9b-414d-82bd-3a2c03bd2111"
     },
     "m_Name": "Weights",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector3_234fad7cceca489895a86a8af9050195",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -438,6 +440,8 @@
         "m_GuidSerialized": "f95912e5-dff3-4d71-8def-f435961eb8c4"
     },
     "m_Name": "A",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector4_23efb4e7a71742b7bd5aebec97a54930",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -661,6 +665,8 @@
         "m_GuidSerialized": "feeeb723-f14a-415a-b04b-5c2810b92d48"
     },
     "m_Name": "C",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector4_51089d0a8d324f6f8ae57978ba316ae7",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -820,6 +826,8 @@
         "m_GuidSerialized": "61567e64-cb98-4262-a336-24949bef4b73"
     },
     "m_Name": "B",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector4_9e7ba58c7c6849e583b7cbfc0a50d48b",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,

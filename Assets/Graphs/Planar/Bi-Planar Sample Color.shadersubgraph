@@ -427,10 +427,10 @@
     "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
     "m_ObjectId": "1e33facd9f6e4d48aed8ad4efd001044",
     "m_Id": 1,
-    "m_DisplayName": "Value",
+    "m_DisplayName": "Blend",
     "m_SlotType": 1,
     "m_Hidden": false,
-    "m_ShaderOutputName": "Value",
+    "m_ShaderOutputName": "Blend",
     "m_StageCapability": 3,
     "m_Value": {
         "x": 0.0,
@@ -510,6 +510,8 @@
         "m_GuidSerialized": "a3171e14-8f34-4155-bd43-0fa3d750c9aa"
     },
     "m_Name": "Texture Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_206118284254428ea588d783d4283f04",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -532,7 +534,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "TriPlanarBlend",
+    "m_Name": "Tri-Planar Blend",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -727,10 +729,10 @@
     "m_Type": "UnityEditor.ShaderGraph.Vector3MaterialSlot",
     "m_ObjectId": "438a80e262fe47efa38ba6ad6cc9321e",
     "m_Id": 1,
-    "m_DisplayName": "Out_Vector3",
+    "m_DisplayName": "Weights",
     "m_SlotType": 1,
     "m_Hidden": false,
-    "m_ShaderOutputName": "OutVector3",
+    "m_ShaderOutputName": "Weights",
     "m_StageCapability": 3,
     "m_Value": {
         "x": 0.0,
@@ -752,7 +754,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "TriPlanarProjection",
+    "m_Name": "Tri-Planar Projection",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -1002,6 +1004,8 @@
         "m_GuidSerialized": "906c2605-5213-467f-9292-15a9785659c1"
     },
     "m_Name": "Blend Sharpness",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_5e93c6a33358452baf044aa548971b53",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1217,6 +1221,8 @@
         "m_GuidSerialized": "8271eb31-64e8-41f8-a092-bf75b0e1bdf4"
     },
     "m_Name": "Texture Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_84c3c4a25d7649828199bd7dc5ae272b",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1393,6 +1399,8 @@
         "m_GuidSerialized": "b747d066-f9b1-4970-9239-caf86b264384"
     },
     "m_Name": "Normal",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector3_96d1b123d4404fb8b5b591781f5ef508",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1577,6 +1585,8 @@
         "m_GuidSerialized": "3283a826-7a7a-49be-8164-24619100444b"
     },
     "m_Name": "Tiling Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_bc1d6453f9384fedbe4f51c59b642945",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1953,6 +1963,8 @@
         "m_GuidSerialized": "ce45cd43-d7c4-4a55-a2ca-5d3cd9e7f74c"
     },
     "m_Name": "Position",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector3_f37abbc0c052432eba8cf10e19da2159",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1991,6 +2003,8 @@
         "m_GuidSerialized": "e7f4a0b8-c1a0-4b07-ab51-c79eeb802f9f"
     },
     "m_Name": "Tiling Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_f452c114982042198ce6b89e26558c95",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,

@@ -543,6 +543,8 @@
         "m_GuidSerialized": "67d3bb61-d0ec-4118-92a9-40161587a42f"
     },
     "m_Name": "Tiling Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_0081677dee9a46009d11b94f8c885383",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -668,7 +670,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "BiPlanarSampleColor",
+    "m_Name": "Bi-Planar Sample Color",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -889,7 +891,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "BiPlanarSampleNormal",
+    "m_Name": "Bi-Planar Sample Normal",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -1200,6 +1202,8 @@
         "m_GuidSerialized": "2ddd7cb9-4d03-44df-ab8c-5db1d9b50734"
     },
     "m_Name": "Normal Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_4b47cafc96ab4347bce0f8ca5305ede8",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1223,6 +1227,8 @@
         "m_GuidSerialized": "d76be05b-d8e7-4750-98c6-d3d45c24c752"
     },
     "m_Name": "Blend Sharpness",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_4c0b756fa00549bcbc357ecff5959fdb",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1474,6 +1480,8 @@
         "m_GuidSerialized": "3c315576-c7d8-4945-baf8-89dce33f2422"
     },
     "m_Name": "Tiling Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_68e2f405c0da483aa174dc911a30224f",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1770,6 +1778,8 @@
         "m_GuidSerialized": "a10837aa-4270-4fa8-abdb-c06cface820d"
     },
     "m_Name": "AO Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_7690d6c1c9ba4827ad1eabd80be34fec",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1828,6 +1838,8 @@
         "m_GuidSerialized": "fc0836d8-77b1-4a1e-a785-270d8159c098"
     },
     "m_Name": "Color Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_7aefc339b2274eda83be728cb4feabea",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1851,6 +1863,8 @@
         "m_GuidSerialized": "f7006998-abce-4740-9964-292e6e93fb3e"
     },
     "m_Name": "Normal Sides",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_7d520987bd1c464a8b579b966955b639",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -1904,6 +1918,8 @@
         "m_GuidSerialized": "6fad2983-aaf5-40e5-b787-8c29d3e39b75"
     },
     "m_Name": "Color Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_82b933a05ff947168c2bdaaaa1b30c05",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -2575,7 +2591,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "BiPlanarSampleColor",
+    "m_Name": "Bi-Planar Sample Color",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -2710,6 +2726,8 @@
         "m_GuidSerialized": "e73de64d-0b80-4a8e-ae9f-afd59defea92"
     },
     "m_Name": "AO Top",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Texture2D_d850eeaf51fd4007a3e4bda40fd33413",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
