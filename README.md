@@ -1,1 +1,1 @@
-# Cubical_Marching_Squares
+# Cubical Marching Squares
