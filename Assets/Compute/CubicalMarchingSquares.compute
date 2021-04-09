@@ -1,5 +1,4 @@
 #pragma kernel GenerateMesh
-#pragma multi_compile FLAT_SHADING __
 
 #include "Include/CubicalMarchingSquares/Component.hlsl"
 #include "Include/CubicalMarchingSquares/Flags.hlsl"
@@ -7,10 +6,11 @@
 #include "Include/CubicalMarchingSquares/Segment.hlsl"
 #include "Include/CubicalMarchingSquares/Voxel.hlsl"
 
-#include "Include/Vertex.hlsl"
+#include "Include/HermiteSample.hlsl"
+#include "Include/HermiteVolume.hlsl"
 #include "Include/VoxelVolume.hlsl"
+#include "Include/Vertex.hlsl"
 
-uint subSampleChunkFaces;
 float sharpFeatureAngle;
 uint maxIterations;
 float stepSize;
@@ -22,66 +22,68 @@ static Segment segments[maxSegmentsCount];
 static Component components[maxComponentsCount];
 static float3 forces[voxelCornersCount];
 
-Vertex CalculateVertexAlongVoxelEdge(uint3 id, VoxelEdge edge)
+Vertex CalculateVertexAlongVoxelEdge(uint3 voxelID, VoxelEdge edge)
 {
     uint3 voxelCornerA = voxelCorners[edge.GetVoxelCornerStartIndex()];
     uint3 voxelCornerB = voxelCorners[edge.GetVoxelCornerEndIndex()];
 
-    HermiteSample sampleA = hermiteVolume[CalculateHermiteIndex(voxelStride * (id + voxelCornerA))];
-    HermiteSample sampleB = hermiteVolume[CalculateHermiteIndex(voxelStride * (id + voxelCornerB))];
+    HermiteSample sampleA = hermiteVolume[CalculateHermiteIndex(voxelStride * (voxelID + voxelCornerA))];
+    HermiteSample sampleB = hermiteVolume[CalculateHermiteIndex(voxelStride * (voxelID + voxelCornerB))];
 
-    float interpolant = -sampleA.GetDensity() / (sampleB.GetDensity() - sampleA.GetDensity());
+    float interpolant = -sampleA.GetValue() / (sampleB.GetValue() - sampleA.GetValue());
 
     return VertexConstructor
     (
-        lerp(voxelCornerA, voxelCornerB, interpolant),
+        VoxelToVoxelVolumeSpace(voxelID, lerp(voxelCornerA, voxelCornerB, interpolant)),
         normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
     );
 }
 
-uint2 GenerateSegmentSharpFeatureVertices(VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
+uint2 GenerateSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
 {
     if (acos(dot(vertexA.normal, vertexB.normal)) < sharpFeatureAngle)
     {
-        return -1;
+        return - 1;
     }
 
-    float3 faceTangentA = voxelFace.GetFaceTangent(vertexA.normal);   
+    float3 faceTangentA = voxelFace.GetFaceTangent(vertexA.normal);
     float3 faceTangentB = voxelFace.GetFaceTangent(vertexB.normal);
     
     float3 lineVec3 = vertexB.position - vertexA.position;
     float3 crossVec1and2 = cross(faceTangentA, faceTangentB);
     float3 crossVec3and2 = cross(lineVec3, faceTangentB);
     float s = dot(crossVec3and2, crossVec1and2) / dot(crossVec1and2, crossVec1and2);
-    float3 segmentSharpFeatureVertexPosition = vertexA.position + (faceTangentA * s);
+    float3 sharpFeaturePosition = vertexA.position + (faceTangentA * s);
 
     // A single segment sharp feature is shared between exactly two segments, one segment belonging to the current voxel
     // and the other belonging to the adjacent voxel sharing the same voxel face. Therefore the position of the sharp feature
     // will be independently calculated twice. Due to floating point errors both calculated sharp feature positions can be
     // slightly different. This can result in one of both being "outside" the voxel while the other one isn't.
     // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
-    if (IsOutsideVoxel(segmentSharpFeatureVertexPosition, 0.75f) || any(isnan(segmentSharpFeatureVertexPosition)))
+    if (IsOutsideVoxel(VoxelVolumeToVoxelSpace(voxelID, sharpFeaturePosition), 0.75f) || any(isnan(sharpFeaturePosition)))
     {
-        return -1;
+        return - 1;
     }
 
     uint2 indices = uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter());
 
-    generatedVertices[indices.x] = VertexConstructor(segmentSharpFeatureVertexPosition, vertexA.normal);
-    generatedVertices[indices.y] = VertexConstructor(segmentSharpFeatureVertexPosition, vertexB.normal);
+    Vertex sharpFeatureVertex = VertexConstructor(sharpFeaturePosition, 0.5f * (vertexA.normal + vertexB.normal));
+
+    generatedVertices[indices.x] = sharpFeatureVertex;
+    generatedVertices[indices.y] = sharpFeatureVertex;
 
     return indices;
 }
 
-uint GenerateFaceSegments(uint3 id, VoxelFace voxelFace, uint segmentsCount)
+uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount)
 {
     uint segmentsIndex = 0;
     
     for (uint sampleIndex = 0; sampleIndex < 4; sampleIndex++)
     {
-        uint3 position = voxelStride * (id + voxelCorners[voxelFace.voxelCornerIndices[sampleIndex]]);
-        HermiteSample sample = hermiteVolume[CalculateHermiteIndex(position)];
-        segmentsIndex |= (sample.GetDensity() < 0.0f) << sampleIndex;
+        uint3 hermiteID = voxelStride * (voxelID + voxelCorners[voxelFace.voxelCornerIndices[sampleIndex]]);
+        HermiteSample sample = hermiteVolume[CalculateHermiteIndex(hermiteID)];
+        segmentsIndex |= (sample.GetValue() < 0.0f) << sampleIndex;
     }
 
     uint4 faceSegments = marchingSquaresSegments[segmentsIndex];
@@ -99,8 +101,8 @@ uint GenerateFaceSegments(uint3 id, VoxelFace voxelFace, uint segmentsCount)
         VoxelEdge voxelEdgeA = voxelEdges[edgeIndexA];
         VoxelEdge voxelEdgeB = voxelEdges[edgeIndexB];
 
-        Vertex vertexA = CalculateVertexAlongVoxelEdge(id, voxelEdgeA);
-        Vertex vertexB = CalculateVertexAlongVoxelEdge(id, voxelEdgeB);
+        Vertex vertexA = CalculateVertexAlongVoxelEdge(voxelID, voxelEdgeA);
+        Vertex vertexB = CalculateVertexAlongVoxelEdge(voxelID, voxelEdgeB);
         
         Segment segment = SegmentConstructor
         (
@@ -108,7 +110,7 @@ uint GenerateFaceSegments(uint3 id, VoxelFace voxelFace, uint segmentsCount)
             generatedVertices.IncrementCounter(),
             edgeIndexB,
             generatedVertices.IncrementCounter(),
-            GenerateSegmentSharpFeatureVertices(voxelFace, vertexA, vertexB)
+            GenerateSharpFeatureVertices(voxelID, voxelFace, vertexA, vertexB)
         );
 
         generatedVertices[segment.GetEdgeVertexIndexA()] = vertexA;
@@ -131,7 +133,7 @@ uint TraceComponents(uint segmentsCount)
     uint segmentsIndex = -1;
     uint remainingSegmentsToAssign = segmentsCount;
 
-    while (remainingSegmentsToAssign > 0)
+    while(remainingSegmentsToAssign > 0)
     {
         segmentsIndex = (segmentsIndex + 1) % segmentsCount;
 
@@ -148,7 +150,7 @@ uint TraceComponents(uint segmentsCount)
         componentLength++;
         remainingSegmentsToAssign--;
 
-        while (start != end)
+        while(start != end)
         {
             segmentsIndex = (segmentsIndex + 1) % segmentsCount;
 
@@ -181,25 +183,25 @@ uint TraceComponents(uint segmentsCount)
     return componentsCount;
 }
 
-Vertex CalculateComponentCenterVertex(Component component)
+Vertex CalculateCenterVertex(Component component)
 {
-    Vertex componentSharpFeatureVertex = VertexConstructor(0.0f, 0.0f);
+    Vertex centerVertex = VertexConstructor();
 
     for (uint index = 0; index < component.GetLength(); index++)
     {
         Segment segment = segments[component.GetPackedSegmentsIndex(index)];
         Vertex vertex = generatedVertices[segment.GetEdgeVertexIndexA()];
-        componentSharpFeatureVertex.position += vertex.position;
-        componentSharpFeatureVertex.normal += vertex.normal;
+        centerVertex.position += vertex.position;
+        centerVertex.normal += vertex.normal;
     }
 
-    componentSharpFeatureVertex.position /= index;
-    componentSharpFeatureVertex.normal = normalize(componentSharpFeatureVertex.normal);
+    centerVertex.position /= index;
+    centerVertex.normal = normalize(centerVertex.normal);
 
-    return componentSharpFeatureVertex;
+    return centerVertex;
 }
 
-bool HasComponentSharpFeature(Component component)
+bool HasSharpFeature(Component component)
 {
     float cosOfAngle = 1.0f;
 
@@ -213,7 +215,7 @@ bool HasComponentSharpFeature(Component component)
             Segment segmentB = segments[component.GetPackedSegmentsIndex(indexB)];
             Vertex vertexB = generatedVertices[segmentB.GetEdgeVertexIndexA()];
             float newCosOfAngle = dot(vertexA.normal, vertexB.normal);
-            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
+            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle: cosOfAngle;
         }
     }
     return acos(cosOfAngle) >= sharpFeatureAngle;
@@ -245,103 +247,58 @@ float3 CalculateCombinedForce(float3 alpha_beta_gamma)
     float3 force0347 = (1.0f - alpha_beta_gamma.y) * force03 + alpha_beta_gamma.y * force47;
     float3 force1256 = (1.0f - alpha_beta_gamma.y) * force12 + alpha_beta_gamma.y * force56;
 
-    return (1.0f - alpha_beta_gamma.z) * force0347 + alpha_beta_gamma.z * force1256;
+    return(1.0f - alpha_beta_gamma.z) * force0347 + alpha_beta_gamma.z * force1256;
 }
 
-Vertex CalculateComponentSharpFeatureVertex(Component component, out bool hasComponentSharpFeature)
+Vertex CalculateFeatureVertex(uint3 voxelID, Component component)
 {
-    Vertex componentSharpFeatureVertex = CalculateComponentCenterVertex(component);
-    hasComponentSharpFeature = HasComponentSharpFeature(component);
+    Vertex featureVertex = CalculateCenterVertex(component);
 
-    if (hasComponentSharpFeature)
+    if (HasSharpFeature(component))
     {
         CalculateForces(component);
 
         for (uint iterations = 0; iterations < maxIterations; iterations++)
         {
-            componentSharpFeatureVertex.position += stepSize * CalculateCombinedForce(componentSharpFeatureVertex.position.zyx);
+            featureVertex.position += stepSize * CalculateCombinedForce(featureVertex.position.zyx);
         }
     }
-    componentSharpFeatureVertex.position = ClampToVoxel(componentSharpFeatureVertex.position, 1e-1f);
+    featureVertex.position = VoxelToVoxelVolumeSpace(voxelID, ClampToVoxel(VoxelVolumeToVoxelSpace(voxelID, featureVertex.position), 1e-1f));
     
-    return componentSharpFeatureVertex;
+    return featureVertex;
 }
 
-void GenerateTriangle(uint3 id, uint3 vertexIndices, bool3 flatShaded)
+void GenerateTriangles(Component component, Vertex componentFeatureVertex)
 {
-    Vertex vertexA = generatedVertices[vertexIndices.x];
-    Vertex vertexB = generatedVertices[vertexIndices.y];
-    Vertex vertexC = generatedVertices[vertexIndices.z];
+    uint componentFeatureVertexIndex;
 
-    float3 localPosition = CalculateLocalPosition(id);
-
-    vertexA.position = voxelStride * voxelSpacing * vertexA.position + localPosition;
-    vertexB.position = voxelStride * voxelSpacing * vertexB.position + localPosition;
-    vertexC.position = voxelStride * voxelSpacing * vertexC.position + localPosition;
-
-    float3 normal = normalize(cross(vertexB.position - vertexA.position, vertexC.position - vertexA.position));
-
-#ifdef FLAT_SHADING
-    vertexA.normal = normal;
-    vertexB.normal = normal;
-    vertexC.normal = normal;
-#else
-    vertexA.normal = flatShaded.x ? normal : vertexA.normal;
-    vertexB.normal = flatShaded.y ? normal : vertexB.normal;
-    vertexC.normal = flatShaded.z ? normal : vertexC.normal;
-#endif
-
-    generatedVertices[vertexIndices.x] = vertexA;
-    generatedVertices[vertexIndices.y] = vertexB;
-    generatedVertices[vertexIndices.z] = vertexC;
-
-    generatedTriangles.Append(vertexIndices);
-}
-
-void GenerateTriangles(uint3 id, Component component, Vertex componentSharpFeatureVertex, bool hasComponentSharpFeature)
-{
     for (uint index = 0; index < component.GetLength(); index++)
     {
         Segment segment = segments[component.GetPackedSegmentsIndex(index)];
 
-        uint componentSharpFeatureVertexIndex = generatedVertices.IncrementCounter();
-        generatedVertices[componentSharpFeatureVertexIndex] = componentSharpFeatureVertex;
-
         if (segment.GetSharpFeatureVertexIndexA() != -1)
         {
-            GenerateTriangle
-            (
-                id,
-                uint3(componentSharpFeatureVertexIndex, segment.GetSharpFeatureVertexIndexA(), segment.GetEdgeVertexIndexA()),
-                bool3(hasComponentSharpFeature, true, false)
-            );
+            componentFeatureVertexIndex = generatedVertices.IncrementCounter();
+            generatedVertices[componentFeatureVertexIndex] = componentFeatureVertex;
+            generatedTriangles.Append(uint3(componentFeatureVertexIndex, segment.GetSharpFeatureVertexIndexA(), segment.GetEdgeVertexIndexA()));
 
-            componentSharpFeatureVertexIndex = generatedVertices.IncrementCounter();
-            generatedVertices[componentSharpFeatureVertexIndex] = componentSharpFeatureVertex;
-                
-            GenerateTriangle
-            (
-                id,
-                uint3(segment.GetSharpFeatureVertexIndexB(), componentSharpFeatureVertexIndex, segment.GetEdgeVertexIndexB()),
-                bool3(hasComponentSharpFeature, true, false)
-            );
+            componentFeatureVertexIndex = generatedVertices.IncrementCounter();
+            generatedVertices[componentFeatureVertexIndex] = componentFeatureVertex;
+            generatedTriangles.Append(uint3(segment.GetSharpFeatureVertexIndexB(), componentFeatureVertexIndex, segment.GetEdgeVertexIndexB()));
         }
         else
         {
-            GenerateTriangle
-            (
-                id,
-                uint3(componentSharpFeatureVertexIndex, segment.GetEdgeVertexIndexB(), segment.GetEdgeVertexIndexA()),
-                bool3(hasComponentSharpFeature, false, false)
-            );
+            componentFeatureVertexIndex = generatedVertices.IncrementCounter();
+            generatedVertices[componentFeatureVertexIndex] = componentFeatureVertex;
+            generatedTriangles.Append(uint3(componentFeatureVertexIndex, segment.GetEdgeVertexIndexB(), segment.GetEdgeVertexIndexA()));
         }
     }
 }
 
 [numthreads(4, 4, 4)]
-void GenerateMesh(uint3 id : SV_DispatchThreadID)
+void GenerateMesh(uint3 voxelID: SV_DispatchThreadID)
 {
-    if (IsOutOfVoxelBounds(id))
+    if (IsOutOfVoxelBounds(voxelID))
     {
         return;
     }
@@ -350,7 +307,7 @@ void GenerateMesh(uint3 id : SV_DispatchThreadID)
 
     for (uint faceIndex = 0; faceIndex < voxelFacesCount; faceIndex++)
     {
-        segmentsCount = GenerateFaceSegments(id, voxelFaces[faceIndex], segmentsCount);
+        segmentsCount = GenerateFaceSegments(voxelID, voxelFaces[faceIndex], segmentsCount);
     }
 
     if (segmentsCount == 0)
@@ -362,9 +319,6 @@ void GenerateMesh(uint3 id : SV_DispatchThreadID)
     
     for (uint componentsIndex = 0; componentsIndex < componentsCount; componentsIndex++)
     {
-        bool hasComponentSharpFeature;
-        Vertex componentSharpFeatureVertex = CalculateComponentSharpFeatureVertex(components[componentsIndex], hasComponentSharpFeature);
-
-        GenerateTriangles(id, components[componentsIndex], componentSharpFeatureVertex, hasComponentSharpFeature);
+        GenerateTriangles(components[componentsIndex], CalculateFeatureVertex(voxelID, components[componentsIndex]));
     }
 }

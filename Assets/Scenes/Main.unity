@@ -151,7 +151,7 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
@@ -210,7 +210,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 100, z: 0}
+  m_LocalPosition: {x: 0, y: 20, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -550,7 +550,7 @@ MonoBehaviour:
   m_numberOfOctaves: 10
   m_persistence: 0.45
   m_lacunarity: 1.8
-  m_shader: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
+  m_computeShader: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
 --- !u!114 &1380290541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -566,12 +566,10 @@ MonoBehaviour:
   m_numberOfVoxelsAlongAxis: 64
   m_voxelSpacing: 0.5
   m_LODLevel: 0
-  m_subSampleChunkFaces: 0
-  m_shader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
+  m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
   m_maxIterations: 15
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
-  m_flatShading: 1
   m_asyncReadback: 0
   m_showBounds: 1
 --- !u!23 &1380290542

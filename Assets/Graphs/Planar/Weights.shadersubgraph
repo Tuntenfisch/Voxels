@@ -677,6 +677,8 @@
         "m_GuidSerialized": "2ed7c2ec-87dc-4aaf-a7db-548316718132"
     },
     "m_Name": "Normal",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector3_b6a7d791e2da44caab144b6f49f910f4",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,
@@ -715,6 +717,8 @@
         "m_GuidSerialized": "028822d9-837f-47f6-9344-0428322ca7e5"
     },
     "m_Name": "Blend Sharpness",
+    "m_DefaultRefNameVersion": 0,
+    "m_RefNameGeneratedByDisplayName": "",
     "m_DefaultReferenceName": "Vector1_bee03b0d2e724c5e922b17c4f8534b0f",
     "m_OverrideReferenceName": "",
     "m_GeneratePropertyBlock": true,

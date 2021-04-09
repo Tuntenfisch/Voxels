@@ -26,13 +26,13 @@ public class HermiteVolume : MonoBehaviour
     public float m_lacunarity = 2.0f;
 
     [Header("Shader")]
-    public ComputeShader m_shader;
+    public ComputeShader m_computeShader;
 
     private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
     private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
     private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
     private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
-    private static readonly int s_localToWorldOffsetID = Shader.PropertyToID("localToWorldOffset");
+    private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
     private static readonly int s_wavelengthID = Shader.PropertyToID("wavelength");
     private static readonly int s_numberOfOctavesID = Shader.PropertyToID("numberOfOctaves");
     private static readonly int s_persistenceID = Shader.PropertyToID("persistence");
@@ -47,7 +47,7 @@ public class HermiteVolume : MonoBehaviour
 
     private void OnEnable()
     {
-        m_shader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+        m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
         m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
         CreateBuffers();
         CalculateOctaveOffsets();
@@ -112,19 +112,19 @@ public class HermiteVolume : MonoBehaviour
 
         int voxelStride = 1;
 
-        m_shader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis);
-        m_shader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride);
-        m_shader.SetInt(s_voxelStrideID, voxelStride);
-        m_shader.SetFloat(s_voxelSpacingID, voxelSpacing);
-        m_shader.SetVector(s_localToWorldOffsetID, localToWorldOffset);
-        m_shader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
-        m_shader.SetFloat(s_wavelengthID, m_wavelength);
-        m_shader.SetFloat(s_persistenceID, m_persistence);
-        m_shader.SetFloat(s_lacunarityID, m_lacunarity);
-        m_shader.SetFloat(s_heightID, m_height);
-        m_shader.SetBuffer(0, s_hermiteVolumeID, hermiteVolumeBuffer);
-        m_shader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
-        m_shader.Dispatch
+        m_computeShader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis);
+        m_computeShader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride);
+        m_computeShader.SetInt(s_voxelStrideID, voxelStride);
+        m_computeShader.SetFloat(s_voxelSpacingID, voxelSpacing);
+        m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, localToWorldOffset);
+        m_computeShader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
+        m_computeShader.SetFloat(s_wavelengthID, m_wavelength);
+        m_computeShader.SetFloat(s_persistenceID, m_persistence);
+        m_computeShader.SetFloat(s_lacunarityID, m_lacunarity);
+        m_computeShader.SetFloat(s_heightID, m_height);
+        m_computeShader.SetBuffer(0, s_hermiteVolumeID, hermiteVolumeBuffer);
+        m_computeShader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
+        m_computeShader.Dispatch
         (
             0,
             Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.x),

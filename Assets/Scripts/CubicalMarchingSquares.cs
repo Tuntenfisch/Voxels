@@ -6,26 +6,24 @@ using UnityEngine.Rendering;
 
 [RequireComponent(typeof(HermiteVolume))]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-public class Chunk : MonoBehaviour
+public class CubicalMarchingSquares : MonoBehaviour
 {
-    [Header("Chunk")]
+    [Header("Voxel Volume")]
     [Range(2, 128)]
     public int m_numberOfVoxelsAlongAxis = 16;
     [Range(0.25f, 4.0f)]
     public float m_voxelSpacing = 0.5f;
     [Range(0, 7)]
     public int m_LODLevel;
-    public ChunkFaces m_subSampleChunkFaces;
 
     [Header("Shader")]
-    public ComputeShader m_shader;
+    public ComputeShader m_computeShader;
     [Range(0, 50)]
     public int m_maxIterations = 10;
     [Range(0.0f, 0.4f)]
     public float m_stepSize = 0.2f;
     [Range(0.1f, 180.0f)]
     public float m_sharpFeatureAngle = 35.0f;
-    public bool m_flatShading = true;
     public bool m_asyncReadback = false;
 
     [Header("Editor")]
@@ -71,14 +69,11 @@ public class Chunk : MonoBehaviour
         }
     }
 
-    private static readonly string s_flatShadingKeyword = "FLAT_SHADING";
-
     private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
     private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
     private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
     private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
-    private static readonly int s_localToWorldOffsetID = Shader.PropertyToID("localToWorldOffset");
-    private static readonly int s_subSampleChunkFacesID = Shader.PropertyToID("subSampleChunkFaces");
+    private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
     private static readonly int s_sharpFeatureAngleID = Shader.PropertyToID("sharpFeatureAngle");
     private static readonly int s_maxIterationsID = Shader.PropertyToID("maxIterations");
     private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
@@ -106,7 +101,7 @@ public class Chunk : MonoBehaviour
     private AsyncGPUReadbackRequest m_triangleRequest;
     private JobHandle m_bakeJobHandle;
 
-    private ChunkFlags m_flags;
+    private CubicalMarchingSquaresFlags m_flags;
 
     private void OnEnable()
     {
@@ -118,7 +113,7 @@ public class Chunk : MonoBehaviour
 
     private void Start()
     {
-        m_shader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+        m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
         m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
 
         InitializeMeshComponents();
@@ -150,7 +145,7 @@ public class Chunk : MonoBehaviour
     private void CreateBuffers()
     {
         m_hermiteVolumeBuffer = new ComputeBuffer(NumberOfHermiteSamples, 4 * sizeof(float));
-        m_vertexBuffer = new ComputeBuffer(MaxNumberOfVertices, 6 * sizeof(float), ComputeBufferType.Counter);
+        m_vertexBuffer = new ComputeBuffer(MaxNumberOfVertices, Vertex.s_sizeInBytes, ComputeBufferType.Counter);
         m_triangleBuffer = new ComputeBuffer(MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
         m_vertexCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
         m_triangleCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
@@ -190,22 +185,22 @@ public class Chunk : MonoBehaviour
             UpdateMesh();
         }
 
-        if (m_flags.HasFlag(ChunkFlags.RetrievingVertexAndTriangleCount) && (m_vertexCountRequest.done && m_triangleCountRequest.done || !m_asyncReadback))
+        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount) && (m_vertexCountRequest.done && m_triangleCountRequest.done || !m_asyncReadback))
         {
             OnVertexAndTriangleCountRetrieved();
         }
 
-        if (m_flags.HasFlag(ChunkFlags.RetrievingMeshData) && (m_vertexRequest.done && m_triangleRequest.done || !m_asyncReadback))
+        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.RetrievingMeshData) && (m_vertexRequest.done && m_triangleRequest.done || !m_asyncReadback))
         {
             OnMeshDataRetrieved();
         }
 
-        if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
+        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
         {
             OnMeshBaked();
         }
 
-        if (m_flags.HasFlag(ChunkFlags.SettingsUpdated))
+        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.SettingsUpdated))
         {
             OnSettingsUpdated();
         }
@@ -213,7 +208,7 @@ public class Chunk : MonoBehaviour
 
     private void OnVertexAndTriangleCountRetrieved()
     {
-        m_flags &= ~ChunkFlags.RetrievingVertexAndTriangleCount;
+        m_flags &= ~CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount;
 
         m_vertexCountRequest.WaitForCompletion();
         m_triangleCountRequest.WaitForCompletion();
@@ -238,12 +233,12 @@ public class Chunk : MonoBehaviour
         // Retrieve vertices and triangles asynchronously.
         m_vertexRequest = AsyncGPUReadback.Request(m_vertexBuffer, vertexCount * m_vertexBuffer.stride, 0);
         m_triangleRequest = AsyncGPUReadback.Request(m_triangleBuffer, triangleCount * m_triangleBuffer.stride, 0);
-        m_flags |= ChunkFlags.RetrievingMeshData;
+        m_flags |= CubicalMarchingSquaresFlags.RetrievingMeshData;
     }
 
     private void OnMeshDataRetrieved()
     {
-        m_flags &= ~ChunkFlags.RetrievingMeshData;
+        m_flags &= ~CubicalMarchingSquaresFlags.RetrievingMeshData;
 
         m_vertexRequest.WaitForCompletion();
         m_triangleRequest.WaitForCompletion();
@@ -257,16 +252,13 @@ public class Chunk : MonoBehaviour
         NativeArray<Vertex> vertices = m_vertexRequest.GetData<Vertex>();
         NativeArray<int> triangles = m_triangleRequest.GetData<int>();
 
-        m_mesh.SetVertexBufferParams(vertices.Length, new VertexAttributeDescriptor[]
-        {
-            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3)
-        });
+        m_mesh.SetVertexBufferParams(vertices.Length, Vertex.s_attributes);
         m_mesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
         m_mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
         m_mesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
         m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
-        m_mesh.RecalculateBounds();
+        m_mesh.bounds = m_localBounds;
+        m_mesh.RecalculateTangents();
         m_meshFilter.sharedMesh = m_mesh;
 
         m_bakeJobHandle = new BakeJob()
@@ -274,27 +266,19 @@ public class Chunk : MonoBehaviour
             m_meshID = m_mesh.GetInstanceID(),
             m_convex = false
         }.Schedule();
-        m_flags |= ChunkFlags.BakingMesh;
+        m_flags |= CubicalMarchingSquaresFlags.BakingMesh;
     }
 
     private void OnMeshBaked()
     {
-        m_flags &= ~ChunkFlags.BakingMesh;
+        m_flags &= ~CubicalMarchingSquaresFlags.BakingMesh;
+        m_bakeJobHandle.Complete();
         m_meshCollider.sharedMesh = m_mesh;
     }
 
     private void OnSettingsUpdated()
     {
-        m_flags &= ~ChunkFlags.SettingsUpdated;
-
-        if (m_flatShading)
-        {
-            m_shader.EnableKeyword(s_flatShadingKeyword);
-        }
-        else
-        {
-            m_shader.DisableKeyword(s_flatShadingKeyword);
-        }
+        m_flags &= ~CubicalMarchingSquaresFlags.SettingsUpdated;
 
         if (m_hermiteVolumeBuffer.count != NumberOfHermiteSamples)
         {
@@ -314,19 +298,18 @@ public class Chunk : MonoBehaviour
 
         int voxelStride = 1 << m_LODLevel;
 
-        m_shader.SetInts(s_hermiteDimensionsID, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
-        m_shader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
-        m_shader.SetInt(s_voxelStrideID, voxelStride);
-        m_shader.SetFloat(s_voxelSpacingID, m_voxelSpacing);
-        m_shader.SetVector(s_localToWorldOffsetID, transform.position);
-        m_shader.SetInt(s_subSampleChunkFacesID, (int)m_subSampleChunkFaces);
-        m_shader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
-        m_shader.SetInt(s_maxIterationsID, m_maxIterations);
-        m_shader.SetFloat(s_stepSizeID, m_stepSize);
-        m_shader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
-        m_shader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
-        m_shader.SetBuffer(0, s_generatedTrianglesID, m_triangleBuffer);
-        m_shader.Dispatch
+        m_computeShader.SetInts(s_hermiteDimensionsID, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
+        m_computeShader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
+        m_computeShader.SetInt(s_voxelStrideID, voxelStride);
+        m_computeShader.SetFloat(s_voxelSpacingID, m_voxelSpacing);
+        m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, transform.position);
+        m_computeShader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
+        m_computeShader.SetInt(s_maxIterationsID, m_maxIterations);
+        m_computeShader.SetFloat(s_stepSizeID, m_stepSize);
+        m_computeShader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
+        m_computeShader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
+        m_computeShader.SetBuffer(0, s_generatedTrianglesID, m_triangleBuffer);
+        m_computeShader.Dispatch
         (
             0,
             Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.x),
@@ -340,7 +323,7 @@ public class Chunk : MonoBehaviour
         // Retrieve vertex and triangle count asynchronously.
         m_vertexCountRequest = AsyncGPUReadback.Request(m_vertexCountBuffer, m_vertexCountBuffer.stride, 0);
         m_triangleCountRequest = AsyncGPUReadback.Request(m_triangleCountBuffer, m_triangleCountBuffer.stride, 0);
-        m_flags |= ChunkFlags.RetrievingVertexAndTriangleCount;
+        m_flags |= CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount;
     }
 
     private void OnDisable()
@@ -354,8 +337,7 @@ public class Chunk : MonoBehaviour
     {
         m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
         m_LODLevel = Mathf.Clamp(m_LODLevel, 0, Mathf.Max(Mathf.RoundToInt(Mathf.Log(m_numberOfVoxelsAlongAxis, 2.0f)), 0));
-        m_subSampleChunkFaces = m_LODLevel == 7 ? 0 : m_subSampleChunkFaces;
-        m_flags |= ChunkFlags.SettingsUpdated;
+        m_flags |= CubicalMarchingSquaresFlags.SettingsUpdated;
     }
 
     private void OnDrawGizmos()
@@ -369,22 +351,11 @@ public class Chunk : MonoBehaviour
     }
 
     [Flags]
-    private enum ChunkFlags
+    private enum CubicalMarchingSquaresFlags
     {
         SettingsUpdated = 1,
         RetrievingVertexAndTriangleCount = 2,
         RetrievingMeshData = 4,
         BakingMesh = 8
-    }
-
-    [Flags]
-    public enum ChunkFaces
-    {
-        Left = 8,
-        Right = 2,
-        Bottom = 16,
-        Top = 32,
-        Rear = 4,
-        Front = 1
     }
 }
