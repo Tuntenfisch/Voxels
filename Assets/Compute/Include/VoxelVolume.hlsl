@@ -3,7 +3,6 @@
     #define VOXEL_VOLUME
 
     uint3 voxelDimensions;
-    uint voxelStride;
     float voxelSpacing;
     float3 voxelVolumeToWorldSpaceOffset;
 
@@ -14,12 +13,12 @@
 
     float3 VoxelToVoxelVolumeSpace(uint3 voxelID, float3 voxelSpacePosition = 0.0f)
     {
-        return voxelStride * voxelSpacing * ((voxelSpacePosition + voxelID) - 0.5f * voxelDimensions);
+        return voxelSpacing * ((voxelSpacePosition + voxelID) - 0.5f * voxelDimensions);
     }
 
     float3 VoxelVolumeToVoxelSpace(uint3 voxelID, float3 voxelVolumeSpacePosition = 0.0f)
     {
-        return(voxelVolumeSpacePosition / (voxelStride * voxelSpacing) + 0.5f * voxelDimensions) - voxelID;
+        return(voxelVolumeSpacePosition / voxelSpacing + 0.5f * voxelDimensions) - voxelID;
     }
 
     float3 VoxelVolumeToWorldSpace(float3 voxelVolumeSpacePosition)

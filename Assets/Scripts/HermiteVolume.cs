@@ -30,7 +30,6 @@ public class HermiteVolume : MonoBehaviour
 
     private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
     private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
-    private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
     private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
     private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
     private static readonly int s_wavelengthID = Shader.PropertyToID("wavelength");
@@ -110,11 +109,8 @@ public class HermiteVolume : MonoBehaviour
     {
         Profiler.BeginSample("HermiteVolume.Generate");
 
-        int voxelStride = 1;
-
         m_computeShader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis);
-        m_computeShader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride, numberOfVoxelsAlongAxis / voxelStride);
-        m_computeShader.SetInt(s_voxelStrideID, voxelStride);
+        m_computeShader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
         m_computeShader.SetFloat(s_voxelSpacingID, voxelSpacing);
         m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, localToWorldOffset);
         m_computeShader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
@@ -127,9 +123,9 @@ public class HermiteVolume : MonoBehaviour
         m_computeShader.Dispatch
         (
             0,
-            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.x),
-            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.y),
-            Mathf.CeilToInt((numberOfHermiteSamplesAlongAxis / voxelStride) / (float)m_numberOfThreads.z)
+            Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.x),
+            Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.y),
+            Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.z)
         );
 
         Profiler.EndSample();
