@@ -13,8 +13,6 @@ public class CubicalMarchingSquares : MonoBehaviour
     public int m_numberOfVoxelsAlongAxis = 16;
     [Range(0.25f, 4.0f)]
     public float m_voxelSpacing = 0.5f;
-    [Range(0, 7)]
-    public int m_LODLevel;
 
     [Header("Shader")]
     public ComputeShader m_computeShader;
@@ -71,7 +69,6 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
     private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
-    private static readonly int s_voxelStrideID = Shader.PropertyToID("voxelStride");
     private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
     private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
     private static readonly int s_sharpFeatureAngleID = Shader.PropertyToID("sharpFeatureAngle");
@@ -79,6 +76,7 @@ public class CubicalMarchingSquares : MonoBehaviour
     private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
     private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
     private static readonly int s_generatedVerticesID = Shader.PropertyToID("generatedVertices");
+    private static readonly int s_flatVertexIndicesLookupID = Shader.PropertyToID("flatVertexIndicesLookup");
     private static readonly int s_generatedTrianglesID = Shader.PropertyToID("generatedTriangles");
 
     private Mesh m_mesh;
@@ -89,16 +87,14 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private HermiteVolume m_hermiteVolume;
 
-    private Vector3Int m_numberOfThreads;
-    private ComputeBuffer m_hermiteVolumeBuffer;
-    private ComputeBuffer m_vertexBuffer;
-    private ComputeBuffer m_triangleBuffer;
-    private ComputeBuffer m_vertexCountBuffer;
-    private ComputeBuffer m_triangleCountBuffer;
-    private AsyncGPUReadbackRequest m_vertexCountRequest;
-    private AsyncGPUReadbackRequest m_triangleCountRequest;
-    private AsyncGPUReadbackRequest m_vertexRequest;
-    private AsyncGPUReadbackRequest m_triangleRequest;
+    private Vector3Int m_numberOfThreadsKernel0;
+    private Vector3Int m_numberOfThreadsKernel1;
+    private AsyncComputeBuffer m_hermiteVolumeBuffer;
+    private AsyncComputeBuffer m_vertexBuffer;
+    private AsyncComputeBuffer m_flatVertexIndicesLookupBuffer;
+    private AsyncComputeBuffer m_triangleBuffer;
+    private AsyncComputeBuffer m_vertexCountBuffer;
+    private AsyncComputeBuffer m_triangleCountBuffer;
     private JobHandle m_bakeJobHandle;
 
     private CubicalMarchingSquaresFlags m_flags;
@@ -114,7 +110,9 @@ public class CubicalMarchingSquares : MonoBehaviour
     private void Start()
     {
         m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
-        m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
+        m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
+        m_computeShader.GetKernelThreadGroupSizes(1, out x, out y, out z);
+        m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
 
         InitializeMeshComponents();
         GenerateHermiteVolume(transform.position);
@@ -144,11 +142,12 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private void CreateBuffers()
     {
-        m_hermiteVolumeBuffer = new ComputeBuffer(NumberOfHermiteSamples, 4 * sizeof(float));
-        m_vertexBuffer = new ComputeBuffer(MaxNumberOfVertices, Vertex.s_sizeInBytes, ComputeBufferType.Counter);
-        m_triangleBuffer = new ComputeBuffer(MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
-        m_vertexCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
-        m_triangleCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
+        m_hermiteVolumeBuffer = new AsyncComputeBuffer(NumberOfHermiteSamples, 4 * sizeof(float));
+        m_vertexBuffer = new AsyncComputeBuffer(MaxNumberOfVertices, Vertex.s_sizeInBytes, ComputeBufferType.Counter);
+        m_flatVertexIndicesLookupBuffer = new AsyncComputeBuffer(NumberOfHermiteSamples, 3 * sizeof(int));
+        m_triangleBuffer = new AsyncComputeBuffer(MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
+        m_vertexCountBuffer = new AsyncComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
+        m_triangleCountBuffer = new AsyncComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
     }
 
     private void ReleaseBuffers()
@@ -157,6 +156,8 @@ public class CubicalMarchingSquares : MonoBehaviour
         m_hermiteVolumeBuffer = null;
         m_vertexBuffer.Release();
         m_vertexBuffer = null;
+        m_flatVertexIndicesLookupBuffer.Release();
+        m_flatVertexIndicesLookupBuffer = null;
         m_triangleBuffer.Release();
         m_triangleBuffer = null;
         m_vertexCountBuffer.Release();
@@ -185,12 +186,12 @@ public class CubicalMarchingSquares : MonoBehaviour
             UpdateMesh();
         }
 
-        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount) && (m_vertexCountRequest.done && m_triangleCountRequest.done || !m_asyncReadback))
+        if (m_vertexCountBuffer.IsDataAvailable(!m_asyncReadback) && m_triangleCountBuffer.IsDataAvailable(!m_asyncReadback))
         {
             OnVertexAndTriangleCountRetrieved();
         }
 
-        if (m_flags.HasFlag(CubicalMarchingSquaresFlags.RetrievingMeshData) && (m_vertexRequest.done && m_triangleRequest.done || !m_asyncReadback))
+        if (m_vertexBuffer.IsDataAvailable(!m_asyncReadback) && m_triangleBuffer.IsDataAvailable(!m_asyncReadback))
         {
             OnMeshDataRetrieved();
         }
@@ -208,19 +209,14 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private void OnVertexAndTriangleCountRetrieved()
     {
-        m_flags &= ~CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount;
-
-        m_vertexCountRequest.WaitForCompletion();
-        m_triangleCountRequest.WaitForCompletion();
-
-        if (m_vertexCountRequest.hasError || m_triangleCountRequest.hasError)
+        if (m_vertexCountBuffer.HasError || m_triangleCountBuffer.HasError)
         {
             Debug.Log("GPU readback error detected.");
             return;
         }
 
-        int vertexCount = m_vertexCountRequest.GetData<int>()[0];
-        int triangleCount = m_triangleCountRequest.GetData<int>()[0];
+        int vertexCount = m_vertexCountBuffer.GetData<int>()[0];
+        int triangleCount = m_triangleCountBuffer.GetData<int>()[0];
 
         if (triangleCount == 0)
         {
@@ -231,26 +227,20 @@ public class CubicalMarchingSquares : MonoBehaviour
         }
 
         // Retrieve vertices and triangles asynchronously.
-        m_vertexRequest = AsyncGPUReadback.Request(m_vertexBuffer, vertexCount * m_vertexBuffer.stride, 0);
-        m_triangleRequest = AsyncGPUReadback.Request(m_triangleBuffer, triangleCount * m_triangleBuffer.stride, 0);
-        m_flags |= CubicalMarchingSquaresFlags.RetrievingMeshData;
+        m_vertexBuffer.RequestData(vertexCount);
+        m_triangleBuffer.RequestData(triangleCount);
     }
 
     private void OnMeshDataRetrieved()
     {
-        m_flags &= ~CubicalMarchingSquaresFlags.RetrievingMeshData;
-
-        m_vertexRequest.WaitForCompletion();
-        m_triangleRequest.WaitForCompletion();
-
-        if (m_vertexRequest.hasError || m_triangleRequest.hasError)
+        if (m_vertexBuffer.HasError || m_triangleBuffer.HasError)
         {
             Debug.Log("GPU readback error detected.");
             return;
         }
 
-        NativeArray<Vertex> vertices = m_vertexRequest.GetData<Vertex>();
-        NativeArray<int> triangles = m_triangleRequest.GetData<int>();
+        NativeArray<Vertex> vertices = m_vertexBuffer.GetData<Vertex>();
+        NativeArray<int> triangles = m_triangleBuffer.GetData<int>();
 
         m_mesh.SetVertexBufferParams(vertices.Length, Vertex.s_attributes);
         m_mesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
@@ -280,7 +270,7 @@ public class CubicalMarchingSquares : MonoBehaviour
     {
         m_flags &= ~CubicalMarchingSquaresFlags.SettingsUpdated;
 
-        if (m_hermiteVolumeBuffer.count != NumberOfHermiteSamples)
+        if (m_hermiteVolumeBuffer.Count != NumberOfHermiteSamples)
         {
             ReleaseBuffers();
             CreateBuffers();
@@ -296,34 +286,43 @@ public class CubicalMarchingSquares : MonoBehaviour
         m_vertexBuffer.SetCounterValue(0);
         m_triangleBuffer.SetCounterValue(0);
 
-        int voxelStride = 1 << m_LODLevel;
-
         m_computeShader.SetInts(s_hermiteDimensionsID, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis, NumberOfHermiteSamplesAlongAxis);
-        m_computeShader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride, m_numberOfVoxelsAlongAxis / voxelStride);
-        m_computeShader.SetInt(s_voxelStrideID, voxelStride);
+        m_computeShader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis, m_numberOfVoxelsAlongAxis, m_numberOfVoxelsAlongAxis);
         m_computeShader.SetFloat(s_voxelSpacingID, m_voxelSpacing);
         m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, transform.position);
         m_computeShader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
         m_computeShader.SetInt(s_maxIterationsID, m_maxIterations);
         m_computeShader.SetFloat(s_stepSizeID, m_stepSize);
+
         m_computeShader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
         m_computeShader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
-        m_computeShader.SetBuffer(0, s_generatedTrianglesID, m_triangleBuffer);
+        m_computeShader.SetBuffer(0, s_flatVertexIndicesLookupID, m_flatVertexIndicesLookupBuffer);
         m_computeShader.Dispatch
         (
             0,
-            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.x),
-            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.y),
-            Mathf.CeilToInt((m_numberOfVoxelsAlongAxis / voxelStride) / (float)m_numberOfThreads.z)
+            Mathf.CeilToInt(NumberOfHermiteSamplesAlongAxis / (float)m_numberOfThreadsKernel0.x),
+            Mathf.CeilToInt(NumberOfHermiteSamplesAlongAxis / (float)m_numberOfThreadsKernel0.y),
+            Mathf.CeilToInt(NumberOfHermiteSamplesAlongAxis / (float)m_numberOfThreadsKernel0.z)
+        );
+
+        m_computeShader.SetBuffer(1, s_hermiteVolumeID, m_hermiteVolumeBuffer);
+        m_computeShader.SetBuffer(1, s_generatedVerticesID, m_vertexBuffer);
+        m_computeShader.SetBuffer(1, s_flatVertexIndicesLookupID, m_flatVertexIndicesLookupBuffer);
+        m_computeShader.SetBuffer(1, s_generatedTrianglesID, m_triangleBuffer);
+        m_computeShader.Dispatch
+        (
+            1,
+            Mathf.CeilToInt(m_numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.x),
+            Mathf.CeilToInt(m_numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.y),
+            Mathf.CeilToInt(m_numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.z)
         );
 
         ComputeBuffer.CopyCount(m_vertexBuffer, m_vertexCountBuffer, 0);
         ComputeBuffer.CopyCount(m_triangleBuffer, m_triangleCountBuffer, 0);
 
         // Retrieve vertex and triangle count asynchronously.
-        m_vertexCountRequest = AsyncGPUReadback.Request(m_vertexCountBuffer, m_vertexCountBuffer.stride, 0);
-        m_triangleCountRequest = AsyncGPUReadback.Request(m_triangleCountBuffer, m_triangleCountBuffer.stride, 0);
-        m_flags |= CubicalMarchingSquaresFlags.RetrievingVertexAndTriangleCount;
+        m_vertexCountBuffer.RequestData(1);
+        m_triangleCountBuffer.RequestData(1);
     }
 
     private void OnDisable()
@@ -336,16 +335,14 @@ public class CubicalMarchingSquares : MonoBehaviour
     private void OnValidate()
     {
         m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
-        m_LODLevel = Mathf.Clamp(m_LODLevel, 0, Mathf.Max(Mathf.RoundToInt(Mathf.Log(m_numberOfVoxelsAlongAxis, 2.0f)), 0));
         m_flags |= CubicalMarchingSquaresFlags.SettingsUpdated;
     }
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.green;
-
         if (m_showBounds)
         {
+            Gizmos.color = Color.green;
             Gizmos.DrawWireCube(transform.position + m_localBounds.center, m_localBounds.size);
         }
     }
@@ -354,8 +351,6 @@ public class CubicalMarchingSquares : MonoBehaviour
     private enum CubicalMarchingSquaresFlags
     {
         SettingsUpdated = 1,
-        RetrievingVertexAndTriangleCount = 2,
-        RetrievingMeshData = 4,
-        BakingMesh = 8
+        BakingMesh = 2
     }
 }

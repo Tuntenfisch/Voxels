@@ -38,6 +38,11 @@
         {
             return sharpFeatureVertexIndices.y;
         }
+        
+        bool HasSharpFeature()
+        {
+            return sharpFeatureVertexIndices.x != -1;
+        }
 
         void SwapEdges()
         {

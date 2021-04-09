@@ -563,9 +563,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb5cf6e8a6b58044ba026fc65baa66fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
+  m_numberOfVoxelsAlongAxis: 128
   m_voxelSpacing: 0.5
-  m_LODLevel: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
   m_maxIterations: 15
   m_stepSize: 0.2
