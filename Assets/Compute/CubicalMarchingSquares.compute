@@ -37,12 +37,12 @@ struct VoxelFlatVertexIndices
     }
 };
 
-VoxelFlatVertexIndices VoxelVertexIndexLookupConstructor(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
+VoxelFlatVertexIndices VoxelFlatVertexIndicesConstructor(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
 {
-    VoxelFlatVertexIndices voxelFlatVertexIndicesLookup;
-    voxelFlatVertexIndicesLookup.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
+    VoxelFlatVertexIndices voxelFlatVertexIndices;
+    voxelFlatVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
 
-    return voxelFlatVertexIndicesLookup;
+    return voxelFlatVertexIndices;
 }
 
 float sharpFeatureAngle;
@@ -100,7 +100,7 @@ void GenerateFlatVertices(uint3 voxelID: SV_DispatchThreadID)
         return;
     }
 
-    VoxelFlatVertexIndices voxelFlatVertexIndices = VoxelVertexIndexLookupConstructor();
+    VoxelFlatVertexIndices voxelFlatVertexIndices = VoxelFlatVertexIndicesConstructor();
 
     [unroll]
     for (uint index = 0; index < 3; index++)
