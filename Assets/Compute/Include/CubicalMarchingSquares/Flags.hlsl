@@ -22,7 +22,7 @@
         }
     };
 
-    Flags BitFlagConstructor()
+    Flags FlagsConstructor()
     {
         Flags flags;
         flags.buffer = 0;

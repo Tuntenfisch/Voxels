@@ -223,7 +223,7 @@ uint TraceComponents(uint segmentsCount)
         components[componentsIndex] = ComponentConstructor();
     }
 
-    Flags segmentsAssigned = BitFlagConstructor();
+    Flags segmentsAssigned = FlagsConstructor();
     uint componentsCount = 0;
     uint segmentsIndex = -1;
     uint remainingSegmentsToAssign = segmentsCount;
