@@ -5,7 +5,7 @@
 // To avoid this for this cubical marching squares implementation we use the same approach as described in
 // https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-1-generating-complex-procedural-terrains-using-gpu
 // to first generate the marching cubes edge (here called flat) vertices for the entire volume in kernel 0 and then
-// generating the remaining (here called sharp) vertices in kernel 1. A lookup structured buffer is used to retrieve
+// generating the remaining (here called sharp) vertices in kernel 1. A lookup table is used to retrieve
 // the flat vertices generated in kernel 0 from kernel 1 (see link, specifically "Generating a Block: Method 3").
 
 #include "Include/CubicalMarchingSquares/Component.hlsl"
@@ -21,7 +21,7 @@
 
 static const uint3 voxelEdgeIndicesForFlatVertexGeneration = uint3(0, 3, 8);
 
-// Convenience struct, instances of which act as entries into the lookup structured buffer described above.
+// Convenience struct, instances of which act as entries into the lookup table described above.
 struct VoxelFlatVertexIndices
 {
     uint3 vertexIndices;
@@ -50,7 +50,7 @@ uint maxIterations;
 float stepSize;
 
 RWStructuredBuffer<Vertex> generatedVertices;
-RWStructuredBuffer<VoxelFlatVertexIndices> flatVertexIndicesLookup;
+RWStructuredBuffer<VoxelFlatVertexIndices> flatVertexIndicesLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
 static Segment segments[maxSegmentsCount];
@@ -110,7 +110,7 @@ void GenerateFlatVertices(uint3 voxelID: SV_DispatchThreadID)
         voxelFlatVertexIndices.SetFlatVertexIndex(index, vertexIndex);
     }
 
-    flatVertexIndicesLookup[CalculateHermiteIndex(voxelID)] = voxelFlatVertexIndices;
+    flatVertexIndicesLookupTable[CalculateHermiteIndex(voxelID)] = voxelFlatVertexIndices;
 }
 
 uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
@@ -136,7 +136,7 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
 
     uint4 mapping = edgeIndexToFlatVertexIndexMapping[edgeIndex];
 
-    return flatVertexIndicesLookup[CalculateHermiteIndex(voxelID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
+    return flatVertexIndicesLookupTable[CalculateHermiteIndex(voxelID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
 }
 
 uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
@@ -160,7 +160,7 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
     // will be independently calculated twice. Due to floating point errors both calculated sharp feature positions can be
     // slightly different. This can result in one of both being "outside" the voxel while the other one isn't.
     // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
-    if (IsOutsideVoxel(VoxelVolumeToVoxelSpace(voxelID, sharpFeaturePosition), 1e-4f) || any(isnan(sharpFeaturePosition)))
+    if (IsOutsideVoxel(VoxelVolumeToVoxelSpace(voxelID, sharpFeaturePosition), 1e-3f) || any(isnan(sharpFeaturePosition)))
     {
         return - 1;
     }
@@ -351,6 +351,8 @@ Vertex CalculateComponentFeatureVertex(uint3 voxelID, Component component, out b
 
     isComponentSharpFeature = HasSharpFeature(component);
 
+    // If the component has a sharp feature, solve for it by using the "Schmitz Particle Method" (http://www.inf.ufrgs.br/~comba/papers/thesis/diss-leonardo.pdf).
+    // This method is much faster to compute than solving the QEF and iteratively approximates the analytical QEF result.
     if (isComponentSharpFeature)
     {
         CalculateForces(component);

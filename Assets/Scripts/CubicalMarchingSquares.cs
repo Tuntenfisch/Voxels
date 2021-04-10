@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 public class CubicalMarchingSquares : MonoBehaviour
 {
     [Header("Voxel Volume")]
-    [Range(2, 128)]
+    [Range(2, 64)]
     public int m_numberOfVoxelsAlongAxis = 16;
     [Range(0.25f, 4.0f)]
     public float m_voxelSpacing = 0.5f;
@@ -76,7 +76,7 @@ public class CubicalMarchingSquares : MonoBehaviour
     private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
     private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
     private static readonly int s_generatedVerticesID = Shader.PropertyToID("generatedVertices");
-    private static readonly int s_flatVertexIndicesLookupID = Shader.PropertyToID("flatVertexIndicesLookup");
+    private static readonly int s_flatVertexIndicesLookupTableID = Shader.PropertyToID("flatVertexIndicesLookupTable");
     private static readonly int s_generatedTrianglesID = Shader.PropertyToID("generatedTriangles");
 
     private Mesh m_mesh;
@@ -101,6 +101,11 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private void OnEnable()
     {
+        m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+        m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
+        m_computeShader.GetKernelThreadGroupSizes(1, out x, out y, out z);
+        m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
+
         m_hermiteVolume = GetComponent<HermiteVolume>();
         m_hermiteVolume.OnHermiteVolumeChanged += OnSettingsUpdated;
 
@@ -109,11 +114,6 @@ public class CubicalMarchingSquares : MonoBehaviour
 
     private void Start()
     {
-        m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
-        m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
-        m_computeShader.GetKernelThreadGroupSizes(1, out x, out y, out z);
-        m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
-
         InitializeMeshComponents();
         GenerateHermiteVolume(transform.position);
         CalculateLocalBounds();
@@ -296,7 +296,7 @@ public class CubicalMarchingSquares : MonoBehaviour
 
         m_computeShader.SetBuffer(0, s_hermiteVolumeID, m_hermiteVolumeBuffer);
         m_computeShader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
-        m_computeShader.SetBuffer(0, s_flatVertexIndicesLookupID, m_flatVertexIndicesLookupBuffer);
+        m_computeShader.SetBuffer(0, s_flatVertexIndicesLookupTableID, m_flatVertexIndicesLookupBuffer);
         m_computeShader.Dispatch
         (
             0,
@@ -307,7 +307,7 @@ public class CubicalMarchingSquares : MonoBehaviour
 
         m_computeShader.SetBuffer(1, s_hermiteVolumeID, m_hermiteVolumeBuffer);
         m_computeShader.SetBuffer(1, s_generatedVerticesID, m_vertexBuffer);
-        m_computeShader.SetBuffer(1, s_flatVertexIndicesLookupID, m_flatVertexIndicesLookupBuffer);
+        m_computeShader.SetBuffer(1, s_flatVertexIndicesLookupTableID, m_flatVertexIndicesLookupBuffer);
         m_computeShader.SetBuffer(1, s_generatedTrianglesID, m_triangleBuffer);
         m_computeShader.Dispatch
         (
