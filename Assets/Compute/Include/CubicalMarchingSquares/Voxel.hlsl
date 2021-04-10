@@ -133,7 +133,7 @@
         VoxelFaceConstructor(uint4(1, 10, 5, 9), uint4(1, 2, 6, 5), float3x3(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f)), // Right face (yz plane, x = 1)
         VoxelFaceConstructor(uint4(2, 11, 6, 10), uint4(2, 3, 7, 6), float3x3(0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)), // Rear face (xy plane, z = 1)
         VoxelFaceConstructor(uint4(3, 8, 7, 11), uint4(3, 0, 4, 7), float3x3(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f)), // Left face (yz plane, x = 0)
-        VoxelFaceConstructor(uint4(2, 1, 0, 3), uint4(3, 2, 1, 0), float3x3(0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)), // Bottom face (xz plane, y = 0)
+        VoxelFaceConstructor(uint4(0, 1, 2, 3), uint4(0, 1, 2, 3), float3x3(0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)), // Bottom face (xz plane, y = 0)
         VoxelFaceConstructor(uint4(4, 5, 6, 7), uint4(4, 5, 6, 7), float3x3(0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f)), // Top face (xz plane, y = 1)
     };
 

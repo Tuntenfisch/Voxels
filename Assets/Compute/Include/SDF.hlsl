@@ -37,32 +37,67 @@
         return SmoothIntersection(a, -b, k);
     }
 
-    float4 Cube(float3 position, float3 center, float3 size)
+    interface ISDFPrimitive
     {
-        position -= center;
+        float4 Evaluate(float3 position);
+    };
 
-        float4 value_gradient = 0.0f;
-        
-        float3 d = abs(position) - 0.5f * size;
-        float3 s = sign(position);
-        float g = max(d.x, max(d.y, d.z));
-        
-        value_gradient.x = length(max(d, 0.0f)) + min(max(d.x, max(d.y, d.z)), 0.0f);
-        value_gradient.yzw = s * (g > 0.0f ? normalize(max(d, 0.0f)): step(d.yzx, d.xyz) * step(d.zxy, d.xyz));
-        
-        return value_gradient;
+    struct SDFCube: ISDFPrimitive
+    {
+        float3 center;
+        float3 size;
+
+        float4 Evaluate(float3 position)
+        {
+            position -= center;
+
+            float4 value_gradient = 0.0f;
+            
+            float3 d = abs(position) - 0.5f * size;
+            float3 s = sign(position);
+            float g = max(d.x, max(d.y, d.z));
+            
+            value_gradient.x = length(max(d, 0.0f)) + min(max(d.x, max(d.y, d.z)), 0.0f);
+            value_gradient.yzw = s * (g > 0.0f ? normalize(max(d, 0.0f)): step(d.yzx, d.xyz) * step(d.zxy, d.xyz));
+            
+            return value_gradient;
+        }
+    };
+
+    SDFCube SDFCubeConstructor(float3 center = 0.0f, float3 size = 1.0f)
+    {
+        SDFCube cube;
+        cube.center = center;
+        cube.size = size;
+
+        return cube;
     }
 
-    float4 Sphere(float3 position, float3 center, float radius)
+    struct SDFSphere: ISDFPrimitive
     {
-        position -= center;
+        float3 center;
+        float radius;
 
-        float4 value_gradient = 0.0f;
-        
-        value_gradient.x = length(position) - radius;
-        value_gradient.yzw = normalize(position);
-        
-        return value_gradient;
+        float4 Evaluate(float3 position)
+        {
+            position -= center;
+
+            float4 value_gradient = 0.0f;
+            
+            value_gradient.x = length(position) - radius;
+            value_gradient.yzw = normalize(position);
+            
+            return value_gradient;
+        }
+    };
+
+    SDFSphere SDFSphereConstructor(float3 center = 0.0f, float radius = 0.5f)
+    {
+        SDFSphere sphere;
+        sphere.center = center;
+        sphere.radius = radius;
+
+        return sphere;
     }
 
 #endif

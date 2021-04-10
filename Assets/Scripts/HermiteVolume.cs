@@ -48,6 +48,7 @@ public class HermiteVolume : MonoBehaviour
     {
         m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
         m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
+
         CreateBuffers();
         CalculateOctaveOffsets();
     }

@@ -35,11 +35,11 @@ void GenerateHermiteVolume(uint3 hermiteID: SV_DispatchThreadID)
 
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(hermiteID));
 
-    float4 cube = Cube(worldPosition, float3(0.0f, 2.5f, 0.0f), float3(15.0f, 3.0f, 20.0f));
-    float4 sphere0 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 2.0f);
-    float4 sphere1 = Sphere(worldPosition, float3(0.0f, 2.5f, 0.0f), 5.0f);
+    ISDFPrimitive cube = SDFCubeConstructor(float3(0.0f, 2.5f, 0.0f), float3(15.0f, 3.0f, 20.0f));
+    ISDFPrimitive sphere0 = SDFSphereConstructor(float3(0.0f, 2.5f, 0.0f), 2.0f);
+    ISDFPrimitive sphere1 = SDFSphereConstructor(float3(0.0f, 2.5f, 0.0f), 5.0f);
 
-    float4 value_gradient = Union(sphere0, Difference(SmoothUnion(GenerateHeight(worldPosition), cube, 2.0f), sphere1));
+    float4 value_gradient = Union(sphere0.Evaluate(worldPosition), Difference(SmoothUnion(GenerateHeight(worldPosition), cube.Evaluate(worldPosition), 2.0f), sphere1.Evaluate(worldPosition)));
 
     hermiteVolume[CalculateHermiteIndex(hermiteID)] = HermiteSampleConstructor(value_gradient.x, value_gradient.yzw);
 }
