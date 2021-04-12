@@ -67,7 +67,7 @@ uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 
     if (IsOutOfHermiteBounds(hermiteIDA) || IsOutOfHermiteBounds(hermiteIDB))
     {
-        return - 1;
+        return -1;
     }
 
     HermiteSample sampleA = hermiteVolume[CalculateHermiteIndex(hermiteIDA)];
@@ -75,7 +75,7 @@ uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 
     if (sampleA.GetValue() < 0.0f == sampleB.GetValue() < 0.0f)
     {
-        return - 1;
+        return -1;
     }
 
     float interpolant = -sampleA.GetValue() / (sampleB.GetValue() - sampleA.GetValue());
@@ -142,7 +142,7 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
 {
     if (acos(dot(vertexA.normal, vertexB.normal)) < sharpFeatureAngle)
     {
-        return - 1;
+        return -1;
     }
 
     float3 faceTangentA = voxelFace.GetFaceTangent(vertexA.normal);
@@ -161,7 +161,7 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
     // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
     if (IsOutsideVoxel(VoxelVolumeToVoxelSpace(voxelID, sharpFeaturePosition), 1e-3f) || any(isnan(sharpFeaturePosition)))
     {
-        return - 1;
+        return -1;
     }
 
     uint2 indices = uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter());
