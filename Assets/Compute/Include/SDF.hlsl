@@ -24,6 +24,7 @@
         float h = max(k - abs(a.x - b.x), 0.0f);
         float m = 0.25f * h * h / k;
         float n = 0.50f * h / k;
+
         return float4(min(a.x, b.x) - m, lerp(a.yzw, b.yzw, a.x < b.x ? n: 1.0f - n));
     }
 
@@ -62,16 +63,16 @@
             
             return value_gradient;
         }
+
+        static SDFCube Create(float3 center = 0.0f, float3 size = 1.0f)
+        {
+            SDFCube cube;
+            cube.center = center;
+            cube.size = size;
+
+            return cube;
+        }
     };
-
-    SDFCube SDFCubeConstructor(float3 center = 0.0f, float3 size = 1.0f)
-    {
-        SDFCube cube;
-        cube.center = center;
-        cube.size = size;
-
-        return cube;
-    }
 
     struct SDFSphere: ISDFPrimitive
     {
@@ -89,15 +90,17 @@
             
             return value_gradient;
         }
+
+        static SDFSphere Create(float3 center = 0.0f, float radius = 0.5f)
+        {
+            SDFSphere sphere;
+            sphere.center = center;
+            sphere.radius = radius;
+
+            return sphere;
+        }
     };
 
-    SDFSphere SDFSphereConstructor(float3 center = 0.0f, float radius = 0.5f)
-    {
-        SDFSphere sphere;
-        sphere.center = center;
-        sphere.radius = radius;
 
-        return sphere;
-    }
 
 #endif

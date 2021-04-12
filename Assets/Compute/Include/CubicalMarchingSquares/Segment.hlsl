@@ -48,22 +48,17 @@
         {
             edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB = edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB.zwxy;
         }
+
+        static Segment Create(uint edgeIndexA, uint edgeVertexIndexA, uint edgeIndexB, uint edgeVertexIndexB, uint2 sharpFeatureVertexIndices)
+        {
+            Segment segment;
+            segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB = uint4(edgeIndexA, edgeVertexIndexA, edgeIndexB, edgeVertexIndexB);
+            segment.sharpFeatureVertexIndices = sharpFeatureVertexIndices;
+            
+            return segment;
+        }
     };
 
-    Segment SegmentConstructor
-    (
-        uint edgeIndexA,
-        uint edgeVertexIndexA,
-        uint edgeIndexB,
-        uint edgeVertexIndexB,
-        uint2 sharpFeatureVertexIndices
-    )
-    {
-        Segment segment;
-        segment.edgeIndexA_edgeVertexIndexA_edgeIndexB_edgeVertexIndexB = uint4(edgeIndexA, edgeVertexIndexA, edgeIndexB, edgeVertexIndexB);
-        segment.sharpFeatureVertexIndices = sharpFeatureVertexIndices;
-        
-        return segment;
-    }
+    
 
 #endif

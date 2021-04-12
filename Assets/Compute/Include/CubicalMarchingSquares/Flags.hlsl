@@ -20,14 +20,14 @@
         {
             buffer |= 1 << index;
         }
-    };
 
-    Flags FlagsConstructor()
-    {
-        Flags flags;
-        flags.buffer = 0;
-        
-        return flags;
-    }
+        static Flags Create()
+        {
+            Flags flags;
+            flags.buffer = 0;
+            
+            return flags;
+        }
+    };
 
 #endif

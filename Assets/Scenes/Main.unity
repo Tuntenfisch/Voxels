@@ -279,7 +279,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
-  m_showBounds: 0
+  m_showBounds: 1
 --- !u!4 &584997471
 Transform:
   m_ObjectHideFlags: 0
@@ -870,7 +870,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
-  m_showBounds: 0
+  m_showBounds: 1
 --- !u!4 &1255704057
 Transform:
   m_ObjectHideFlags: 0
@@ -959,7 +959,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
-  m_showBounds: 0
+  m_showBounds: 1
 --- !u!23 &1380290542
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1192,7 +1192,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
-  m_showBounds: 0
+  m_showBounds: 1
 --- !u!4 &1776670545
 Transform:
   m_ObjectHideFlags: 0
@@ -1331,7 +1331,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
-  m_showBounds: 0
+  m_showBounds: 1
 --- !u!4 &1934337881
 Transform:
   m_ObjectHideFlags: 0

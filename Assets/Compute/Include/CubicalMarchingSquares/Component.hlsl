@@ -36,15 +36,15 @@
         {
             packedSegmentsIndices[1].w = length;
         }
-    };
 
-    Component ComponentConstructor()
-    {
-        Component component;
-        component.packedSegmentsIndices[0] = 0;
-        component.packedSegmentsIndices[1] = 0;
-        
-        return component;
-    }
+        static Component Create()
+        {
+            Component component;
+            component.packedSegmentsIndices[0] = 0;
+            component.packedSegmentsIndices[1] = 0;
+            
+            return component;
+        }
+    };
 
 #endif

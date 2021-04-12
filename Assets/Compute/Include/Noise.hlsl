@@ -24,7 +24,7 @@
         INoise noise,
         float3 position,
         uint numberOfOctaves,
-        Buffer < float3 > octaveOffsets,
+        Buffer<float3>octaveOffsets,
         float frequency,
         float persistence,
         float lacunarity
