@@ -15,15 +15,17 @@
         {
             return value_gradient.yzw;
         }
+
+        static HermiteSample Create(float value, float3 gradient)
+        {
+            HermiteSample sample;
+            sample.value_gradient.x = value;
+            sample.value_gradient.yzw = gradient;
+
+            return sample;
+        }
     };
 
-    HermiteSample HermiteSampleConstructor(float value, float3 gradient)
-    {
-        HermiteSample sample;
-        sample.value_gradient.x = value;
-        sample.value_gradient.yzw = gradient;
 
-        return sample;
-    }
 
 #endif

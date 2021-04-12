@@ -2,7 +2,7 @@
 #pragma kernel GenerateSharpVertices
 
 // If the marching cubes algorithm generates vertices for each voxel independently, many duplicate vertices will be generated.
-// To avoid this for this cubical marching squares implementation we use the same approach as described in
+// To avoid this for this cubical marching squares implementation I use the same approach as described in
 // https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-1-generating-complex-procedural-terrains-using-gpu
 // to first generate the marching cubes edge (here called flat) vertices for the entire volume in kernel 0 and then
 // generating the remaining (here called sharp) vertices in kernel 1. A lookup table is used to retrieve
@@ -35,15 +35,15 @@ struct VoxelFlatVertexIndices
     {
         vertexIndices[index] = vertexIndex;
     }
+
+    static VoxelFlatVertexIndices Create(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
+    {
+        VoxelFlatVertexIndices voxelFlatVertexIndices;
+        voxelFlatVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
+
+        return voxelFlatVertexIndices;
+    }
 };
-
-VoxelFlatVertexIndices VoxelFlatVertexIndicesConstructor(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
-{
-    VoxelFlatVertexIndices voxelFlatVertexIndices;
-    voxelFlatVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
-
-    return voxelFlatVertexIndices;
-}
 
 float sharpFeatureAngle;
 uint maxIterations;
@@ -59,7 +59,6 @@ static float3 forces[voxelCornersCount];
 
 uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 {
-
     uint3 voxelCornerA = voxelCorners[edge.GetVoxelCornerStartIndex()];
     uint3 voxelCornerB = voxelCorners[edge.GetVoxelCornerEndIndex()];
 
@@ -83,7 +82,7 @@ uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 
     uint vertexIndex = generatedVertices.IncrementCounter();
 
-    generatedVertices[vertexIndex] = VertexConstructor
+    generatedVertices[vertexIndex] = Vertex::Create
     (
         VoxelToVoxelVolumeSpace(voxelID, lerp(voxelCornerA, voxelCornerB, interpolant)),
         normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
@@ -100,7 +99,7 @@ void GenerateFlatVertices(uint3 voxelID: SV_DispatchThreadID)
         return;
     }
 
-    VoxelFlatVertexIndices voxelFlatVertexIndices = VoxelFlatVertexIndicesConstructor();
+    VoxelFlatVertexIndices voxelFlatVertexIndices = VoxelFlatVertexIndices::Create();
 
     [unroll]
     for (uint index = 0; index < 3; index++)
@@ -117,21 +116,21 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
 {
     // For certain edges of the current voxel we need to look into adjacent
     // voxels to find the corresponding flat vertex index. This relationship
-    // between edge and corresponding flat vertex index is mapped in the array
-    // right below.
+    // between edges and corresponding flat vertex indices is mapped in this
+    // array.
     const uint4 edgeIndexToFlatVertexIndexMapping[12] = {
         uint4(0, 0, 0, 0),
         uint4(1, 0, 0, 1),
-        uint4(0, 0, 1, 0),
-        uint4(0, 0, 0, 1),
         uint4(0, 1, 0, 0),
-        uint4(1, 1, 0, 1),
+        uint4(0, 0, 0, 1),
+        uint4(0, 0, 1, 0),
+        uint4(1, 0, 1, 1),
         uint4(0, 1, 1, 0),
-        uint4(0, 1, 0, 1),
+        uint4(0, 0, 1, 1),
         uint4(0, 0, 0, 2),
         uint4(1, 0, 0, 2),
-        uint4(1, 0, 1, 2),
-        uint4(0, 0, 1, 2)
+        uint4(1, 1, 0, 2),
+        uint4(0, 1, 0, 2)
     };
 
     uint4 mapping = edgeIndexToFlatVertexIndexMapping[edgeIndex];
@@ -167,8 +166,8 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
 
     uint2 indices = uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter());
 
-    generatedVertices[indices.x] = VertexConstructor(sharpFeaturePosition, vertexA.normal);
-    generatedVertices[indices.y] = VertexConstructor(sharpFeaturePosition, vertexB.normal);
+    generatedVertices[indices.x] = Vertex::Create(sharpFeaturePosition, vertexA.normal);
+    generatedVertices[indices.y] = Vertex::Create(sharpFeaturePosition, vertexB.normal);
 
     return indices;
 }
@@ -202,7 +201,7 @@ uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount
         Vertex vertexA = generatedVertices[vertexIndexA];
         Vertex vertexB = generatedVertices[vertexIndexB];
         
-        Segment segment = SegmentConstructor
+        Segment segment = Segment::Create
         (
             edgeIndexA,
             vertexIndexA,
@@ -220,10 +219,10 @@ uint TraceComponents(uint segmentsCount)
 {
     for (uint componentsIndex = 0; componentsIndex < maxComponentsCount; componentsIndex++)
     {
-        components[componentsIndex] = ComponentConstructor();
+        components[componentsIndex] = Component::Create();
     }
 
-    Flags segmentsAssigned = FlagsConstructor();
+    Flags segmentsAssigned = Flags::Create();
     uint componentsCount = 0;
     uint segmentsIndex = -1;
     uint remainingSegmentsToAssign = segmentsCount;
@@ -280,7 +279,7 @@ uint TraceComponents(uint segmentsCount)
 
 Vertex CalculateCenterVertex(Component component)
 {
-    Vertex centerVertex = VertexConstructor();
+    Vertex centerVertex = Vertex::Create();
 
     for (uint index = 0; index < component.GetLength(); index++)
     {
@@ -359,7 +358,7 @@ Vertex CalculateComponentFeatureVertex(uint3 voxelID, Component component, out b
 
         for (uint iterations = 0; iterations < maxIterations; iterations++)
         {
-            featureVertex.position += stepSize * CalculateCombinedForce(featureVertex.position.zyx);
+            featureVertex.position += stepSize * CalculateCombinedForce(featureVertex.position.yzx);
         }
     }
     featureVertex.position = VoxelToVoxelVolumeSpace(voxelID, ClampToVoxel(VoxelVolumeToVoxelSpace(voxelID, featureVertex.position), 1e-3f));
