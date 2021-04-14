@@ -1,5 +1,5 @@
-#ifndef HERMITE_SAMPLE
-#define HERMITE_SAMPLE
+#ifndef HERMITE_SAMPLE__559277903
+#define HERMITE_SAMPLE__559277903
 
 struct HermiteSample
 {

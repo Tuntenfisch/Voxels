@@ -1,5 +1,5 @@
-#ifndef CUBICAL_MARCHING_SQUARES_SEGMENT
-#define CUBICAL_MARCHING_SQUARES_SEGMENT
+#ifndef SEGMENT__559277903
+#define SEGMENT__559277903
 
 static const uint maxSegmentsCount = 12;
 

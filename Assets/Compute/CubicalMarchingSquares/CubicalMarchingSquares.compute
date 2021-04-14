@@ -8,21 +8,21 @@
 // generating the remaining (here called sharp) vertices in kernel 1. A lookup table is used to retrieve
 // the flat vertices generated in kernel 0 from kernel 1 (see link, specifically "Generating a Block: Method 3").
 
-#include "Include/CubicalMarchingSquares/Component.hlsl"
-#include "Include/CubicalMarchingSquares/Flags.hlsl"
-#include "Include/CubicalMarchingSquares/MarchingSquares.hlsl"
-#include "Include/CubicalMarchingSquares/Segment.hlsl"
-#include "Include/CubicalMarchingSquares/Voxel.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/Component.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteSample.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteVolume.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/MarchingSquares.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/Segment.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/Vertex.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/Voxel.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/VoxelVolume.hlsl"
 
-#include "Include/HermiteSample.hlsl"
-#include "Include/HermiteVolume.hlsl"
-#include "Include/Vertex.hlsl"
-#include "Include/VoxelVolume.hlsl"
+#include "Assets/Compute/Include/Flags.hlsl"
 
 static const uint3 voxelEdgeIndicesForFlatVertexGeneration = uint3(0, 3, 8);
 
 // Convenience struct, instances of which act as entries into the lookup table described above.
-struct VoxelFlatVertexIndices
+struct VoxelFlatFeatureVertexIndices
 {
     uint3 vertexIndices;
 
@@ -36,12 +36,12 @@ struct VoxelFlatVertexIndices
         vertexIndices[index] = vertexIndex;
     }
 
-    static VoxelFlatVertexIndices Create(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
+    static VoxelFlatFeatureVertexIndices Create(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
     {
-        VoxelFlatVertexIndices voxelFlatVertexIndices;
-        voxelFlatVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
+        VoxelFlatFeatureVertexIndices voxelFlatFeatureVertexIndices;
+        voxelFlatFeatureVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
 
-        return voxelFlatVertexIndices;
+        return voxelFlatFeatureVertexIndices;
     }
 };
 
@@ -50,28 +50,30 @@ uint maxIterations;
 float stepSize;
 
 RWStructuredBuffer<Vertex> generatedVertices;
-RWStructuredBuffer<VoxelFlatVertexIndices> flatVertexIndicesLookupTable;
+RWStructuredBuffer<VoxelFlatFeatureVertexIndices> flatFeatureVertexIndicesLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
+static HermiteSample samples[voxelCornersCount];
 static Segment segments[maxSegmentsCount];
 static Component components[maxComponentsCount];
 static float3 forces[voxelCornersCount];
+
+void SampleHermiteVolume(uint3 voxelID)
+{
+    for (uint cornerIndex = 0; cornerIndex < voxelCornersCount; cornerIndex++)
+    {
+        uint3 hermiteID = ClampToHermiteVolumeBounds(voxelID + voxelCorners[cornerIndex]);
+        samples[cornerIndex] = hermiteVolume[CalculateHermiteVolumeIndex(hermiteID)];
+    }
+}
 
 uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 {
     uint3 voxelCornerA = voxelCorners[edge.GetVoxelCornerStartIndex()];
     uint3 voxelCornerB = voxelCorners[edge.GetVoxelCornerEndIndex()];
 
-    uint3 hermiteIDA = voxelID + voxelCornerA;
-    uint3 hermiteIDB = voxelID + voxelCornerB;
-
-    if (IsOutOfHermiteBounds(hermiteIDA) || IsOutOfHermiteBounds(hermiteIDB))
-    {
-        return -1;
-    }
-
-    HermiteSample sampleA = hermiteVolume[CalculateHermiteIndex(hermiteIDA)];
-    HermiteSample sampleB = hermiteVolume[CalculateHermiteIndex(hermiteIDB)];
+    HermiteSample sampleA = samples[edge.GetVoxelCornerStartIndex()];
+    HermiteSample sampleB = samples[edge.GetVoxelCornerEndIndex()];
 
     if (sampleA.GetValue() < 0.0f == sampleB.GetValue() < 0.0f)
     {
@@ -92,24 +94,26 @@ uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 }
 
 [numthreads(4, 4, 4)]
-void GenerateFlatVertices(uint3 voxelID: SV_DispatchThreadID)
+void GenerateFlatVertices(uint3 voxelID : SV_DispatchThreadID)
 {
-    if (IsOutOfHermiteBounds(voxelID))
+    if (IsOutOfHermiteVolumeBounds(voxelID))
     {
         return;
     }
 
-    VoxelFlatVertexIndices voxelFlatVertexIndices = VoxelFlatVertexIndices::Create();
+    SampleHermiteVolume(voxelID);
+
+    VoxelFlatFeatureVertexIndices voxelFlatFeatureVertexIndices = VoxelFlatFeatureVertexIndices::Create();
 
     [unroll]
     for (uint index = 0; index < 3; index++)
     {
         uint edgeIndex = voxelEdgeIndicesForFlatVertexGeneration[index];
         uint vertexIndex = GenerateFlatFeatureVertex(voxelID, voxelEdges[edgeIndex]);
-        voxelFlatVertexIndices.SetFlatVertexIndex(index, vertexIndex);
+        voxelFlatFeatureVertexIndices.SetFlatVertexIndex(index, vertexIndex);
     }
 
-    flatVertexIndicesLookupTable[CalculateHermiteIndex(voxelID)] = voxelFlatVertexIndices;
+    flatFeatureVertexIndicesLookupTable[CalculateHermiteVolumeIndex(voxelID)] = voxelFlatFeatureVertexIndices;
 }
 
 uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
@@ -118,7 +122,8 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
     // voxels to find the corresponding flat vertex index. This relationship
     // between edges and corresponding flat vertex indices is mapped in this
     // array.
-    const uint4 edgeIndexToFlatVertexIndexMapping[12] = {
+    const uint4 edgeIndexToFlatVertexIndexMapping[12] =
+    {
         uint4(0, 0, 0, 0),
         uint4(1, 0, 0, 1),
         uint4(0, 1, 0, 0),
@@ -135,7 +140,7 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
 
     uint4 mapping = edgeIndexToFlatVertexIndexMapping[edgeIndex];
 
-    return flatVertexIndicesLookupTable[CalculateHermiteIndex(voxelID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
+    return flatFeatureVertexIndicesLookupTable[CalculateHermiteVolumeIndex(voxelID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
 }
 
 uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
@@ -178,8 +183,7 @@ uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount
     
     for (uint sampleIndex = 0; sampleIndex < 4; sampleIndex++)
     {
-        uint3 hermiteID = voxelID + voxelCorners[voxelFace.voxelCornerIndices[sampleIndex]];
-        HermiteSample sample = hermiteVolume[CalculateHermiteIndex(hermiteID)];
+        HermiteSample sample = samples[voxelFace.voxelCornerIndices[sampleIndex]];
         segmentsIndex |= (sample.GetValue() < 0.0f) << sampleIndex;
     }
 
@@ -309,7 +313,7 @@ bool HasSharpFeature(Component component)
             Segment segmentB = segments[component.GetPackedSegmentsIndex(indexB)];
             Vertex vertexB = generatedVertices[segmentB.GetEdgeVertexIndexA()];
             float newCosOfAngle = dot(vertexA.normal, vertexB.normal);
-            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle: cosOfAngle;
+            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
         }
     }
     return acos(cosOfAngle) >= sharpFeatureAngle;
@@ -425,12 +429,14 @@ void GenerateTriangles(Component component, Vertex componentFeatureVertex, bool 
 }
 
 [numthreads(4, 4, 4)]
-void GenerateSharpVertices(uint3 voxelID: SV_DispatchThreadID)
+void GenerateSharpVertices(uint3 voxelID : SV_DispatchThreadID)
 {
     if (IsOutOfVoxelBounds(voxelID))
     {
         return;
     }
+
+    SampleHermiteVolume(voxelID);
 
     uint segmentsCount = 0;
 

@@ -1,5 +1,5 @@
-#ifndef CUBICAL_MARCHING_SQUARES_VOXEL
-#define CUBICAL_MARCHING_SQUARES_VOXEL
+#ifndef VOXEL__559277903
+#define VOXEL__559277903
 
 static const uint voxelCornersCount = 8;
 
@@ -14,7 +14,8 @@ static const uint voxelCornersCount = 8;
 // | /       | /
 // |/        |/
 // 0---------1
-static const uint3 voxelCorners[voxelCornersCount] = {
+static const uint3 voxelCorners[voxelCornersCount] =
+{
     uint3(0, 0, 0),
     uint3(1, 0, 0),
     uint3(1, 1, 0),
@@ -76,7 +77,8 @@ struct VoxelEdge
 // | 8       | 9
 // |/        |/
 // +----0----+
-static const VoxelEdge voxelEdges[12] = {
+static const VoxelEdge voxelEdges[12] =
+{
     VoxelEdge::Create(0, 1),
     VoxelEdge::Create(1, 2),
     VoxelEdge::Create(2, 3),
@@ -126,7 +128,8 @@ struct VoxelFace
     }
 };
 
-static const VoxelFace voxelFaces[voxelFacesCount] = {
+static const VoxelFace voxelFaces[voxelFacesCount] =
+{
     VoxelFace::Create(uint4(0, 1, 2, 3), uint4(0, 1, 2, 3), float3x3(0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)),
     VoxelFace::Create(uint4(9, 5, 10, 1), uint4(1, 5, 6, 2), float3x3(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f)),
     VoxelFace::Create(uint4(4, 7, 6, 5), uint4(5, 4, 7, 6), float3x3(0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)),
@@ -149,7 +152,7 @@ static const VoxelFace voxelFaces[voxelFacesCount] = {
 // is no longer accessible...
 //
 // Well, it turns out that a snapshots of that website exist on https://web.archive.org/. The exact snapshot doesn't matter
-// too much (I think). Anyways all the way on the bottom of one of the snapshots is a download link to a "preliminary version".
-// After adapting my arrays to the ordering found in the source code of that version it seems to work fine. I hope this is the end of it...
+// too much (I think). Anyways, all the way on the bottom of one of the snapshots is a download link to a "preliminary version".
+// After adapting my arrays to the ordering found in that version it seems to work fine. I hope this is the end of it...
 
 #endif
