@@ -1,5 +1,5 @@
-﻿#ifndef VERTEX
-#define VERTEX
+﻿#ifndef VERTEX__559277903
+#define VERTEX__559277903
 
 struct Vertex
 {

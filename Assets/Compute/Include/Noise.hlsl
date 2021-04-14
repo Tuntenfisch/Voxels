@@ -1,5 +1,5 @@
-#ifndef NOISE
-#define NOISE
+#ifndef NOISE__559277903
+#define NOISE__559277903
 
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 
@@ -8,7 +8,7 @@ interface INoise
     float4 GenerateNoise(float3 position);
 };
 
-struct SimplexNoise2D: INoise
+struct SimplexNoise2D : INoise
 {
     float4 GenerateNoise(float3 position)
     {

@@ -1,10 +1,11 @@
 #pragma kernel GenerateHermiteVolume
 
-#include "Include/HermiteSample.hlsl"
-#include "Include/HermiteVolume.hlsl"
-#include "Include/Noise.hlsl"
-#include "Include/SDF.hlsl"
-#include "Include/VoxelVolume.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteSample.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteVolume.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/VoxelVolume.hlsl"
+
+#include "Assets/Compute/Include/Noise.hlsl"
+#include "Assets/Compute/Include/SDF.hlsl"
 
 float wavelength;
 uint numberOfOctaves;
@@ -26,9 +27,9 @@ float4 GenerateHeight(float3 position)
 }
 
 [numthreads(4, 4, 4)]
-void GenerateHermiteVolume(uint3 hermiteID: SV_DispatchThreadID)
+void GenerateHermiteVolume(uint3 hermiteID : SV_DispatchThreadID)
 {
-    if (IsOutOfHermiteBounds(hermiteID))
+    if (IsOutOfHermiteVolumeBounds(hermiteID))
     {
         return;
     }
@@ -42,5 +43,5 @@ void GenerateHermiteVolume(uint3 hermiteID: SV_DispatchThreadID)
 
     float4 value_gradient = Union(sphere0, Difference(SmoothUnion(height, cube, 2.0f), sphere1));
 
-    hermiteVolume[CalculateHermiteIndex(hermiteID)] = HermiteSample::Create(value_gradient.x, value_gradient.yzw);
+    hermiteVolume[CalculateHermiteVolumeIndex(hermiteID)] = HermiteSample::Create(value_gradient.x, value_gradient.yzw);
 }

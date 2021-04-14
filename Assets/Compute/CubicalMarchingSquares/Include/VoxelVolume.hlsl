@@ -1,5 +1,5 @@
-#ifndef VOXEL_VOLUME
-#define VOXEL_VOLUME
+#ifndef VOXEL_VOLUME__559277903
+#define VOXEL_VOLUME__559277903
 
 uint3 voxelDimensions;
 float voxelSpacing;
