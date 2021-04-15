@@ -9,26 +9,34 @@ namespace CubicalMarchingSquares
         public event Action OnHermiteVolumeChanged;
 
         [Header("Noise Parameters")]
-        public int m_seed;
-        public Vector3 m_offset;
+        [SerializeField]
+        private int m_seed;
+        [SerializeField]
+        private Vector3 m_offset;
 
 
         [Header("Height Map")]
         [Range(0.0f, 100.0f)]
-        public float m_height = 15.0f;
+        [SerializeField]
+        private float m_height = 15.0f;
         [Range(0.0f, 100.0f)]
-        public float m_wavelength = 35.0f;
+        [SerializeField]
+        private float m_wavelength = 35.0f;
 
         [Header("FBM")]
         [Range(1, 16)]
-        public int m_numberOfOctaves = 4;
+        [SerializeField]
+        private int m_numberOfOctaves = 4;
         [Range(0.0f, 1.0f)]
-        public float m_persistence = 0.5f;
+        [SerializeField]
+        private float m_persistence = 0.5f;
         [Range(1.0f, 4.0f)]
-        public float m_lacunarity = 2.0f;
+        [SerializeField]
+        private float m_lacunarity = 2.0f;
 
         [Header("Shader")]
-        public ComputeShader m_computeShader;
+        [SerializeField]
+        private ComputeShader m_computeShader;
 
         private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
         private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
