@@ -220,7 +220,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: -33
   m_offset: {x: 0, y: 0, z: 0}
   m_height: 10
   m_wavelength: 35
@@ -240,10 +240,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 0.5
+  m_numberOfCellsAlongAxis: 64
+  m_cellSpacing: 0.5
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 15
+  m_maxIterations: 30
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
@@ -849,7 +849,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: -33
   m_offset: {x: 0, y: 0, z: 0}
   m_height: 10
   m_wavelength: 35
@@ -869,10 +869,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 0.5
+  m_numberOfCellsAlongAxis: 64
+  m_cellSpacing: 0.5
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 15
+  m_maxIterations: 30
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
@@ -938,7 +938,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: -33
   m_offset: {x: 0, y: 0, z: 0}
   m_height: 10
   m_wavelength: 35
@@ -958,8 +958,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 0.5
+  m_numberOfCellsAlongAxis: 64
+  m_cellSpacing: 0.5
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
   m_maxIterations: 30
   m_stepSize: 0.2
@@ -1274,7 +1274,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: -33
   m_offset: {x: 0, y: 0, z: 0}
   m_height: 10
   m_wavelength: 35
@@ -1294,10 +1294,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 0.5
+  m_numberOfCellsAlongAxis: 64
+  m_cellSpacing: 0.5
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 15
+  m_maxIterations: 30
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1
@@ -1413,7 +1413,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: -33
   m_offset: {x: 0, y: 0, z: 0}
   m_height: 10
   m_wavelength: 35
@@ -1433,10 +1433,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfVoxelsAlongAxis: 64
-  m_voxelSpacing: 1
+  m_numberOfCellsAlongAxis: 64
+  m_cellSpacing: 1
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 15
+  m_maxIterations: 30
   m_stepSize: 0.2
   m_sharpFeatureAngle: 35
   m_asyncReadback: 1

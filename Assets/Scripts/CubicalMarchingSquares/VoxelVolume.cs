@@ -1,12 +1,11 @@
 ﻿using System;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace CubicalMarchingSquares
 {
-    public class HermiteVolume : MonoBehaviour
+    public class VoxelVolume : MonoBehaviour
     {
-        public event Action OnHermiteVolumeChanged;
+        public event Action OnVoxelVolumeChanged;
 
         [Header("Noise Parameters")]
         [SerializeField]
@@ -38,21 +37,21 @@ namespace CubicalMarchingSquares
         [SerializeField]
         private ComputeShader m_computeShader;
 
-        private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
+        private static readonly int s_cellDimensionsID = Shader.PropertyToID("cellDimensions");
+        private static readonly int s_cellSpacingID = Shader.PropertyToID("cellSpacing");
+        private static readonly int s_cellVolumeToWorldSpaceOffsetID = Shader.PropertyToID("cellVolumeToWorldSpaceOffset");
         private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
-        private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
-        private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
         private static readonly int s_wavelengthID = Shader.PropertyToID("wavelength");
         private static readonly int s_numberOfOctavesID = Shader.PropertyToID("numberOfOctaves");
         private static readonly int s_persistenceID = Shader.PropertyToID("persistence");
         private static readonly int s_lacunarityID = Shader.PropertyToID("lacunarity");
         private static readonly int s_heightID = Shader.PropertyToID("height");
-        private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
+        private static readonly int s_voxelVolumeID = Shader.PropertyToID("voxelVolume");
         private static readonly int s_octaveOffsetsID = Shader.PropertyToID("octaveOffsets");
 
         private Vector3Int m_numberOfThreads;
         private ComputeBuffer m_octaveOffsetsBuffer;
-        private HermiteVolumeFlags m_flags;
+        private VoxelVolumeFlags m_flags;
 
         private void OnEnable()
         {
@@ -76,7 +75,7 @@ namespace CubicalMarchingSquares
 
         private void Update()
         {
-            if (m_flags.HasFlag(HermiteVolumeFlags.SettingsUpdated))
+            if (m_flags.HasFlag(VoxelVolumeFlags.SettingsUpdated))
             {
                 OnSettingsUpdated();
             }
@@ -84,7 +83,7 @@ namespace CubicalMarchingSquares
 
         private void OnSettingsUpdated()
         {
-            m_flags &= ~HermiteVolumeFlags.SettingsUpdated;
+            m_flags &= ~VoxelVolumeFlags.SettingsUpdated;
 
             if (m_octaveOffsetsBuffer.count != m_numberOfOctaves)
             {
@@ -94,7 +93,7 @@ namespace CubicalMarchingSquares
 
             CalculateOctaveOffsets();
 
-            OnHermiteVolumeChanged();
+            OnVoxelVolumeChanged();
         }
 
         private void CalculateOctaveOffsets()
@@ -111,35 +110,32 @@ namespace CubicalMarchingSquares
 
         public void Generate
         (
-            ComputeBuffer hermiteVolumeBuffer,
-            int numberOfHermiteSamplesAlongAxis,
+            ComputeBuffer voxelVolumeBuffer,
             int numberOfVoxelsAlongAxis,
-            float voxelSpacing,
+            int numberOfCellsAlongAxis,
+            float cellSpacing,
             Vector3 localToWorldOffset
         )
         {
-            Profiler.BeginSample("HermiteVolume.Generate");
-
-            m_computeShader.SetInts(s_hermiteDimensionsID, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis, numberOfHermiteSamplesAlongAxis);
+            m_computeShader.SetInts(s_cellDimensionsID, numberOfCellsAlongAxis, numberOfCellsAlongAxis, numberOfCellsAlongAxis);
+            m_computeShader.SetFloat(s_cellSpacingID, cellSpacing);
+            m_computeShader.SetVector(s_cellVolumeToWorldSpaceOffsetID, localToWorldOffset);
             m_computeShader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
-            m_computeShader.SetFloat(s_voxelSpacingID, voxelSpacing);
-            m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, localToWorldOffset);
-            m_computeShader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
             m_computeShader.SetFloat(s_wavelengthID, m_wavelength);
+            m_computeShader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
             m_computeShader.SetFloat(s_persistenceID, m_persistence);
             m_computeShader.SetFloat(s_lacunarityID, m_lacunarity);
             m_computeShader.SetFloat(s_heightID, m_height);
-            m_computeShader.SetBuffer(0, s_hermiteVolumeID, hermiteVolumeBuffer);
+
+            m_computeShader.SetBuffer(0, s_voxelVolumeID, voxelVolumeBuffer);
             m_computeShader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
             m_computeShader.Dispatch
             (
                 0,
-                Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.x),
-                Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.y),
-                Mathf.CeilToInt(numberOfHermiteSamplesAlongAxis / (float)m_numberOfThreads.z)
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.x),
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.y),
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.z)
             );
-
-            Profiler.EndSample();
         }
 
         private void OnDisable()
@@ -149,10 +145,10 @@ namespace CubicalMarchingSquares
 
         private void OnValidate()
         {
-            m_flags |= HermiteVolumeFlags.SettingsUpdated;
+            m_flags |= VoxelVolumeFlags.SettingsUpdated;
         }
 
-        private enum HermiteVolumeFlags
+        private enum VoxelVolumeFlags
         {
             SettingsUpdated = 1
         }

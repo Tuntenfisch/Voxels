@@ -1,7 +1,7 @@
 #ifndef NOISE__559277903
 #define NOISE__559277903
 
-#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
+#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
 
 interface INoise
 {
@@ -12,9 +12,9 @@ struct SimplexNoise2D : INoise
 {
     float4 GenerateNoise(float3 position)
     {
-        float3 value_gradient = snoise_grad(position.xz).zxy;
-        
-        return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.z));
+        float4 value_gradient = snoise_grad(float3(position.x, 0.0f, position.z)).wxyz;
+
+        return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.w));
     }
 };
 

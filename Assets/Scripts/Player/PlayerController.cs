@@ -35,6 +35,9 @@ namespace Player
 
         public void OnJump(InputAction.CallbackContext context) => m_wantsToJump = context.ReadValueAsButton();
 
+        // OnLook(...) can be called multiple times per frame and the (mouse) delta is framerate independent.
+        // Every time OnLook(...) is called we add the received delta to an accumulator. Once Update(...) is
+        // called we apply the accumulated delta once and reset it.
         public void OnLook(InputAction.CallbackContext context) => m_lookDelta += context.ReadValue<Vector2>();
 
         private void Start()
@@ -52,6 +55,7 @@ namespace Player
             m_camera.transform.localRotation = Quaternion.Euler(m_rotation.x, 0.0f, 0.0f);
             transform.localRotation = Quaternion.Euler(0.0f, m_rotation.y, 0.0f);
 
+            // Reset the accumulated delta.
             m_lookDelta = Vector2.zero;
         }
 
