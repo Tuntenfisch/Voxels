@@ -3,8 +3,14 @@ using UnityEngine;
 
 public struct BakeJob : IJob
 {
-    public int m_meshID;
-    public bool m_convex;
+    private int m_meshID;
+    private bool m_convex;
+
+    public BakeJob(int meshID, bool convex = false)
+    {
+        m_meshID = meshID;
+        m_convex = convex;
+    }
 
     public void Execute()
     {

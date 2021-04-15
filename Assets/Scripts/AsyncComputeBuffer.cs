@@ -19,6 +19,12 @@ public class AsyncComputeBuffer
         m_buffer = new ComputeBuffer(count, stride, type);
     }
 
+    public void RequestData()
+    {
+        m_request = AsyncGPUReadback.Request(m_buffer);
+        m_retrievingData = true;
+    }
+
     public void RequestData(int count, int offset = 0)
     {
         m_request = AsyncGPUReadback.Request(m_buffer, count * m_buffer.stride, offset * m_buffer.stride);

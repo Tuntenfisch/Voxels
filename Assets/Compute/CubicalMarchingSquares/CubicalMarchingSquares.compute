@@ -1,5 +1,5 @@
-#pragma kernel GenerateFlatVertices
-#pragma kernel GenerateSharpVertices
+#pragma kernel GenerateFlatFeatureVertices
+#pragma kernel GenerateSharpFeatureVertices
 
 // If the marching cubes algorithm generates vertices for each voxel independently, many duplicate vertices will be generated.
 // To avoid this for this cubical marching squares implementation I use the same approach as described in
@@ -45,7 +45,7 @@ struct VoxelFlatFeatureVertexIndices
     }
 };
 
-float sharpFeatureAngle;
+float cosOfSharpFeatureAngle;
 uint maxIterations;
 float stepSize;
 
@@ -94,7 +94,7 @@ uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
 }
 
 [numthreads(4, 4, 4)]
-void GenerateFlatVertices(uint3 voxelID : SV_DispatchThreadID)
+void GenerateFlatFeatureVertices(uint3 voxelID : SV_DispatchThreadID)
 {
     if (IsOutOfHermiteVolumeBounds(voxelID))
     {
@@ -145,7 +145,7 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
 
 uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
 {
-    if (acos(dot(vertexA.normal, vertexB.normal)) < sharpFeatureAngle)
+    if (dot(vertexA.normal, vertexB.normal) > cosOfSharpFeatureAngle)
     {
         return -1;
     }
@@ -316,7 +316,7 @@ bool HasSharpFeature(Component component)
             cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
         }
     }
-    return acos(cosOfAngle) >= sharpFeatureAngle;
+    return cosOfAngle <= cosOfSharpFeatureAngle;
 }
 
 void CalculateForces(Component component)
@@ -429,7 +429,7 @@ void GenerateTriangles(Component component, Vertex componentFeatureVertex, bool 
 }
 
 [numthreads(4, 4, 4)]
-void GenerateSharpVertices(uint3 voxelID : SV_DispatchThreadID)
+void GenerateSharpFeatureVertices(uint3 voxelID : SV_DispatchThreadID)
 {
     if (IsOutOfVoxelBounds(voxelID))
     {

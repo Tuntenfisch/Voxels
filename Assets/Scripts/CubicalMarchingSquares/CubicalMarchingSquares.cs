@@ -12,78 +12,51 @@ namespace CubicalMarchingSquares
     {
         [Header("Voxel Volume")]
         [Range(2, 64)]
-        public int m_numberOfVoxelsAlongAxis = 16;
+        [SerializeField]
+        private int m_numberOfVoxelsAlongAxis = 16;
         [Range(0.25f, 4.0f)]
-        public float m_voxelSpacing = 0.5f;
+        [SerializeField]
+        private float m_voxelSpacing = 0.5f;
 
         [Header("Shader")]
-        public ComputeShader m_computeShader;
+        [SerializeField]
+        private ComputeShader m_computeShader;
         [Range(0, 50)]
-        public int m_maxIterations = 10;
+        [SerializeField]
+        private int m_maxIterations = 10;
         [Range(0.0f, 0.4f)]
-        public float m_stepSize = 0.2f;
+        [SerializeField]
+        private float m_stepSize = 0.2f;
         [Range(0.1f, 180.0f)]
-        public float m_sharpFeatureAngle = 35.0f;
-        public bool m_asyncReadback = false;
+        [SerializeField]
+        private float m_sharpFeatureAngle = 35.0f;
+        [SerializeField]
+        private bool m_asyncReadback = false;
 
         [Header("Editor")]
-        public bool m_showBounds = false;
-        private int NumberOfVoxels
-        {
-            get
-            {
-                return m_numberOfVoxelsAlongAxis * m_numberOfVoxelsAlongAxis * m_numberOfVoxelsAlongAxis;
-            }
-        }
+        [SerializeField]
+        private bool m_showBounds = false;
 
-        private int NumberOfHermiteSamplesAlongAxis
-        {
-            get
-            {
-                return m_numberOfVoxelsAlongAxis + 1;
-            }
-        }
+        public int NumberOfVoxels => m_numberOfVoxelsAlongAxis * m_numberOfVoxelsAlongAxis * m_numberOfVoxelsAlongAxis;
 
-        private int NumberOfHermiteSamples
-        {
-            get
-            {
-                return NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis;
-            }
-        }
+        public int NumberOfHermiteSamplesAlongAxis => m_numberOfVoxelsAlongAxis + 1;
 
-        public int MaxNumberOfFlatFeatureVertices
-        {
-            get
-            {
-                return 3 * NumberOfHermiteSamples - 3 * NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis;
-            }
-        }
+        public int NumberOfHermiteSamples => NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis;
 
-        public int MaxNumberOfSharpFeatureVertices
-        {
-            get
-            {
-                // 2 sharp feature vertices per segment * 2 segments per face * 6 faces per voxel * number of voxels +
-                // 7 sharp feature vertices per component * 4 components per voxel * number of voxels
-                return 2 * 2 * 6 * NumberOfVoxels + 7 * 4 * NumberOfVoxels;
-            }
-        }
+        public int MaxNumberOfFlatFeatureVertices => 3 * NumberOfHermiteSamples - 3 * NumberOfHermiteSamplesAlongAxis * NumberOfHermiteSamplesAlongAxis;
 
-        public int MaxNumberOfTriangles
-        {
-            get
-            {
-                // 3 indices per triangle * 2 triangles per segment * 2 segments per face * 6 faces per voxel * number of voxels
-                return 3 * 2 * 2 * 6 * NumberOfVoxels;
-            }
-        }
+        // 2 sharp feature vertices per segment * 2 segments per face * 6 faces per voxel * number of voxels +
+        // 7 sharp feature vertices per component * 4 components per voxel * number of voxels
+        public int MaxNumberOfSharpFeatureVertices => 2 * 2 * 6 * NumberOfVoxels + 7 * 4 * NumberOfVoxels;
+
+        // 3 indices per triangle * 2 triangles per segment * 2 segments per face * 6 faces per voxel * number of voxels
+        public int MaxNumberOfTriangles => 3 * 2 * 2 * 6 * NumberOfVoxels;
 
         private static readonly int s_hermiteDimensionsID = Shader.PropertyToID("hermiteDimensions");
         private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
         private static readonly int s_voxelSpacingID = Shader.PropertyToID("voxelSpacing");
         private static readonly int s_voxelVolumeToWorldSpaceOffsetID = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
-        private static readonly int s_sharpFeatureAngleID = Shader.PropertyToID("sharpFeatureAngle");
+        private static readonly int s_cosOfSharpFeatureAngleID = Shader.PropertyToID("cosOfSharpFeatureAngle");
         private static readonly int s_maxIterationsID = Shader.PropertyToID("maxIterations");
         private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
         private static readonly int s_hermiteVolumeID = Shader.PropertyToID("hermiteVolume");
@@ -155,7 +128,7 @@ namespace CubicalMarchingSquares
         private void CreateBuffers()
         {
             m_hermiteVolumeBuffer = new AsyncComputeBuffer(NumberOfHermiteSamples, 4 * sizeof(float));
-            m_vertexBuffer = new AsyncComputeBuffer(MaxNumberOfFlatFeatureVertices + MaxNumberOfSharpFeatureVertices, Vertex.s_sizeInBytes, ComputeBufferType.Counter);
+            m_vertexBuffer = new AsyncComputeBuffer(MaxNumberOfFlatFeatureVertices + MaxNumberOfSharpFeatureVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
             m_flatFeatureVertexIndicesLookupBuffer = new AsyncComputeBuffer(NumberOfHermiteSamples, 3 * sizeof(int));
             m_triangleBuffer = new AsyncComputeBuffer(MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
             m_vertexCountBuffer = new AsyncComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
@@ -254,7 +227,7 @@ namespace CubicalMarchingSquares
             NativeArray<Vertex> vertices = m_vertexBuffer.GetData<Vertex>();
             NativeArray<int> triangles = m_triangleBuffer.GetData<int>();
 
-            m_mesh.SetVertexBufferParams(vertices.Length, Vertex.s_attributes);
+            m_mesh.SetVertexBufferParams(vertices.Length, Vertex.Attributes);
             m_mesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
             m_mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
             m_mesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
@@ -263,11 +236,7 @@ namespace CubicalMarchingSquares
             m_mesh.RecalculateTangents();
             m_meshFilter.sharedMesh = m_mesh;
 
-            m_bakeJobHandle = new BakeJob()
-            {
-                m_meshID = m_mesh.GetInstanceID(),
-                m_convex = false
-            }.Schedule();
+            m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
             m_flags |= CubicalMarchingSquaresFlags.BakingMesh;
         }
 
@@ -302,7 +271,7 @@ namespace CubicalMarchingSquares
             m_computeShader.SetInts(s_voxelDimensionsID, m_numberOfVoxelsAlongAxis, m_numberOfVoxelsAlongAxis, m_numberOfVoxelsAlongAxis);
             m_computeShader.SetFloat(s_voxelSpacingID, m_voxelSpacing);
             m_computeShader.SetVector(s_voxelVolumeToWorldSpaceOffsetID, transform.position);
-            m_computeShader.SetFloat(s_sharpFeatureAngleID, m_sharpFeatureAngle * Mathf.Deg2Rad);
+            m_computeShader.SetFloat(s_cosOfSharpFeatureAngleID, Mathf.Cos(m_sharpFeatureAngle * Mathf.Deg2Rad));
             m_computeShader.SetInt(s_maxIterationsID, m_maxIterations);
             m_computeShader.SetFloat(s_stepSizeID, m_stepSize);
 
@@ -333,8 +302,8 @@ namespace CubicalMarchingSquares
             ComputeBuffer.CopyCount(m_triangleBuffer, m_triangleCountBuffer, 0);
 
             // Retrieve vertex and triangle count asynchronously.
-            m_vertexCountBuffer.RequestData(1);
-            m_triangleCountBuffer.RequestData(1);
+            m_vertexCountBuffer.RequestData();
+            m_triangleCountBuffer.RequestData();
         }
 
         private void OnDisable()
