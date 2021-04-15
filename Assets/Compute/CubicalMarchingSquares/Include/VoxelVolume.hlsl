@@ -1,33 +1,28 @@
 #ifndef VOXEL_VOLUME__559277903
 #define VOXEL_VOLUME__559277903
 
-uint3 voxelDimensions;
-float voxelSpacing;
-float3 voxelVolumeToWorldSpaceOffset;
+RWStructuredBuffer<Voxel> voxelVolume;
 
-bool IsOutOfVoxelBounds(uint3 voxelID)
+uint3 voxelDimensions;
+
+bool IsOutOfVoxelVolumeBounds(uint3 voxelID)
 {
     return any(step(voxelDimensions, voxelID));
 }
 
-float3 VoxelToVoxelVolumeSpace(uint3 voxelID, float3 voxelSpacePosition = 0.0f)
+uint3 ClampToVoxelVolumeBounds(uint3 voxelID)
 {
-    return voxelSpacing * ((voxelSpacePosition + voxelID) - 0.5f * voxelDimensions);
+    return clamp(voxelID, 0, voxelDimensions - 1);
 }
 
-float3 VoxelVolumeToVoxelSpace(uint3 voxelID, float3 voxelVolumeSpacePosition = 0.0f)
+bool IsOnVoxelVolumeSurface(uint3 voxelID)
 {
-    return(voxelVolumeSpacePosition / voxelSpacing + 0.5f * voxelDimensions) - voxelID;
+    return any(voxelID == 0 || voxelID == voxelDimensions - 1);
 }
 
-float3 VoxelVolumeToWorldSpace(float3 voxelVolumeSpacePosition)
+uint CalculateVoxelVolumeIndex(uint3 voxelID)
 {
-    return voxelVolumeSpacePosition + voxelVolumeToWorldSpaceOffset;
-}
-
-float3 WorldToVoxelVolumeSpace(float3 worldSpacePosition)
-{
-    return worldSpacePosition - voxelVolumeToWorldSpaceOffset;
+    return dot(voxelID, uint3(1, voxelDimensions.x, voxelDimensions.x * voxelDimensions.y));
 }
 
 #endif

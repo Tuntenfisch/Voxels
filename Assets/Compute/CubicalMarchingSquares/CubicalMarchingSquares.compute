@@ -1,16 +1,16 @@
 #pragma kernel GenerateFlatFeatureVertices
 #pragma kernel GenerateSharpFeatureVertices
 
-// If the marching cubes algorithm generates vertices for each voxel independently, many duplicate vertices will be generated.
+// If the marching cubes algorithm generates vertices for each cell independently, many duplicate vertices will be generated.
 // To avoid this for this cubical marching squares implementation I use the same approach as described in
 // https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-1-generating-complex-procedural-terrains-using-gpu
 // to first generate the marching cubes edge (here called flat) vertices for the entire volume in kernel 0 and then
 // generating the remaining (here called sharp) vertices in kernel 1. A lookup table is used to retrieve
 // the flat vertices generated in kernel 0 from kernel 1 (see link, specifically "Generating a Block: Method 3").
 
+#include "Assets/Compute/CubicalMarchingSquares/Include/Cell.hlsl"
+#include "Assets/Compute/CubicalMarchingSquares/Include/CellVolume.hlsl"
 #include "Assets/Compute/CubicalMarchingSquares/Include/Component.hlsl"
-#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteSample.hlsl"
-#include "Assets/Compute/CubicalMarchingSquares/Include/HermiteVolume.hlsl"
 #include "Assets/Compute/CubicalMarchingSquares/Include/MarchingSquares.hlsl"
 #include "Assets/Compute/CubicalMarchingSquares/Include/Segment.hlsl"
 #include "Assets/Compute/CubicalMarchingSquares/Include/Vertex.hlsl"
@@ -19,10 +19,10 @@
 
 #include "Assets/Compute/Include/Flags.hlsl"
 
-static const uint3 voxelEdgeIndicesForFlatVertexGeneration = uint3(0, 3, 8);
+static const uint3 cellEdgeIndicesForFlatVertexGeneration = uint3(0, 3, 8);
 
 // Convenience struct, instances of which act as entries into the lookup table described above.
-struct VoxelFlatFeatureVertexIndices
+struct CellFlatFeatureVertexIndices
 {
     uint3 vertexIndices;
 
@@ -36,12 +36,12 @@ struct VoxelFlatFeatureVertexIndices
         vertexIndices[index] = vertexIndex;
     }
 
-    static VoxelFlatFeatureVertexIndices Create(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
+    static CellFlatFeatureVertexIndices Create(uint edge0VertexIndex = -1, uint edge3VertexIndex = -1, uint edge8VertexIndex = -1)
     {
-        VoxelFlatFeatureVertexIndices voxelFlatFeatureVertexIndices;
-        voxelFlatFeatureVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
+        CellFlatFeatureVertexIndices cellFlatFeatureVertexIndices;
+        cellFlatFeatureVertexIndices.vertexIndices = uint3(edge0VertexIndex, edge3VertexIndex, edge8VertexIndex);
 
-        return voxelFlatFeatureVertexIndices;
+        return cellFlatFeatureVertexIndices;
     }
 };
 
@@ -50,76 +50,76 @@ uint maxIterations;
 float stepSize;
 
 RWStructuredBuffer<Vertex> generatedVertices;
-RWStructuredBuffer<VoxelFlatFeatureVertexIndices> flatFeatureVertexIndicesLookupTable;
+RWStructuredBuffer<CellFlatFeatureVertexIndices> flatFeatureVertexIndicesLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
-static HermiteSample samples[voxelCornersCount];
+static Voxel voxels[cellCornersCount];
 static Segment segments[maxSegmentsCount];
 static Component components[maxComponentsCount];
-static float3 forces[voxelCornersCount];
+static float3 forces[cellCornersCount];
 
-void SampleHermiteVolume(uint3 voxelID)
+void SampleVoxelVolume(uint3 cellID)
 {
-    for (uint cornerIndex = 0; cornerIndex < voxelCornersCount; cornerIndex++)
+    for (uint cornerIndex = 0; cornerIndex < cellCornersCount; cornerIndex++)
     {
-        uint3 hermiteID = ClampToHermiteVolumeBounds(voxelID + voxelCorners[cornerIndex]);
-        samples[cornerIndex] = hermiteVolume[CalculateHermiteVolumeIndex(hermiteID)];
+        uint3 voxelID = ClampToVoxelVolumeBounds(cellID + cellCorners[cornerIndex]);
+        voxels[cornerIndex] = voxelVolume[CalculateVoxelVolumeIndex(voxelID)];
     }
 }
 
-uint GenerateFlatFeatureVertex(uint3 voxelID, VoxelEdge edge)
+uint GenerateFlatFeatureVertex(uint3 cellID, CellEdge edge)
 {
-    uint3 voxelCornerA = voxelCorners[edge.GetVoxelCornerStartIndex()];
-    uint3 voxelCornerB = voxelCorners[edge.GetVoxelCornerEndIndex()];
+    uint3 cellCornerA = cellCorners[edge.GetCellCornerStartIndex()];
+    uint3 cellCornerB = cellCorners[edge.GetCellCornerEndIndex()];
 
-    HermiteSample sampleA = samples[edge.GetVoxelCornerStartIndex()];
-    HermiteSample sampleB = samples[edge.GetVoxelCornerEndIndex()];
+    Voxel voxelA = voxels[edge.GetCellCornerStartIndex()];
+    Voxel voxelB = voxels[edge.GetCellCornerEndIndex()];
 
-    if (sampleA.GetValue() < 0.0f == sampleB.GetValue() < 0.0f)
+    if (voxelA.GetValue() < 0.0f == voxelB.GetValue() < 0.0f)
     {
         return -1;
     }
 
-    float interpolant = -sampleA.GetValue() / (sampleB.GetValue() - sampleA.GetValue());
+    float interpolant = -voxelA.GetValue() / (voxelB.GetValue() - voxelA.GetValue());
 
     uint vertexIndex = generatedVertices.IncrementCounter();
 
     generatedVertices[vertexIndex] = Vertex::Create
     (
-        VoxelToVoxelVolumeSpace(voxelID, lerp(voxelCornerA, voxelCornerB, interpolant)),
-        normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
+        CellToCellVolumeSpace(cellID, lerp(cellCornerA, cellCornerB, interpolant)),
+        normalize(lerp(voxelA.GetGradient(), voxelB.GetGradient(), interpolant))
     );
 
     return vertexIndex;
 }
 
 [numthreads(4, 4, 4)]
-void GenerateFlatFeatureVertices(uint3 voxelID : SV_DispatchThreadID)
+void GenerateFlatFeatureVertices(uint3 cellID : SV_DispatchThreadID)
 {
-    if (IsOutOfHermiteVolumeBounds(voxelID))
+    if (IsOutOfVoxelVolumeBounds(cellID))
     {
         return;
     }
 
-    SampleHermiteVolume(voxelID);
+    SampleVoxelVolume(cellID);
 
-    VoxelFlatFeatureVertexIndices voxelFlatFeatureVertexIndices = VoxelFlatFeatureVertexIndices::Create();
+    CellFlatFeatureVertexIndices cellFlatFeatureVertexIndices = CellFlatFeatureVertexIndices::Create();
 
     [unroll]
     for (uint index = 0; index < 3; index++)
     {
-        uint edgeIndex = voxelEdgeIndicesForFlatVertexGeneration[index];
-        uint vertexIndex = GenerateFlatFeatureVertex(voxelID, voxelEdges[edgeIndex]);
-        voxelFlatFeatureVertexIndices.SetFlatVertexIndex(index, vertexIndex);
+        uint edgeIndex = cellEdgeIndicesForFlatVertexGeneration[index];
+        uint vertexIndex = GenerateFlatFeatureVertex(cellID, cellEdges[edgeIndex]);
+        cellFlatFeatureVertexIndices.SetFlatVertexIndex(index, vertexIndex);
     }
 
-    flatFeatureVertexIndicesLookupTable[CalculateHermiteVolumeIndex(voxelID)] = voxelFlatFeatureVertexIndices;
+    flatFeatureVertexIndicesLookupTable[CalculateVoxelVolumeIndex(cellID)] = cellFlatFeatureVertexIndices;
 }
 
-uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
+uint GetFlatFeatureVertexIndex(uint3 cellID, uint edgeIndex)
 {
-    // For certain edges of the current voxel we need to look into adjacent
-    // voxels to find the corresponding flat vertex index. This relationship
+    // For certain edges of the current cell we need to look into adjacent
+    // cells to find the corresponding flat vertex index. This relationship
     // between edges and corresponding flat vertex indices is mapped in this
     // array.
     const uint4 edgeIndexToFlatVertexIndexMapping[12] =
@@ -140,18 +140,18 @@ uint GetFlatFeatureVertexIndex(uint3 voxelID, uint edgeIndex)
 
     uint4 mapping = edgeIndexToFlatVertexIndexMapping[edgeIndex];
 
-    return flatFeatureVertexIndicesLookupTable[CalculateHermiteVolumeIndex(voxelID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
+    return flatFeatureVertexIndicesLookupTable[CalculateVoxelVolumeIndex(cellID + mapping.xyz)].GetFlatVertexIndex(mapping.w);
 }
 
-uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Vertex vertexA, Vertex vertexB)
+uint2 GenerateFaceSharpFeatureVertices(uint3 cellID, CellFace cellFace, Vertex vertexA, Vertex vertexB)
 {
     if (dot(vertexA.normal, vertexB.normal) > cosOfSharpFeatureAngle)
     {
         return -1;
     }
 
-    float3 faceTangentA = voxelFace.GetFaceTangent(vertexA.normal);
-    float3 faceTangentB = voxelFace.GetFaceTangent(vertexB.normal);
+    float3 faceTangentA = cellFace.GetFaceTangent(vertexA.normal);
+    float3 faceTangentB = cellFace.GetFaceTangent(vertexB.normal);
     
     float3 lineVec3 = vertexB.position - vertexA.position;
     float3 crossVec1and2 = cross(faceTangentA, faceTangentB);
@@ -159,12 +159,12 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
     float s = dot(crossVec3and2, crossVec1and2) / dot(crossVec1and2, crossVec1and2);
     float3 sharpFeaturePosition = vertexA.position + (faceTangentA * s);
 
-    // A single segment sharp feature is shared between exactly two segments, one segment belonging to the current voxel
-    // and the other belonging to the adjacent voxel sharing the same voxel face. Therefore the position of the sharp feature
+    // A single segment sharp feature is shared between exactly two segments, one segment belonging to the current cell
+    // and the other belonging to the adjacent cell sharing the same cell face. Therefore the position of the sharp feature
     // will be independently calculated twice. Due to floating point errors both calculated sharp feature positions can be
-    // slightly different. This can result in one of both being "outside" the voxel while the other one isn't.
-    // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the voxel for the check.
-    if (IsOutsideVoxel(VoxelVolumeToVoxelSpace(voxelID, sharpFeaturePosition), 1e-3f) || any(isnan(sharpFeaturePosition)))
+    // slightly different. This can result in one of both being "outside" the cell while the other one isn't.
+    // To compensate for this potential discrepancy a small value (epsilon) is added to the extents of the cell for the check.
+    if (IsOutsideCell(CellVolumeToCellSpace(cellID, sharpFeaturePosition), 1e-3f) || any(isnan(sharpFeaturePosition)))
     {
         return -1;
     }
@@ -177,14 +177,14 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 voxelID, VoxelFace voxelFace, Verte
     return indices;
 }
 
-uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount)
+uint GenerateFaceSegments(uint3 cellID, CellFace cellFace, uint segmentsCount)
 {
     uint segmentsIndex = 0;
     
-    for (uint sampleIndex = 0; sampleIndex < 4; sampleIndex++)
+    for (uint cornerIndex = 0; cornerIndex < 4; cornerIndex++)
     {
-        HermiteSample sample = samples[voxelFace.voxelCornerIndices[sampleIndex]];
-        segmentsIndex |= (sample.GetValue() < 0.0f) << sampleIndex;
+        Voxel voxel = voxels[cellFace.cornerIndices[cornerIndex]];
+        segmentsIndex |= (voxel.GetValue() < 0.0f) << cornerIndex;
     }
 
     uint4 faceSegments = marchingSquaresSegments[segmentsIndex];
@@ -196,11 +196,11 @@ uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount
             break;
         }
 
-        uint edgeIndexA = voxelFace.voxelEdgeIndices[faceSegments[faceSegmentsIndex + 0]];
-        uint edgeIndexB = voxelFace.voxelEdgeIndices[faceSegments[faceSegmentsIndex + 1]];
+        uint edgeIndexA = cellFace.edgeIndices[faceSegments[faceSegmentsIndex + 0]];
+        uint edgeIndexB = cellFace.edgeIndices[faceSegments[faceSegmentsIndex + 1]];
 
-        uint vertexIndexA = GetFlatFeatureVertexIndex(voxelID, edgeIndexA);
-        uint vertexIndexB = GetFlatFeatureVertexIndex(voxelID, edgeIndexB);
+        uint vertexIndexA = GetFlatFeatureVertexIndex(cellID, edgeIndexA);
+        uint vertexIndexB = GetFlatFeatureVertexIndex(cellID, edgeIndexB);
 
         Vertex vertexA = generatedVertices[vertexIndexA];
         Vertex vertexB = generatedVertices[vertexIndexB];
@@ -211,7 +211,7 @@ uint GenerateFaceSegments(uint3 voxelID, VoxelFace voxelFace, uint segmentsCount
             vertexIndexA,
             edgeIndexB,
             vertexIndexB,
-            GenerateFaceSharpFeatureVertices(voxelID, voxelFace, vertexA, vertexB)
+            GenerateFaceSharpFeatureVertices(cellID, cellFace, vertexA, vertexB)
         );
 
         segments[segmentsCount++] = segment;
@@ -321,7 +321,7 @@ bool HasSharpFeature(Component component)
 
 void CalculateForces(Component component)
 {
-    for (uint cornerIndex = 0; cornerIndex < voxelCornersCount; cornerIndex++)
+    for (uint cornerIndex = 0; cornerIndex < cellCornersCount; cornerIndex++)
     {
         forces[cornerIndex] = 0.0f;
 
@@ -329,7 +329,7 @@ void CalculateForces(Component component)
         {
             Segment segment = segments[component.GetPackedSegmentsIndex(index)];
             Vertex vertex = generatedVertices[segment.GetEdgeVertexIndexA()];
-            float distance = dot(vertex.normal, voxelCorners[cornerIndex] - vertex.position);
+            float distance = dot(vertex.normal, cellCorners[cornerIndex] - vertex.position);
             forces[cornerIndex] -= distance * vertex.normal;
         }
     }
@@ -348,7 +348,7 @@ float3 CalculateCombinedForce(float3 alpha_beta_gamma)
     return(1.0f - alpha_beta_gamma.z) * force0347 + alpha_beta_gamma.z * force1256;
 }
 
-Vertex CalculateComponentFeatureVertex(uint3 voxelID, Component component, out bool isComponentSharpFeature)
+Vertex CalculateComponentFeatureVertex(uint3 cellID, Component component, out bool isComponentSharpFeature)
 {
     Vertex featureVertex = CalculateCenterVertex(component);
 
@@ -365,7 +365,7 @@ Vertex CalculateComponentFeatureVertex(uint3 voxelID, Component component, out b
             featureVertex.position += stepSize * CalculateCombinedForce(featureVertex.position.yzx);
         }
     }
-    featureVertex.position = VoxelToVoxelVolumeSpace(voxelID, ClampToVoxel(VoxelVolumeToVoxelSpace(voxelID, featureVertex.position), 1e-3f));
+    featureVertex.position = CellToCellVolumeSpace(cellID, ClampToCell(CellVolumeToCellSpace(cellID, featureVertex.position), 1e-3f));
     
     return featureVertex;
 }
@@ -429,20 +429,20 @@ void GenerateTriangles(Component component, Vertex componentFeatureVertex, bool 
 }
 
 [numthreads(4, 4, 4)]
-void GenerateSharpFeatureVertices(uint3 voxelID : SV_DispatchThreadID)
+void GenerateSharpFeatureVertices(uint3 cellID : SV_DispatchThreadID)
 {
-    if (IsOutOfVoxelBounds(voxelID))
+    if (IsOutOfCellBounds(cellID))
     {
         return;
     }
 
-    SampleHermiteVolume(voxelID);
+    SampleVoxelVolume(cellID);
 
     uint segmentsCount = 0;
 
-    for (uint faceIndex = 0; faceIndex < voxelFacesCount; faceIndex++)
+    for (uint faceIndex = 0; faceIndex < cellFacesCount; faceIndex++)
     {
-        segmentsCount = GenerateFaceSegments(voxelID, voxelFaces[faceIndex], segmentsCount);
+        segmentsCount = GenerateFaceSegments(cellID, cellFaces[faceIndex], segmentsCount);
     }
 
     if (segmentsCount == 0)
@@ -455,7 +455,7 @@ void GenerateSharpFeatureVertices(uint3 voxelID : SV_DispatchThreadID)
     for (uint componentsIndex = 0; componentsIndex < componentsCount; componentsIndex++)
     {
         bool isComponentSharpFeature;
-        Vertex componentFeatureVertex = CalculateComponentFeatureVertex(voxelID, components[componentsIndex], isComponentSharpFeature);
+        Vertex componentFeatureVertex = CalculateComponentFeatureVertex(cellID, components[componentsIndex], isComponentSharpFeature);
         GenerateTriangles(components[componentsIndex], componentFeatureVertex, isComponentSharpFeature);
     }
 }
