@@ -3,11 +3,6 @@
 
 // Pretty much everything below is either copied from or based on articles by Inigo Quilez (https://www.iquilezles.org/).
 
-interface ISDFPrimitive
-{
-    float4 Evaluate(float3 position);
-};
-
 float4 Union(float4 a, float4 b)
 {
     return a.x < b.x ? a : b;
@@ -41,6 +36,11 @@ float4 SmoothDifference(float4 a, float4 b, float smoothing)
 {
     return SmoothIntersection(a, -b, smoothing);
 }
+
+interface ISDFPrimitive
+{
+    float4 Evaluate(float3 position);
+};
 
 struct SDFCube : ISDFPrimitive
 {

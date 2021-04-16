@@ -6,6 +6,7 @@ using UnityEngine.Rendering;
 
 namespace CubicalMarchingSquares
 {
+    [ExecuteInEditMode]
     [RequireComponent(typeof(VoxelVolume))]
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class CubicalMarchingSquares : MonoBehaviour

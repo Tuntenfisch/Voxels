@@ -50,4 +50,22 @@ float4 GenerateFBMNoise
     return value_gradient;
 }
 
+float4 GetBillowNoise2D(float4 value_gradient)
+{
+    value_gradient.x = abs(value_gradient.x);
+    value_gradient.yzw = value_gradient.x * value_gradient.yzw / abs(value_gradient.x);
+
+    return value_gradient;
+}
+
+float4 GetRidgeNoise2D(float4 value_gradient)
+{
+    value_gradient = GetBillowNoise2D(value_gradient);
+
+    value_gradient.x = -value_gradient.x;
+    value_gradient.yzw *= -1.0f;
+
+    return value_gradient;
+}
+
 #endif
