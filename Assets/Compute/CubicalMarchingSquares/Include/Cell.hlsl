@@ -44,23 +44,23 @@ float3 ClampToCell(float3 cellSpacePosition, float epsilon = 0.0f)
 
 struct CellEdge
 {
-    uint2 cellCornerIndices;
+    uint2 cornerIndices;
 
-    uint GetCellCornerStartIndex()
+    uint GetCornerStartIndex()
     {
-        return cellCornerIndices.x;
+        return cornerIndices.x;
     }
     
-    uint GetCellCornerEndIndex()
+    uint GetCornerEndIndex()
     {
-        return cellCornerIndices.y;
+        return cornerIndices.y;
     }
 
-    static CellEdge Create(uint cellCornerStartIndex, uint cellCornerEndIndex)
+    static CellEdge Create(uint cornerStartIndex, uint cornerEndIndex)
     {
         CellEdge cellEdge;
-        cellEdge.cellCornerIndices.x = cellCornerStartIndex;
-        cellEdge.cellCornerIndices.y = cellCornerEndIndex;
+        cellEdge.cornerIndices.x = cornerStartIndex;
+        cellEdge.cornerIndices.y = cornerEndIndex;
         
         return cellEdge;
     }

@@ -7,21 +7,9 @@ namespace CubicalMarchingSquares
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
     {
-        public static VertexAttributeDescriptor[] Attributes
-        {
-            get
-            {
-                return s_attributes;
-            }
-        }
+        public static VertexAttributeDescriptor[] Attributes => s_attributes;
 
-        public static int SizeInBytes 
-        {
-            get
-            {
-                return s_sizeInBytes;
-            }
-        }
+        public static int SizeInBytes => s_sizeInBytes;
 
         private static readonly VertexAttributeDescriptor[] s_attributes =
         {
