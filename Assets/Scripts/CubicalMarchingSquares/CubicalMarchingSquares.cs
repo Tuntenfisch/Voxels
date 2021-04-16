@@ -76,7 +76,8 @@ namespace CubicalMarchingSquares
         private void OnEnable()
         {
             m_voxelVolume = GetComponent<VoxelVolume>();
-            m_voxelVolume.OnVoxelVolumeChanged += OnSettingsUpdated;
+            m_voxelVolume.OnDirty += GenerateVoxelVolume;
+            m_voxelVolume.OnDirty += UpdateMeshGeometry;
 
             SetupNumberOfThreadsPerKernel();
             CreateBuffers();
@@ -84,8 +85,7 @@ namespace CubicalMarchingSquares
 
         private void Start()
         {
-            m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
-
+            GenerateVoxelVolume();
             InitializeMeshComponents();
             UpdateMeshBounds();
             UpdateMeshGeometry();
@@ -99,10 +99,9 @@ namespace CubicalMarchingSquares
             m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
         }
 
-        private void UpdateMeshBounds()
-        {
-            m_mesh.bounds = new Bounds(Vector3.zero, m_cellSpacing * new Vector3(m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis));
-        }
+        private void GenerateVoxelVolume() => m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
+
+        private void UpdateMeshBounds() => m_mesh.bounds = new Bounds(Vector3.zero, m_cellSpacing * new Vector3(m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis));
 
         private void CreateBuffers()
         {
@@ -129,6 +128,7 @@ namespace CubicalMarchingSquares
             m_triangleCountBuffer.Release();
             m_triangleCountBuffer = null;
         }
+
         private void InitializeMeshComponents()
         {
             m_mesh = new Mesh { indexFormat = IndexFormat.UInt32 };
@@ -143,8 +143,8 @@ namespace CubicalMarchingSquares
             if (transform.hasChanged)
             {
                 transform.hasChanged = false;
-                m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
 
+                GenerateVoxelVolume();
                 UpdateMeshGeometry();
             }
 
@@ -212,7 +212,7 @@ namespace CubicalMarchingSquares
 
             if (m_meshFilter.sharedMesh == null)
             {
-                m_meshFilter.mesh = m_mesh;
+                m_meshFilter.sharedMesh = m_mesh;
             }
 
             m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
@@ -236,8 +236,7 @@ namespace CubicalMarchingSquares
                 CreateBuffers();
             }
 
-            m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
-
+            GenerateVoxelVolume();
             UpdateMeshBounds();
             UpdateMeshGeometry();
         }
@@ -300,7 +299,8 @@ namespace CubicalMarchingSquares
 
         private void OnDisable()
         {
-            m_voxelVolume.OnVoxelVolumeChanged -= OnSettingsUpdated;
+            m_voxelVolume.OnDirty -= GenerateVoxelVolume;
+            m_voxelVolume.OnDirty -= UpdateMeshGeometry;
 
             ReleaseBuffers();
         }

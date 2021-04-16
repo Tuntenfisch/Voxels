@@ -33,6 +33,13 @@ public class AsyncComputeBuffer
 
     public bool IsDataAvailable(bool blocking = false)
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            blocking = true;
+        }
+#endif
+
         if (!m_retrievingData)
         {
             return false;

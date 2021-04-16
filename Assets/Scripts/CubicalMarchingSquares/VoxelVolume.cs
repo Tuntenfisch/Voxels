@@ -1,20 +1,18 @@
 ﻿using System;
 using UnityEngine;
-using UnityEditor;
 
 namespace CubicalMarchingSquares
 {
     [ExecuteInEditMode]
     public class VoxelVolume : MonoBehaviour
     {
-        public event Action OnVoxelVolumeChanged;
+        public event Action OnDirty;
 
         [Header("Noise Parameters")]
         [SerializeField]
         private int m_seed;
         [SerializeField]
         private Vector3 m_offset;
-
 
         [Header("Height Map")]
         [Range(0.0f, 100.0f)]
@@ -86,8 +84,7 @@ namespace CubicalMarchingSquares
             }
 
             CalculateOctaveOffsets();
-
-            OnVoxelVolumeChanged();
+            OnDirty();
         }
 
         private void CalculateOctaveOffsets()
