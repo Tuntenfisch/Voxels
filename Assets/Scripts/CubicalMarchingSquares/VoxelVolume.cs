@@ -37,29 +37,21 @@ namespace CubicalMarchingSquares
         [SerializeField]
         private ComputeShader m_computeShader;
 
-        private static readonly int s_cellDimensionsID = Shader.PropertyToID("cellDimensions");
-        private static readonly int s_cellSpacingID = Shader.PropertyToID("cellSpacing");
-        private static readonly int s_cellVolumeToWorldSpaceOffsetID = Shader.PropertyToID("cellVolumeToWorldSpaceOffset");
-        private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
-        private static readonly int s_wavelengthID = Shader.PropertyToID("wavelength");
-        private static readonly int s_numberOfOctavesID = Shader.PropertyToID("numberOfOctaves");
-        private static readonly int s_persistenceID = Shader.PropertyToID("persistence");
-        private static readonly int s_lacunarityID = Shader.PropertyToID("lacunarity");
-        private static readonly int s_heightID = Shader.PropertyToID("height");
-        private static readonly int s_voxelVolumeID = Shader.PropertyToID("voxelVolume");
-        private static readonly int s_octaveOffsetsID = Shader.PropertyToID("octaveOffsets");
-
-        private Vector3Int m_numberOfThreads;
+        private Vector3Int m_numberOfThreadsKernel0;
         private ComputeBuffer m_octaveOffsetsBuffer;
         private VoxelVolumeFlags m_flags;
 
         private void OnEnable()
         {
-            m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
-            m_numberOfThreads = new Vector3Int((int)x, (int)y, (int)z);
-
+            SetupNumberOfThreadsPerKernel();
             CreateBuffers();
             CalculateOctaveOffsets();
+        }
+
+        private void SetupNumberOfThreadsPerKernel()
+        {
+            m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+            m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
         }
 
         private void CreateBuffers()
@@ -103,39 +95,40 @@ namespace CubicalMarchingSquares
 
             for (int index = 0; index < m_numberOfOctaves; index++)
             {
-                octaveOffsets[index] = new Vector3(random.Next(-100000, 100000), random.Next(-100000, 100000), random.Next(-100000, 100000)) + m_offset;
+                octaveOffsets[index] = new Vector3(random.Next(-10000, 10000), random.Next(-10000, 10000), random.Next(-10000, 10000)) + m_offset;
             }
             m_octaveOffsetsBuffer.SetData(octaveOffsets);
         }
 
-        public void Generate
-        (
-            ComputeBuffer voxelVolumeBuffer,
-            int numberOfVoxelsAlongAxis,
-            int numberOfCellsAlongAxis,
-            float cellSpacing,
-            Vector3 localToWorldOffset
-        )
+        private void SetupDispatch(ComputeBuffer voxelVolumeBuffer, int numberOfVoxelsAlongAxis, int numberOfCellsAlongAxis, float cellSpacing, Vector3 localToWorldOffset)
         {
-            m_computeShader.SetInts(s_cellDimensionsID, numberOfCellsAlongAxis, numberOfCellsAlongAxis, numberOfCellsAlongAxis);
-            m_computeShader.SetFloat(s_cellSpacingID, cellSpacing);
-            m_computeShader.SetVector(s_cellVolumeToWorldSpaceOffsetID, localToWorldOffset);
-            m_computeShader.SetInts(s_voxelDimensionsID, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
-            m_computeShader.SetFloat(s_wavelengthID, m_wavelength);
-            m_computeShader.SetInt(s_numberOfOctavesID, m_numberOfOctaves);
-            m_computeShader.SetFloat(s_persistenceID, m_persistence);
-            m_computeShader.SetFloat(s_lacunarityID, m_lacunarity);
-            m_computeShader.SetFloat(s_heightID, m_height);
+            m_computeShader.SetInts(ComputeShaderProperties.s_cellDimensions, numberOfCellsAlongAxis, numberOfCellsAlongAxis, numberOfCellsAlongAxis);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_cellSpacing, cellSpacing);
+            m_computeShader.SetVector(ComputeShaderProperties.s_cellVolumeToWorldSpaceOffset, localToWorldOffset);
+            m_computeShader.SetInts(ComputeShaderProperties.s_voxelDimensions, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis, numberOfVoxelsAlongAxis);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_wavelength, m_wavelength);
+            m_computeShader.SetInt(ComputeShaderProperties.s_numberOfOctaves, m_numberOfOctaves);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_persistence, m_persistence);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_lacunarity, m_lacunarity);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_height, m_height);
 
-            m_computeShader.SetBuffer(0, s_voxelVolumeID, voxelVolumeBuffer);
-            m_computeShader.SetBuffer(0, s_octaveOffsetsID, m_octaveOffsetsBuffer);
-            m_computeShader.Dispatch
+            // Link buffers for kernel 0.
+            m_computeShader.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
+            m_computeShader.SetBuffer(0, ComputeShaderProperties.s_octaveOffsets, m_octaveOffsetsBuffer);
+        }
+
+        public void Generate(ComputeBuffer voxelVolumeBuffer, int numberOfVoxelsAlongAxis, int numberOfCellsAlongAxis, float cellSpacing, Vector3 localToWorldOffset)
+        {
+            SetupDispatch(voxelVolumeBuffer, numberOfVoxelsAlongAxis, numberOfCellsAlongAxis, cellSpacing, localToWorldOffset);
+
+            Vector3Int numberOfWorkGroupsKernel0 = new Vector3Int
             (
-                0,
-                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.x),
-                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.y),
-                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreads.z)
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.x),
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.y),
+                Mathf.CeilToInt(numberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.z)
             );
+
+            m_computeShader.Dispatch(0, numberOfWorkGroupsKernel0.x, numberOfWorkGroupsKernel0.y, numberOfWorkGroupsKernel0.z);
         }
 
         private void OnDisable()

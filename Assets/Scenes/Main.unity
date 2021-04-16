@@ -220,9 +220,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: -33
+  m_seed: 57
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 10
+  m_height: 15
   m_wavelength: 35
   m_numberOfOctaves: 6
   m_persistence: 0.45
@@ -242,11 +242,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_numberOfCellsAlongAxis: 64
   m_cellSpacing: 0.5
+  m_subSampledFaces: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 30
+  m_maxIterations: 20
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 35
-  m_asyncReadback: 1
+  m_sharpFeatureAngle: 50
+  m_asyncReadback: 0
   m_showBounds: 1
 --- !u!4 &584997471
 Transform:
@@ -849,9 +850,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: -33
+  m_seed: 57
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 10
+  m_height: 15
   m_wavelength: 35
   m_numberOfOctaves: 6
   m_persistence: 0.45
@@ -871,11 +872,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_numberOfCellsAlongAxis: 64
   m_cellSpacing: 0.5
+  m_subSampledFaces: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 30
+  m_maxIterations: 20
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 35
-  m_asyncReadback: 1
+  m_sharpFeatureAngle: 50
+  m_asyncReadback: 0
   m_showBounds: 1
 --- !u!4 &1255704057
 Transform:
@@ -938,9 +940,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: -33
+  m_seed: 57
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 10
+  m_height: 15
   m_wavelength: 35
   m_numberOfOctaves: 6
   m_persistence: 0.45
@@ -960,11 +962,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_numberOfCellsAlongAxis: 64
   m_cellSpacing: 0.5
+  m_subSampledFaces: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 30
+  m_maxIterations: 20
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 35
-  m_asyncReadback: 1
+  m_sharpFeatureAngle: 50
+  m_asyncReadback: 0
   m_showBounds: 1
 --- !u!23 &1380290542
 MeshRenderer:
@@ -1274,9 +1277,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: -33
+  m_seed: 57
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 10
+  m_height: 15
   m_wavelength: 35
   m_numberOfOctaves: 6
   m_persistence: 0.45
@@ -1296,11 +1299,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_numberOfCellsAlongAxis: 64
   m_cellSpacing: 0.5
+  m_subSampledFaces: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 30
+  m_maxIterations: 20
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 35
-  m_asyncReadback: 1
+  m_sharpFeatureAngle: 50
+  m_asyncReadback: 0
   m_showBounds: 1
 --- !u!4 &1776670545
 Transform:
@@ -1413,9 +1417,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_seed: -33
+  m_seed: 57
   m_offset: {x: 0, y: 0, z: 0}
-  m_height: 10
+  m_height: 15
   m_wavelength: 35
   m_numberOfOctaves: 6
   m_persistence: 0.45
@@ -1435,11 +1439,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_numberOfCellsAlongAxis: 64
   m_cellSpacing: 1
+  m_subSampledFaces: 0
   m_computeShader: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 30
+  m_maxIterations: 20
   m_stepSize: 0.2
-  m_sharpFeatureAngle: 35
-  m_asyncReadback: 1
+  m_sharpFeatureAngle: 50
+  m_asyncReadback: 0
   m_showBounds: 1
 --- !u!4 &1934337881
 Transform:

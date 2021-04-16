@@ -10,6 +10,11 @@ bool IsOutOfCellBounds(uint3 cellID)
     return any(step(cellDimensions, cellID));
 }
 
+bool IsOnCellVolumeSurface(uint3 cellID)
+{
+    return any(cellID == 0 || cellID == cellDimensions - 1);
+}
+
 float3 CellToCellVolumeSpace(uint3 cellID, float3 cellSpacePosition = 0.0f)
 {
     return cellSpacing * ((cellSpacePosition + cellID) - 0.5f * cellDimensions);

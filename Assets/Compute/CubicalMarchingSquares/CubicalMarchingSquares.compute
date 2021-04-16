@@ -45,6 +45,7 @@ struct CellFlatFeatureVertexIndices
     }
 };
 
+uint subSampledCellVolumeFaces;
 float cosOfSharpFeatureAngle;
 uint maxIterations;
 float stepSize;
@@ -53,7 +54,7 @@ RWStructuredBuffer<Vertex> generatedVertices;
 RWStructuredBuffer<CellFlatFeatureVertexIndices> flatFeatureVertexIndicesLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
-static Voxel voxels[cellCornersCount];
+static Voxel samples[cellCornersCount];
 static Segment segments[maxSegmentsCount];
 static Component components[maxComponentsCount];
 static float3 forces[cellCornersCount];
@@ -63,17 +64,24 @@ void SampleVoxelVolume(uint3 cellID)
     for (uint cornerIndex = 0; cornerIndex < cellCornersCount; cornerIndex++)
     {
         uint3 voxelID = ClampToVoxelVolumeBounds(cellID + cellCorners[cornerIndex]);
-        voxels[cornerIndex] = voxelVolume[CalculateVoxelVolumeIndex(voxelID)];
+        samples[cornerIndex] = voxelVolume[CalculateVoxelVolumeIndex(voxelID)];
+    }
+
+    // If our cell is on the surface of the cell volume we might need to adjust some samples of the cell
+    // to account for sub-sampled cell volume faces.
+    if (IsOnCellVolumeSurface(cellID))
+    {
+
     }
 }
 
 uint GenerateFlatFeatureVertex(uint3 cellID, CellEdge edge)
 {
-    uint3 cellCornerA = cellCorners[edge.GetCellCornerStartIndex()];
-    uint3 cellCornerB = cellCorners[edge.GetCellCornerEndIndex()];
+    uint3 cellCornerA = cellCorners[edge.GetCornerStartIndex()];
+    uint3 cellCornerB = cellCorners[edge.GetCornerEndIndex()];
 
-    Voxel voxelA = voxels[edge.GetCellCornerStartIndex()];
-    Voxel voxelB = voxels[edge.GetCellCornerEndIndex()];
+    Voxel voxelA = samples[edge.GetCornerStartIndex()];
+    Voxel voxelB = samples[edge.GetCornerEndIndex()];
 
     if (voxelA.GetValue() < 0.0f == voxelB.GetValue() < 0.0f)
     {
@@ -169,12 +177,12 @@ uint2 GenerateFaceSharpFeatureVertices(uint3 cellID, CellFace cellFace, Vertex v
         return -1;
     }
 
-    uint2 indices = uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter());
+    uint2 vertexIndices = uint2(generatedVertices.IncrementCounter(), generatedVertices.IncrementCounter());
 
-    generatedVertices[indices.x] = Vertex::Create(sharpFeaturePosition, vertexA.normal);
-    generatedVertices[indices.y] = Vertex::Create(sharpFeaturePosition, vertexB.normal);
+    generatedVertices[vertexIndices.x] = Vertex::Create(sharpFeaturePosition, vertexA.normal);
+    generatedVertices[vertexIndices.y] = Vertex::Create(sharpFeaturePosition, vertexB.normal);
 
-    return indices;
+    return vertexIndices;
 }
 
 uint GenerateFaceSegments(uint3 cellID, CellFace cellFace, uint segmentsCount)
@@ -183,7 +191,7 @@ uint GenerateFaceSegments(uint3 cellID, CellFace cellFace, uint segmentsCount)
     
     for (uint cornerIndex = 0; cornerIndex < 4; cornerIndex++)
     {
-        Voxel voxel = voxels[cellFace.cornerIndices[cornerIndex]];
+        Voxel voxel = samples[cellFace.cornerIndices[cornerIndex]];
         segmentsIndex |= (voxel.GetValue() < 0.0f) << cornerIndex;
     }
 

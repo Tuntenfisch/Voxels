@@ -13,23 +13,25 @@ namespace CubicalMarchingSquares
         [Header("Cell Volume")]
         [Range(2, 64)]
         [SerializeField]
-        private int m_numberOfCellsAlongAxis = 16;
+        private int m_numberOfCellsAlongAxis = 32;
         [Range(0.25f, 4.0f)]
         [SerializeField]
         private float m_cellSpacing = 0.5f;
+        [SerializeField]
+        private CellVolumeFaces m_subSampledFaces;
 
         [Header("Shader")]
         [SerializeField]
         private ComputeShader m_computeShader;
         [Range(0, 50)]
         [SerializeField]
-        private int m_maxIterations = 10;
+        private int m_maxIterations = 20;
         [Range(0.0f, 0.4f)]
         [SerializeField]
         private float m_stepSize = 0.2f;
         [Range(0.1f, 180.0f)]
         [SerializeField]
-        private float m_sharpFeatureAngle = 35.0f;
+        private float m_sharpFeatureAngle = 50.0f;
         [SerializeField]
         private bool m_asyncReadback = false;
 
@@ -52,23 +54,9 @@ namespace CubicalMarchingSquares
         // 3 indices per triangle * 2 triangles per segment * 2 segments per face * 6 faces per cell * number of cells
         public int MaxNumberOfTriangles => 3 * 2 * 2 * 6 * NumberOfCells;
 
-        private static readonly int s_cellDimensionsID = Shader.PropertyToID("cellDimensions");
-        private static readonly int s_cellSpacingID = Shader.PropertyToID("cellSpacing");
-        private static readonly int s_cellVolumeToWorldSpaceOffsetID = Shader.PropertyToID("cellVolumeToWorldSpaceOffset");
-        private static readonly int s_voxelDimensionsID = Shader.PropertyToID("voxelDimensions");
-        private static readonly int s_cosOfSharpFeatureAngleID = Shader.PropertyToID("cosOfSharpFeatureAngle");
-        private static readonly int s_maxIterationsID = Shader.PropertyToID("maxIterations");
-        private static readonly int s_stepSizeID = Shader.PropertyToID("stepSize");
-        private static readonly int s_voxelVolumeID = Shader.PropertyToID("voxelVolume");
-        private static readonly int s_generatedVerticesID = Shader.PropertyToID("generatedVertices");
-        private static readonly int s_flatFeatureVertexIndicesLookupTableID = Shader.PropertyToID("flatFeatureVertexIndicesLookupTable");
-        private static readonly int s_generatedTrianglesID = Shader.PropertyToID("generatedTriangles");
-
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshCollider m_meshCollider;
-
-        private Bounds m_localBounds;
 
         private VoxelVolume m_voxelVolume;
 
@@ -86,43 +74,33 @@ namespace CubicalMarchingSquares
 
         private void OnEnable()
         {
-            m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
-            m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
-            m_computeShader.GetKernelThreadGroupSizes(1, out x, out y, out z);
-            m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
-
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_voxelVolume.OnVoxelVolumeChanged += OnSettingsUpdated;
 
+            SetupNumberOfThreadsPerKernel();
             CreateBuffers();
         }
 
         private void Start()
         {
+            m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
+
             InitializeMeshComponents();
-            GenerateVoxelVolume(transform.position);
-            CalculateLocalBounds();
-            UpdateMesh();
+            UpdateMeshBounds();
+            UpdateMeshGeometry();
         }
 
-        private void GenerateVoxelVolume(Vector3 localToWorldOffset)
+        private void SetupNumberOfThreadsPerKernel()
         {
-            m_voxelVolume.Generate
-            (
-                m_voxelVolumeBuffer,
-                NumberOfVoxelsAlongAxis,
-                m_numberOfCellsAlongAxis,
-                m_cellSpacing,
-                localToWorldOffset
-            );
+            m_computeShader.GetKernelThreadGroupSizes(0, out uint x, out uint y, out uint z);
+            m_numberOfThreadsKernel0 = new Vector3Int((int)x, (int)y, (int)z);
+            m_computeShader.GetKernelThreadGroupSizes(1, out x, out y, out z);
+            m_numberOfThreadsKernel1 = new Vector3Int((int)x, (int)y, (int)z);
         }
 
-        private void CalculateLocalBounds()
+        private void UpdateMeshBounds()
         {
-            m_localBounds = new Bounds
-            (
-                Vector3.zero, m_cellSpacing * new Vector3(m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis)
-            );
+            m_mesh.bounds = new Bounds(Vector3.zero, m_cellSpacing * new Vector3(m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis));
         }
 
         private void CreateBuffers()
@@ -152,10 +130,7 @@ namespace CubicalMarchingSquares
         }
         private void InitializeMeshComponents()
         {
-            m_mesh = new Mesh
-            {
-                indexFormat = IndexFormat.UInt32
-            };
+            m_mesh = new Mesh { indexFormat = IndexFormat.UInt32 };
             m_meshFilter = GetComponent<MeshFilter>();
             m_meshFilter.sharedMesh = m_mesh;
             m_meshCollider = GetComponent<MeshCollider>();
@@ -167,8 +142,9 @@ namespace CubicalMarchingSquares
             if (transform.hasChanged)
             {
                 transform.hasChanged = false;
-                GenerateVoxelVolume(transform.position);
-                UpdateMesh();
+                m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
+
+                UpdateMeshGeometry();
             }
 
             if (m_vertexCountBuffer.IsDataAvailable(!m_asyncReadback) && m_triangleCountBuffer.IsDataAvailable(!m_asyncReadback))
@@ -232,9 +208,11 @@ namespace CubicalMarchingSquares
             m_mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
             m_mesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
-            m_mesh.bounds = m_localBounds;
-            m_mesh.RecalculateTangents();
-            m_meshFilter.sharedMesh = m_mesh;
+
+            if (m_meshFilter.sharedMesh == null)
+            {
+                m_meshFilter.mesh = m_mesh;
+            }
 
             m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
             m_flags |= CubicalMarchingSquaresFlags.BakingMesh;
@@ -257,46 +235,59 @@ namespace CubicalMarchingSquares
                 CreateBuffers();
             }
 
-            GenerateVoxelVolume(transform.position);
-            CalculateLocalBounds();
-            UpdateMesh();
+            m_voxelVolume.Generate(m_voxelVolumeBuffer, NumberOfVoxelsAlongAxis, m_numberOfCellsAlongAxis, m_cellSpacing, transform.position);
+
+            UpdateMeshBounds();
+            UpdateMeshGeometry();
         }
 
-        private void UpdateMesh()
+        private void SetupDispatch()
         {
             m_vertexBuffer.SetCounterValue(0);
             m_triangleBuffer.SetCounterValue(0);
 
-            m_computeShader.SetInts(s_cellDimensionsID, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis);
-            m_computeShader.SetFloat(s_cellSpacingID, m_cellSpacing);
-            m_computeShader.SetVector(s_cellVolumeToWorldSpaceOffsetID, transform.position);
-            m_computeShader.SetInts(s_voxelDimensionsID, NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis);
-            m_computeShader.SetFloat(s_cosOfSharpFeatureAngleID, Mathf.Cos(m_sharpFeatureAngle * Mathf.Deg2Rad));
-            m_computeShader.SetInt(s_maxIterationsID, m_maxIterations);
-            m_computeShader.SetFloat(s_stepSizeID, m_stepSize);
+            m_computeShader.SetInts(ComputeShaderProperties.s_cellDimensions, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis, m_numberOfCellsAlongAxis);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_cellSpacing, m_cellSpacing);
+            m_computeShader.SetVector(ComputeShaderProperties.s_cellVolumeToWorldSpaceOffset, transform.position);
+            m_computeShader.SetInts(ComputeShaderProperties.s_voxelDimensions, NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis);
+            m_computeShader.SetInt(ComputeShaderProperties.s_subSampledCellVolumeFaces, (int)m_subSampledFaces);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, Mathf.Cos(m_sharpFeatureAngle * Mathf.Deg2Rad));
+            m_computeShader.SetInt(ComputeShaderProperties.s_maxIterations, m_maxIterations);
+            m_computeShader.SetFloat(ComputeShaderProperties.s_stepSize, m_stepSize);
 
-            m_computeShader.SetBuffer(0, s_voxelVolumeID, m_voxelVolumeBuffer);
-            m_computeShader.SetBuffer(0, s_generatedVerticesID, m_vertexBuffer);
-            m_computeShader.SetBuffer(0, s_flatFeatureVertexIndicesLookupTableID, m_flatFeatureVertexIndicesLookupBuffer);
-            m_computeShader.Dispatch
+            // Link buffers for kernel 0.
+            m_computeShader.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, m_voxelVolumeBuffer);
+            m_computeShader.SetBuffer(0, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
+            m_computeShader.SetBuffer(0, ComputeShaderProperties.s_flatFeatureVertexIndicesLookupTable, m_flatFeatureVertexIndicesLookupBuffer);
+
+            // Link buffers for kernel 1.
+            m_computeShader.SetBuffer(1, ComputeShaderProperties.s_voxelVolume, m_voxelVolumeBuffer);
+            m_computeShader.SetBuffer(1, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
+            m_computeShader.SetBuffer(1, ComputeShaderProperties.s_flatFeatureVertexIndicesLookupTable, m_flatFeatureVertexIndicesLookupBuffer);
+            m_computeShader.SetBuffer(1, ComputeShaderProperties.s_generatedTriangles, m_triangleBuffer);
+        }
+
+        private void UpdateMeshGeometry()
+        {
+            SetupDispatch();
+
+            Vector3Int m_numberOfWorkGroupsKernel0 = new Vector3Int
             (
-                0,
                 Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.x),
                 Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.y),
                 Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel0.z)
             );
 
-            m_computeShader.SetBuffer(1, s_voxelVolumeID, m_voxelVolumeBuffer);
-            m_computeShader.SetBuffer(1, s_generatedVerticesID, m_vertexBuffer);
-            m_computeShader.SetBuffer(1, s_flatFeatureVertexIndicesLookupTableID, m_flatFeatureVertexIndicesLookupBuffer);
-            m_computeShader.SetBuffer(1, s_generatedTrianglesID, m_triangleBuffer);
-            m_computeShader.Dispatch
+            m_computeShader.Dispatch(0, m_numberOfWorkGroupsKernel0.x, m_numberOfWorkGroupsKernel0.y, m_numberOfWorkGroupsKernel0.z);
+
+            Vector3Int m_numberOfWorkGroupsKernel1 = new Vector3Int
             (
-                1,
-                Mathf.CeilToInt(m_numberOfCellsAlongAxis / (float)m_numberOfThreadsKernel1.x),
-                Mathf.CeilToInt(m_numberOfCellsAlongAxis / (float)m_numberOfThreadsKernel1.y),
-                Mathf.CeilToInt(m_numberOfCellsAlongAxis / (float)m_numberOfThreadsKernel1.z)
+                Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.x),
+                Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.y),
+                Mathf.CeilToInt(NumberOfVoxelsAlongAxis / (float)m_numberOfThreadsKernel1.z)
             );
+
+            m_computeShader.Dispatch(1, m_numberOfWorkGroupsKernel1.x, m_numberOfWorkGroupsKernel1.y, m_numberOfWorkGroupsKernel1.z);
 
             ComputeBuffer.CopyCount(m_vertexBuffer, m_vertexCountBuffer, 0);
             ComputeBuffer.CopyCount(m_triangleBuffer, m_triangleCountBuffer, 0);
@@ -321,11 +312,22 @@ namespace CubicalMarchingSquares
 
         private void OnDrawGizmos()
         {
-            if (m_showBounds)
+            if (m_showBounds && m_mesh != null)
             {
                 Gizmos.color = Color.green;
-                Gizmos.DrawWireCube(transform.position + m_localBounds.center, m_localBounds.size);
+                Gizmos.DrawWireCube(transform.position + m_mesh.bounds.center, m_mesh.bounds.size);
             }
+        }
+
+        [Flags]
+        private enum CellVolumeFaces
+        {
+            Left = 8,
+            Right = 2,
+            Bottom = 16,
+            Top = 32,
+            Back = 4,
+            Front = 1
         }
 
         [Flags]

@@ -9,10 +9,11 @@
 
 float wavelength;
 uint numberOfOctaves;
-Buffer<float3> octaveOffsets;
 float persistence;
 float lacunarity;
 float height;
+
+Buffer<float3> octaveOffsets;
 
 float4 GenerateHeight(float3 position)
 {
