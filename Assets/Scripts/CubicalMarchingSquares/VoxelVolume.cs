@@ -1,8 +1,10 @@
 ﻿using System;
 using UnityEngine;
+using UnityEditor;
 
 namespace CubicalMarchingSquares
 {
+    [ExecuteInEditMode]
     public class VoxelVolume : MonoBehaviour
     {
         public event Action OnVoxelVolumeChanged;
