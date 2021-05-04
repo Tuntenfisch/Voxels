@@ -1,50 +1,24 @@
 ﻿using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Generics
 {
-    public abstract class SingletonComponent<T> : SingletonComponent where T : MonoBehaviour
+    public abstract class SingletonComponent<T> : MonoBehaviour where T : MonoBehaviour
     {
         public static T Instance
         {
             get
             {
+                if (s_instance == null)
+                {
+                    s_instance = FindObjectOfType<T>();
+                    Assert.IsNotNull(s_instance, $"Scene is missing an instance of {typeof(T)}!");
+                }
+
                 return s_instance;
             }
         }
 
         private static T s_instance = default;
-
-        protected override void Setup()
-        {
-            if (s_instance != this)
-            {
-                s_instance = this as T;
-            }
-        }
-
-        protected override void Clear()
-        {
-            if (s_instance == this)
-            {
-                s_instance = null;
-            }
-        }
-    }
-
-    public abstract class SingletonComponent : MonoBehaviour
-    {
-        protected abstract void Setup();
-
-        protected abstract void Clear();
-
-        protected virtual void Awake()
-        {
-            Setup();
-        }
-
-        protected virtual void OnDestroy()
-        {
-            Clear();
-        }
     }
 }

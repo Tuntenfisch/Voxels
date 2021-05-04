@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,14 +23,13 @@ namespace Player
 
         private float Gravity => Physics.gravity.y;
 
-        private Vector2 m_moveDelta;
-        private Vector2 m_lookDelta;
-        private bool m_wantsToJump;
-
-        private Vector2 m_rotation;
-        private float m_velocityY;
-
         private CharacterController m_controller;
+
+        private float2 m_moveDelta;
+        private float2 m_lookDelta;
+        private bool m_wantsToJump;
+        private float2 m_rotation;
+        private float m_velocityY;
 
         public void OnMove(InputAction.CallbackContext context) => m_moveDelta = context.ReadValue<Vector2>();
 
@@ -38,7 +38,7 @@ namespace Player
         // OnLook(...) can be called multiple times per frame and the (mouse) delta is framerate independent.
         // Every time OnLook(...) is called we add the received delta to an accumulator. Once Update(...) is
         // called we apply the accumulated delta once and reset it.
-        public void OnLook(InputAction.CallbackContext context) => m_lookDelta += context.ReadValue<Vector2>();
+        public void OnLook(InputAction.CallbackContext context) => m_lookDelta += (float2)context.ReadValue<Vector2>();
 
         private void Start()
         {
@@ -50,18 +50,18 @@ namespace Player
         {
             m_rotation.y += m_lookDelta.x * m_lookSensitivity;
             m_rotation.x -= m_lookDelta.y * m_lookSensitivity;
-            m_rotation.x = Mathf.Clamp(m_rotation.x, -90.0f, 90.0f);
+            m_rotation.x = math.clamp(m_rotation.x, -90.0f, 90.0f);
 
             m_camera.transform.localRotation = Quaternion.Euler(m_rotation.x, 0.0f, 0.0f);
             transform.localRotation = Quaternion.Euler(0.0f, m_rotation.y, 0.0f);
 
             // Reset the accumulated delta.
-            m_lookDelta = Vector2.zero;
+            m_lookDelta = float2.zero;
         }
 
         private void Jump()
         {
-            m_velocityY = Mathf.Sqrt(-2.0f * Gravity * m_jumpHeight);
+            m_velocityY = math.sqrt(-2.0f * Gravity * m_jumpHeight);
         }
 
         private void ApplyMovement()
@@ -73,8 +73,8 @@ namespace Player
 
             m_velocityY += Gravity * Time.deltaTime;
 
-            Vector3 horizontalVelocity = (transform.right * m_moveDelta.x + transform.forward * m_moveDelta.y) * m_movementSpeed;
-            Vector3 verticalVelocity = Vector3.up * m_velocityY;
+            float3 horizontalVelocity = (transform.right * m_moveDelta.x + transform.forward * m_moveDelta.y) * m_movementSpeed;
+            float3 verticalVelocity = new float3(0.0f, 1.0f, 0.0f) * m_velocityY;
 
             m_controller.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
 
