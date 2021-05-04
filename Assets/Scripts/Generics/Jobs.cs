@@ -1,12 +1,14 @@
-﻿using Unity.Jobs;
+﻿using Unity.Burst;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace Generics
 {
+    [BurstCompile]
     public struct BakeJob : IJob
     {
-        private int m_meshID;
-        private bool m_convex;
+        private readonly int m_meshID;
+        private readonly bool m_convex;
 
         public BakeJob(int meshID, bool convex = false)
         {

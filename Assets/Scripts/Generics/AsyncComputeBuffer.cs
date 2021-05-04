@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using System;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,9 +8,7 @@ namespace Generics
     public class AsyncComputeBuffer
     {
         public static implicit operator ComputeBuffer(AsyncComputeBuffer buffer) => buffer.m_buffer;
-
         public int Count => m_buffer.count;
-
         public bool HasError => m_request.hasError;
 
         private readonly ComputeBuffer m_buffer;
@@ -23,45 +22,39 @@ namespace Generics
 
         public void RequestData()
         {
-            m_request = AsyncGPUReadback.Request(m_buffer);
-            m_retrievingData = true;
+            RequestData(m_buffer.count);
         }
 
-        public void RequestData(int count, int offset = 0)
+        public void RequestData(int count)
         {
-            m_request = AsyncGPUReadback.Request(m_buffer, count * m_buffer.stride, offset * m_buffer.stride);
-            m_retrievingData = true;
-        }
-
-        public bool IsDataAvailable(bool blocking = false)
-        {
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
+            if (count > m_buffer.count)
             {
-                blocking = true;
+                throw new ArgumentOutOfRangeException(nameof(count), count, "Requested number of elements is larger than the total buffer's number of elements!");
             }
-#endif
 
+            m_request = AsyncGPUReadback.Request(m_buffer, count * m_buffer.stride, 0);
+            m_retrievingData = true;
+        }
+
+        public bool IsDataAvailable()
+        {
             if (!m_retrievingData)
             {
                 return false;
             }
 
-            if (blocking)
-            {
-                m_request.WaitForCompletion();
-            }
-
-            if (HasError)
-            {
-                m_retrievingData = false;
-            }
+            m_retrievingData = !HasError;
 
             return m_request.done;
         }
 
         public NativeArray<T> GetData<T>() where T : struct
         {
+            if (HasError)
+            {
+                throw new InvalidOperationException("An error was encountered during readback! Retrieving the data is not possible!");
+            }
+
             NativeArray<T> data = m_request.GetData<T>();
             m_retrievingData = false;
 

@@ -2,52 +2,46 @@
 using System;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Voxel;
+using Voxels;
 
 namespace World
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-    public class Chunk : MonoBehaviour, IMeshGenerationRequester
+    internal class Chunk : MonoBehaviour, IVoxelVolume
     {
-        private ComputeBuffer m_voxelVolumeBuffer;
+        public float VoxelSpacing { get; set; }
+
+        private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshCollider m_meshCollider;
-        private Mesh m_mesh;
+
+        private ComputeBuffer m_voxelVolumeBuffer;
         private JobHandle m_bakeJobHandle;
         private ChunkFlags m_flags;
 
-        private void Start()
+        private void Awake()
         {
-            VoxelVolume.Instance.Configuration.OnDirty += OnConfigurationDirty;
             InitializeMeshComponents();
-            CreateBuffers();
         }
 
         private void Update()
         {
-            if (transform.hasChanged)
-            {
-                OnTransformChanged();
-            }
-
             if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
             {
+                m_flags &= ~ChunkFlags.BakingMesh;
                 OnMeshBaked();
             }
         }
 
         private void OnDestroy()
         {
-            if (VoxelVolume.Instance != null)
-            {
-                VoxelVolume.Instance.Configuration.OnDirty -= OnConfigurationDirty;
-            }
             ReleaseBuffers();
         }
 
-        public (ComputeBuffer voxelVolumeBuffer, Vector3 worldPosition) GetMeshGenerationArguments() => (m_voxelVolumeBuffer, transform.position);
+        public (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelSpacing);
 
         public void OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles)
         {
@@ -73,26 +67,19 @@ namespace World
             m_flags |= ChunkFlags.BakingMesh;
         }
 
-        private void OnConfigurationDirty()
+        public void CreateBuffers(int numberOfVoxels)
         {
-            if (m_voxelVolumeBuffer.count != VoxelVolume.Instance.Configuration.NumberOfVoxels)
-            {
-                ReleaseBuffers();
-                CreateBuffers();
-            }
-        }
-
-        private void CreateBuffers()
-        {
-            if (m_voxelVolumeBuffer != null)
+            if (m_voxelVolumeBuffer != null && m_voxelVolumeBuffer.count != numberOfVoxels)
             {
                 return;
             }
 
-            m_voxelVolumeBuffer = new ComputeBuffer(VoxelVolume.Instance.Configuration.NumberOfVoxels, 4 * sizeof(float));
+            ReleaseBuffers();
+
+            m_voxelVolumeBuffer = new ComputeBuffer(numberOfVoxels, 4 * sizeof(float));
         }
 
-        private void ReleaseBuffers()
+        public void ReleaseBuffers()
         {
             if (m_voxelVolumeBuffer == null)
             {
@@ -103,28 +90,19 @@ namespace World
             m_voxelVolumeBuffer = null;
         }
 
-        private void OnTransformChanged()
+        private void InitializeMeshComponents()
         {
-            transform.hasChanged = false;
-
-            VoxelVolume.Instance.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
-            CubicalMarchingSquares.Instance.RequestMeshGeneration(this);
+            m_mesh = new Mesh();
+            m_mesh.MarkDynamic();
+            m_meshFilter = GetComponent<MeshFilter>();
+            m_meshFilter.sharedMesh = m_mesh;
+            m_meshCollider = GetComponent<MeshCollider>();
+            m_meshCollider.sharedMesh = m_mesh;
         }
 
         private void OnMeshBaked()
         {
-            m_flags &= ~ChunkFlags.BakingMesh;
-
             m_bakeJobHandle.Complete();
-            m_meshCollider.sharedMesh = m_mesh;
-        }
-
-        private void InitializeMeshComponents()
-        {
-            m_mesh = new Mesh { indexFormat = IndexFormat.UInt32 };
-            m_meshFilter = GetComponent<MeshFilter>();
-            m_meshFilter.sharedMesh = m_mesh;
-            m_meshCollider = GetComponent<MeshCollider>();
             m_meshCollider.sharedMesh = m_mesh;
         }
 

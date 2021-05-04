@@ -13,16 +13,15 @@ MonoBehaviour:
   m_Name: Voxel Volume Configuration
   m_EditorClassIdentifier: 
   m_cubicalMarchingSquaresCompute: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 20
+  m_maxIterations: 50
   m_stepSize: 0.2
   m_sharpFeatureAngle: 50
   m_voxelVolumeCompute: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
-  m_numberOfVoxelsAlongAxis: 33
-  m_cellSpacing: 0.5
-  m_seed: 0
-  m_offset: {x: 0, y: 0, z: 0}
-  m_height: 20
-  m_wavelength: 35
-  m_numberOfOctaves: 4
+  m_numberOfVoxelsAlongAxis: 64
+  m_voxelSpacing: 0.5
+  m_seed: 45
+  m_height: 200
+  m_wavelength: 1000
+  m_numberOfOctaves: 16
   m_persistence: 0.5
   m_lacunarity: 2
