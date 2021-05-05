@@ -17,7 +17,7 @@ MonoBehaviour:
   m_stepSize: 0.2
   m_sharpFeatureAngle: 50
   m_voxelVolumeCompute: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
-  m_numberOfVoxelsAlongAxis: 64
+  m_numberOfVoxelsAlongAxis: 42
   m_voxelSpacing: 0.5
   m_seed: 45
   m_height: 200

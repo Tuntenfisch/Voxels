@@ -51,7 +51,7 @@ namespace Voxels
         [Header("Voxel Volume")]
         [SerializeField]
         private ComputeShader m_voxelVolumeCompute;
-        [Range(16, 64)]
+        [Range(16, 96)]
         [SerializeField]
         private int m_numberOfVoxelsAlongAxis = 32;
         [Range(0.25f, 2.0f)]
@@ -93,7 +93,7 @@ namespace Voxels
 
         private void OnValidate()
         {
-            m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
+            // m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
 
             if (CubicalMarchingSquaresCompute == null || VoxelVolumeCompute == null)
             {
@@ -107,7 +107,6 @@ namespace Voxels
         private void SetupComputeShaders()
         {
             CubicalMarchingSquaresCompute.SetInts(ComputeShaderProperties.s_voxelVolumeCount, VoxelVolumeCount.x, VoxelVolumeCount.y, VoxelVolumeCount.z);
-            CubicalMarchingSquaresCompute.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, math.cos(math.radians(SharpFeatureAngle)));
             CubicalMarchingSquaresCompute.SetInt(ComputeShaderProperties.s_maxIterations, MaxIterations);
             CubicalMarchingSquaresCompute.SetFloat(ComputeShaderProperties.s_stepSize, StepSize);
 

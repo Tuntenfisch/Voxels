@@ -723,7 +723,7 @@ MonoBehaviour:
   m_viewer: {fileID: 1464136626}
   m_showBounds: 1
   m_lodTreeDimensions:
-    x: 1008
-    y: 1008
-    z: 1008
+    x: 656
+    y: 656
+    z: 656
   m_numberOfLodTreesVisibleAlongAxis: 1

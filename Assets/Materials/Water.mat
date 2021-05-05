@@ -98,11 +98,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - Depth: 1
+    - Depth: 5
     - Depth_Blend: 0.05
-    - Displacement: 3
-    - Normal_Strength: 0.75
-    - Smoothness: 1
+    - Displacement: 1
+    - Normal_Strength: 0
+    - Smoothness: 0.75
     - Strength: 0.04
     - _AlphaClip: 0
     - _Blend: 0
@@ -131,7 +131,7 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - Deep_Water_Color: {r: 0, g: 0.200444, b: 0.4056604, a: 0.5882353}
+    - Deep_Water_Color: {r: 0, g: 0.200444, b: 0.4056604, a: 0.78431374}
     - Shallow_Water_Color: {r: 0, g: 0.43350485, b: 0.58431375, a: 0.39215687}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}

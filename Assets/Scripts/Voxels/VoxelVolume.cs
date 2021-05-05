@@ -21,7 +21,7 @@ namespace Voxels
 
         public void GenerateVoxelVolume(IVoxelVolume requester)
         {
-            (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) = requester.GetArguments();
+            (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, _) = requester.GetArguments();
 
             if (voxelVolumeBuffer == null)
             {

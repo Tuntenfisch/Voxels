@@ -13,6 +13,7 @@ namespace World
     internal class Chunk : MonoBehaviour, IVoxelVolume
     {
         public float VoxelSpacing { get; set; }
+        public bool RespectSharpFeatures { get; set; }
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
@@ -41,7 +42,7 @@ namespace World
             ReleaseBuffers();
         }
 
-        public (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelSpacing);
+        public (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, bool respectSharpFeatures) GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelSpacing, RespectSharpFeatures);
 
         public void OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles)
         {
