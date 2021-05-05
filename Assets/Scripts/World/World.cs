@@ -196,7 +196,7 @@ namespace World
 
             foreach (LodTree lodTree in m_lodTrees.Values)
             {
-                lodTree.Update(m_viewer);
+                lodTree.Update(m_viewer.position);
 
                 foreach (LodTree.Node leaf in lodTree.Traverse(true))
                 {

@@ -431,7 +431,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &1450396124
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -618,7 +618,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1464136622}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a07c5025eaba447aec54813a2c41e0, type: 3}
   m_Name: 
@@ -721,7 +721,7 @@ MonoBehaviour:
   m_lodUpdateInterval: 15.75
   m_numberOfLods: 5
   m_viewer: {fileID: 1464136626}
-  m_showBounds: 0
+  m_showBounds: 1
   m_lodTreeDimensions:
     x: 1008
     y: 1008
