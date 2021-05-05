@@ -84,7 +84,7 @@ namespace World
             throw new NotImplementedException();
         }
 
-        public void Update(Transform viewer)
+        public void Update(float3 viewerPosition)
         {
             if (m_flags.HasFlag(LodTreeFlags.Traversing))
             {
@@ -92,19 +92,17 @@ namespace World
             }
 
             Node root = m_nodes[0];
-            Update(ref root, 0, 0, viewer);
+            Update(ref root, 0, viewerPosition);
             m_nodes[0] = root;
         }
 
-        private void Update(ref Node node, int nodeIndex, int depth, Transform viewer)
+        private void Update(ref Node node, int nodeIndex, float3 viewerPosition)
         {
             Assert.IsFalse(m_flags.HasFlag(LodTreeFlags.Traversing));
 
-            Bounds bounds = new Bounds(node.Bounds.center, 4.0f * node.Bounds.extents);
-
-            if (bounds.Contains(viewer.position))
+            if (math.lengthsq((float3)node.Bounds.center - viewerPosition) <= node.Bounds.size.x * node.Bounds.size.x)
             {
-                if (depth < m_maxDepth)
+                if (node.Depth < m_maxDepth)
                 {
                     Split(ref node, nodeIndex);
                 }
@@ -115,7 +113,7 @@ namespace World
                     {
                         int childIndex = node.FirstChildIndex + childIndexOffset;
                         Node child = m_nodes[childIndex];
-                        Update(ref child, childIndex, depth + 1, viewer);
+                        Update(ref child, childIndex, viewerPosition);
                         m_nodes[childIndex] = child;
                     }
                 }
