@@ -9,7 +9,7 @@ using UnityEngine.Profiling;
 
 namespace Voxels
 {
-    public class CubicalMarchingSquares : MonoBehaviour
+    public class DualContouring : MonoBehaviour
     {
         [Header("General")]
         [SerializeField]
@@ -80,12 +80,12 @@ namespace Voxels
         {
             public bool IsWaitingForData => m_flags.HasFlag(WorkerFlags.Busy);
 
-            private ComputeShader ComputeShader => m_configuration.CubicalMarchingSquaresCompute;
+            private ComputeShader ComputeShader => m_configuration.DualContouringCompute;
 
             private readonly Configuration m_configuration;
 
             private AsyncComputeBuffer m_vertexBuffer;
-            private AsyncComputeBuffer m_flatFeatureVertexIndicesLookupBuffer;
+            private AsyncComputeBuffer m_generatedVertexIndexLookupTable;
             private AsyncComputeBuffer m_triangleBuffer;
             private AsyncComputeBuffer m_countBuffer;
 
@@ -122,16 +122,16 @@ namespace Voxels
             {
                 m_requester = requester;
 
-                (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, bool respectSharpFeatures) = requester.GetArguments();
+                (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) = requester.GetArguments();
 
                 if (voxelVolumeBuffer == null)
                 {
                     throw new NullReferenceException("Voxel volume buffer can't be null!");
                 }
 
-                SetupMeshGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing, respectSharpFeatures);
+                SetupMeshGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing);
 
-                ComputeShader.Dispatch(0, m_configuration.VoxelVolumeCount);
+                ComputeShader.Dispatch(0, m_configuration.CellVolumeCount);
                 ComputeShader.Dispatch(1, m_configuration.CellVolumeCount);
 
                 ComputeBuffer.CopyCount(m_vertexBuffer, m_countBuffer, 0);
@@ -149,13 +149,9 @@ namespace Voxels
                     return;
                 }
 
-                int numberOfVertices = m_configuration.MaxNumberOfFlatFeatureVertices + m_configuration.MaxNumberOfSharpFeatureVertices;
-                int numberOfVoxels = m_configuration.NumberOfVoxels;
-                int numberOfTriangles = m_configuration.MaxNumberOfTriangles;
-
-                m_vertexBuffer = new AsyncComputeBuffer(numberOfVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
-                m_flatFeatureVertexIndicesLookupBuffer = new AsyncComputeBuffer(numberOfVoxels, 3 * sizeof(int));
-                m_triangleBuffer = new AsyncComputeBuffer(numberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
+                m_vertexBuffer = new AsyncComputeBuffer(m_configuration.MaxNumberOfVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
+                m_generatedVertexIndexLookupTable = new AsyncComputeBuffer(m_configuration.NumberOfVoxels, sizeof(int));
+                m_triangleBuffer = new AsyncComputeBuffer(m_configuration.MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
                 m_countBuffer = new AsyncComputeBuffer(2, sizeof(int), ComputeBufferType.Raw);
             }
 
@@ -168,34 +164,32 @@ namespace Voxels
 
                 m_vertexBuffer.Release();
                 m_vertexBuffer = null;
-                m_flatFeatureVertexIndicesLookupBuffer.Release();
-                m_flatFeatureVertexIndicesLookupBuffer = null;
+                m_generatedVertexIndexLookupTable.Release();
+                m_generatedVertexIndexLookupTable = null;
                 m_triangleBuffer.Release();
                 m_triangleBuffer = null;
                 m_countBuffer.Release();
                 m_countBuffer = null;
             }
 
-            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, bool respectSharpFeatures)
+            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
             {
                 m_vertexBuffer.SetCounterValue(0);
                 m_triangleBuffer.SetCounterValue(0);
 
-                float cosOfSharpFeatureAngle = respectSharpFeatures ? math.cos(math.radians(m_configuration.SharpFeatureAngle)) : -1.0f;
-
                 ComputeShader.SetFloat(ComputeShaderProperties.s_voxelSpacing, voxelSpacing);
                 ComputeShader.SetVector(ComputeShaderProperties.s_voxelVolumeToWorldOffset, (Vector3)worldPosition);
-                ComputeShader.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, cosOfSharpFeatureAngle);
+                ComputeShader.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, math.cos(math.radians(m_configuration.SharpFeatureAngle)));
 
                 // Link buffer for kernel 0.
                 ComputeShader.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
                 ComputeShader.SetBuffer(0, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
-                ComputeShader.SetBuffer(0, ComputeShaderProperties.s_flatFeatureVertexIndicesLookupTable, m_flatFeatureVertexIndicesLookupBuffer);
+                ComputeShader.SetBuffer(0, ComputeShaderProperties.s_generatedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
 
                 // Link buffer for kernel 1.
                 ComputeShader.SetBuffer(1, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
                 ComputeShader.SetBuffer(1, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
-                ComputeShader.SetBuffer(1, ComputeShaderProperties.s_flatFeatureVertexIndicesLookupTable, m_flatFeatureVertexIndicesLookupBuffer);
+                ComputeShader.SetBuffer(1, ComputeShaderProperties.s_generatedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
                 ComputeShader.SetBuffer(1, ComputeShaderProperties.s_generatedTriangles, m_triangleBuffer);
             }
 
@@ -256,7 +250,7 @@ namespace Voxels
 
             private void OnConfigurationDirty()
             {
-                if (m_flatFeatureVertexIndicesLookupBuffer?.Count != m_configuration.NumberOfVoxels)
+                if (m_generatedVertexIndexLookupTable?.Count != m_configuration.NumberOfVoxels)
                 {
                     ReleaseBuffers();
                     CreateBuffers();

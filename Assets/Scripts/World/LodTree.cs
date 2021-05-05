@@ -100,7 +100,7 @@ namespace World
         {
             Assert.IsFalse(m_flags.HasFlag(LodTreeFlags.Traversing));
 
-            if (math.lengthsq((float3)node.Bounds.ClosestPoint(viewerPosition) - viewerPosition) <= 2.0f * node.Bounds.size.x * node.Bounds.size.x)
+            if (math.lengthsq((float3)node.Bounds.ClosestPoint(viewerPosition) - viewerPosition) <= node.Bounds.extents.x * node.Bounds.extents.x)
             {
                 if (node.Depth < m_maxDepth)
                 {

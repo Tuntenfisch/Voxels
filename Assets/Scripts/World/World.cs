@@ -9,7 +9,7 @@ using Voxels;
 
 namespace World
 {
-    [RequireComponent(typeof(VoxelVolume), typeof(CubicalMarchingSquares))]
+    [RequireComponent(typeof(VoxelVolume), typeof(DualContouring))]
     public class World : SingletonComponent<World>
     {
 #if UNITY_EDITOR
@@ -41,7 +41,7 @@ namespace World
         private bool m_showBounds = false;
 
         private VoxelVolume m_voxelVolume;
-        private CubicalMarchingSquares m_cubicalMarchingSquares;
+        private DualContouring m_dualContouring;
 
         private ObjectPool<Chunk> m_chunkPool;
         private Dictionary<Bounds, Chunk> m_chunks;
@@ -74,7 +74,7 @@ namespace World
 
             m_configuration.OnDirty += OnValidate;
             m_voxelVolume = GetComponent<VoxelVolume>();
-            m_cubicalMarchingSquares = GetComponent<CubicalMarchingSquares>();
+            m_dualContouring = GetComponent<DualContouring>();
 
             m_chunkPool = new ObjectPool<Chunk>(() =>
             {
@@ -205,9 +205,8 @@ namespace World
                         Chunk chunk = m_chunkPool.Acquire();
                         chunk.transform.position = leaf.Bounds.center;
                         chunk.VoxelSpacing = leaf.Bounds.size.x / m_configuration.NumberOfCellsAlongAxis;
-                        chunk.RespectSharpFeatures = leaf.Depth > m_numberOfLods - 2;
                         m_voxelVolume.GenerateVoxelVolume(chunk);
-                        m_cubicalMarchingSquares.RequestMeshGeneration(chunk);
+                        m_dualContouring.RequestMeshGeneration(chunk);
                         chunk.gameObject.SetActive(true);
                         m_chunks[leaf.Bounds] = chunk;
                     }
@@ -238,7 +237,7 @@ namespace World
                 if (inUse)
                 {
                     m_voxelVolume.GenerateVoxelVolume(chunk);
-                    m_cubicalMarchingSquares.RequestMeshGeneration(chunk);
+                    m_dualContouring.RequestMeshGeneration(chunk);
                 }
             });
 
