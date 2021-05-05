@@ -205,6 +205,7 @@ namespace World
                         Chunk chunk = m_chunkPool.Acquire();
                         chunk.transform.position = leaf.Bounds.center;
                         chunk.VoxelSpacing = leaf.Bounds.size.x / m_configuration.NumberOfCellsAlongAxis;
+                        chunk.RespectSharpFeatures = leaf.Depth > m_numberOfLods - 2;
                         m_voxelVolume.GenerateVoxelVolume(chunk);
                         m_cubicalMarchingSquares.RequestMeshGeneration(chunk);
                         chunk.gameObject.SetActive(true);

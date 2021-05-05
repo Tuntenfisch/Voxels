@@ -122,14 +122,14 @@ namespace Voxels
             {
                 m_requester = requester;
 
-                (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) = requester.GetArguments();
+                (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, bool respectSharpFeatures) = requester.GetArguments();
 
                 if (voxelVolumeBuffer == null)
                 {
                     throw new NullReferenceException("Voxel volume buffer can't be null!");
                 }
 
-                SetupMeshGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing);
+                SetupMeshGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing, respectSharpFeatures);
 
                 ComputeShader.Dispatch(0, m_configuration.VoxelVolumeCount);
                 ComputeShader.Dispatch(1, m_configuration.CellVolumeCount);
@@ -176,13 +176,16 @@ namespace Voxels
                 m_countBuffer = null;
             }
 
-            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
+            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, bool respectSharpFeatures)
             {
                 m_vertexBuffer.SetCounterValue(0);
                 m_triangleBuffer.SetCounterValue(0);
 
+                float cosOfSharpFeatureAngle = respectSharpFeatures ? math.cos(math.radians(m_configuration.SharpFeatureAngle)) : -1.0f;
+
                 ComputeShader.SetFloat(ComputeShaderProperties.s_voxelSpacing, voxelSpacing);
                 ComputeShader.SetVector(ComputeShaderProperties.s_voxelVolumeToWorldOffset, (Vector3)worldPosition);
+                ComputeShader.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, cosOfSharpFeatureAngle);
 
                 // Link buffer for kernel 0.
                 ComputeShader.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
