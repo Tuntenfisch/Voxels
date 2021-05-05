@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b866d6850e9f1d40ab20c0b2e1a0778, type: 3}
   m_Name: Voxel Volume Configuration
   m_EditorClassIdentifier: 
-  m_cubicalMarchingSquaresCompute: {fileID: 7200000, guid: f7b01bc84e60a5d418926efff4f846f5, type: 3}
-  m_maxIterations: 50
-  m_stepSize: 0.2
+  m_dualContouringCompute: {fileID: 7200000, guid: 13eaeb027358e7c4da05988348d93c69, type: 3}
+  m_schmitzParticleIterations: 20
+  m_schmitzParticleStepSize: 0.2
   m_sharpFeatureAngle: 50
   m_voxelVolumeCompute: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
-  m_numberOfVoxelsAlongAxis: 42
+  m_numberOfVoxelsAlongAxis: 64
   m_voxelSpacing: 0.5
-  m_seed: 45
-  m_height: 200
-  m_wavelength: 1000
+  m_seed: 30
+  m_height: 500
+  m_wavelength: 750
   m_numberOfOctaves: 16
   m_persistence: 0.5
   m_lacunarity: 2

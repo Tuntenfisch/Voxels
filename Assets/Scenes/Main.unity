@@ -718,12 +718,12 @@ MonoBehaviour:
   m_configuration: {fileID: 11400000, guid: 62b42556c9dbb514ca83fa616e92a84b, type: 2}
   m_worldUpdateInterval: 126
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
-  m_lodUpdateInterval: 15.75
-  m_numberOfLods: 5
+  m_lodUpdateInterval: 31.5
+  m_numberOfLods: 4
   m_viewer: {fileID: 1464136626}
-  m_showBounds: 1
+  m_showBounds: 0
   m_lodTreeDimensions:
-    x: 656
-    y: 656
-    z: 656
+    x: 504
+    y: 504
+    z: 504
   m_numberOfLodTreesVisibleAlongAxis: 1

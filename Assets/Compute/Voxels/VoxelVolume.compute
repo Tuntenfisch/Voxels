@@ -1,10 +1,10 @@
 #pragma kernel GenerateVoxelVolume
 
+#include "Assets/Compute/Include/CSG.hlsl"
+#include "Assets/Compute/Include/Noise.hlsl"
+
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
-
-#include "Assets/Compute/Include/Noise.hlsl"
-#include "Assets/Compute/Include/CSG.hlsl"
 
 int seed;
 float wavelength;

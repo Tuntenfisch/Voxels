@@ -1,0 +1,211 @@
+#pragma kernel GenerateVertices
+#pragma kernel GenerateTriangles
+
+#include "Assets/Compute/Voxels/Include/Cell.hlsl"
+#include "Assets/Compute/Voxels/Include/Vertex.hlsl"
+#include "Assets/Compute/Voxels/Include/Voxel.hlsl"
+#include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
+
+float cosOfSharpFeatureAngle;
+uint schmitzParticleIterations;
+float schmitzParticleStepSize;
+
+RWStructuredBuffer<Vertex> generatedVertices;
+RWStructuredBuffer<uint> generatedVertexIndicesLookupTable;
+AppendStructuredBuffer<uint3> generatedTriangles;
+
+static uint numberOfIntersections;
+static Vertex intersections[6];
+static float3 forces[8];
+
+void CalculatePositionsAndNormals(uint3 id)
+{
+    numberOfIntersections = 0;
+
+    for (uint cellEdgeIndex = 0; cellEdgeIndex < 12; cellEdgeIndex++)
+    {
+        CellEdge cellEdge = cellEdges[cellEdgeIndex];
+
+        uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
+        uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
+
+        uint indexA = CalculateVoxelVolumeIndex(id + cellCornerA);
+        uint indexB = CalculateVoxelVolumeIndex(id + cellCornerB);
+
+        Voxel sampleA = voxelVolume[indexA];
+        Voxel sampleB = voxelVolume[indexB];
+
+        if (sampleA.GetValue() >= 0.0f != sampleB.GetValue() >= 0.0f)
+        {
+            float interpolant = -sampleA.GetValue() / (sampleB.GetValue() - sampleA.GetValue());
+
+            intersections[numberOfIntersections++] = Vertex::Create
+            (
+                lerp(cellCornerA, cellCornerB, interpolant),
+                normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
+            );
+        }
+    }
+}
+
+Vertex CalculateCenterVertex()
+{
+    Vertex vertex = Vertex::Create();
+
+    for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
+    {
+        vertex.position += intersections[intersectionIndex].position;
+        vertex.normal += intersections[intersectionIndex].normal;
+    }
+
+    vertex.position /= numberOfIntersections;
+    vertex.normal = normalize(vertex.normal);
+
+    return vertex;
+}
+
+float3 CalculateForce(float3 corner)
+{
+    float3 force = 0.0f;
+
+    for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
+    {
+        float3 position = intersections[intersectionIndex].position;
+        float3 normal = intersections[intersectionIndex].normal;
+        float distance = dot(normal, corner - position);
+        float3 voxelCornerToPlaneVector = -distance * normal;
+        force += voxelCornerToPlaneVector;
+    }
+
+    return force;
+}
+
+float3 CalculateCombinedForce(float3 center)
+{
+    float alpha = center.x;
+
+    float3 force03 = (1.0f - alpha) * forces[0] + alpha * forces[3];
+    float3 force47 = (1.0f - alpha) * forces[4] + alpha * forces[7];
+    float3 force12 = (1.0f - alpha) * forces[1] + alpha * forces[2];
+    float3 force56 = (1.0f - alpha) * forces[5] + alpha * forces[6];
+
+    float beta = center.z;
+
+    float3 force0347 = (1.0f - beta) * force03 + beta * force47;
+    float3 force1256 = (1.0f - beta) * force12 + beta * force56;
+
+    float gamma = center.y;
+
+    return(1.0f - gamma) * force0347 + gamma * force1256;
+}
+
+bool HasSharpFeature()
+{
+    float cosOfAngle = 1.0f;
+
+    for (uint intersectionIndexA = 0; intersectionIndexA < numberOfIntersections; intersectionIndexA++)
+    {
+        Vertex intersectionA = intersections[intersectionIndexA];
+
+        for (uint intersectionIndexB = 0; intersectionIndexB < numberOfIntersections; intersectionIndexB++)
+        {
+            Vertex intersectionB = intersections[intersectionIndexB];
+            float newCosOfAngle = dot(intersectionA.normal, intersectionB.normal);
+            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
+        }
+    }
+
+    return cosOfAngle <= cosOfSharpFeatureAngle;
+}
+
+Vertex CalculateVertex(uint3 id)
+{
+    Vertex vertex = CalculateCenterVertex();
+
+    if (HasSharpFeature())
+    {
+        for (uint cornerIndex = 0; cornerIndex < 8; cornerIndex++)
+        {
+            forces[cornerIndex] = CalculateForce(cellCorners[cornerIndex]);
+        }
+
+        for (uint schmitzParticleIteration = 0; schmitzParticleIteration < schmitzParticleIterations; schmitzParticleIteration++)
+        {
+            vertex.position = vertex.position + schmitzParticleStepSize * CalculateCombinedForce(vertex.position);
+        }
+    }
+
+    vertex.position = ClampToCell(vertex.position, 1e-3f);
+    vertex.position = voxelSpacing * vertex.position + VoxelToVoxelVolumeSpace(id);
+
+    return vertex;
+}
+
+[numthreads(4, 4, 4)]
+void GenerateVertices(uint3 id : SV_DispatchThreadID)
+{
+    if (IsOutOfVoxelVolumeBounds(id, -1))
+    {
+        return;
+    }
+
+    CalculatePositionsAndNormals(id);
+    uint vertexIndex = -1;
+
+    if (numberOfIntersections > 0)
+    {
+        vertexIndex = generatedVertices.IncrementCounter();
+        generatedVertices[vertexIndex] = CalculateVertex(id);
+    }
+
+    generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id)] = vertexIndex;
+}
+
+[numthreads(4, 4, 4)]
+void GenerateTriangles(uint3 id : SV_DispatchThreadID)
+{
+    if (IsOutOfVoxelVolumeBounds(id, -2))
+    {
+        return;
+    }
+
+    uint vertexIndex0 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id)];
+
+    if (vertexIndex0 == -1)
+    {
+        return;
+    }
+
+    for (uint farEdgeIndex = 0; farEdgeIndex < 3; farEdgeIndex++)
+    {
+        CellEdge cellEdge = cellEdges[farEdgeIndices[farEdgeIndex]];
+
+        uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
+        uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
+
+        uint indexA = CalculateVoxelVolumeIndex(id + cellCornerA);
+        uint indexB = CalculateVoxelVolumeIndex(id + cellCornerB);
+
+        Voxel sampleA = voxelVolume[indexA];
+        Voxel sampleB = voxelVolume[indexB];
+
+        if (sampleA.GetValue() >= 0.0f != sampleB.GetValue() >= 0.0f)
+        {
+            uint vertexIndex1 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][0])];
+            uint vertexIndex2 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][1])];
+            uint vertexIndex3 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][2])];
+
+            uint3 triangle0 = uint3(vertexIndex0, vertexIndex2, vertexIndex1);
+            uint3 triangle1 = uint3(vertexIndex0, vertexIndex3, vertexIndex2);
+
+            if (sampleA.GetValue() < 0.0f == (farEdgeIndex == 0))
+            {
+                triangle0 = triangle0.xzy;
+                triangle1 = triangle1.xzy;
+            }
+
+            generatedTriangles.Append(triangle0);
+            generatedTriangles.Append(triangle1);
+        }
+    }
+}

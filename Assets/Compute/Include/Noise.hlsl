@@ -84,6 +84,10 @@ float4 GetRidgeNoise(float4 value_gradient)
     value_gradient = GetBillowNoise(value_gradient);
     value_gradient *= -1.0f;
 
+    // Square ridge noise for more pronounced ridges.
+    value_gradient.yzw = 2.0f * value_gradient.x * value_gradient.yzw;
+    value_gradient.x *= value_gradient.x;
+
     return value_gradient;
 }
 
