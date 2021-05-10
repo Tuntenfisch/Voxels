@@ -1,13 +1,12 @@
+###########################################################################################
 # Blender .gitignore
 *.pyc
 *.blend[1-9]
 __pycache__
 /dist/
 
-# This .gitignore file should be placed at the root of your Unity project directory
-#
-# Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
-#
+###########################################################################################
+# Unity .gitignore
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -75,3 +74,8 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+###########################################################################################
+# Project .gitignore
+/[Aa]ssets/ShaderlabVS/
+/[Aa]ssets/ShaderlabVS.meta
