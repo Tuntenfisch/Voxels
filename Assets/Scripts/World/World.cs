@@ -6,55 +6,57 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 using Voxels;
+using Voxels.Config;
 
 namespace World
 {
     [RequireComponent(typeof(VoxelVolume), typeof(DualContouring))]
     public class World : SingletonComponent<World>
     {
-#if UNITY_EDITOR
-        public static readonly string NumberOfLodTreesVisibleAlongAxisPropertyName = nameof(m_numberOfLodTreesVisibleAlongAxis);
-        public static readonly string LodTreeDimensionsPropertyName = nameof(m_lodTreeDimensions);
-#endif
+        internal static VoxelVolume VoxelVolume => Instance.m_voxelVolume;
+        internal static DualContouring DualContouring => Instance.m_dualContouring;
+        internal static ObjectPool<Chunk> SharedChunkPool => Instance.m_sharedChunkPool;
 
         [Header("General")]
-        [SerializeField]
-        private Configuration m_configuration;
+        [Tooltip("Specifies how much the viewer needs to move to cause an update of world.")]
         [Min(0.0f)]
         [SerializeField]
         private float m_worldUpdateInterval = 126.0f;
         [SerializeField]
         private GameObject m_chunkPrefab;
+        [Tooltip("Overlapping cells of adjacent chunks hide LOD seams but increases inter-chunk dependency.")]
+        [Range(0, 4)]
+        [SerializeField]
+        private int m_cellOverlap = 2;
 
         [Header("Level of Detail")]
-        [Min(0.0f)]
-        [SerializeField]
-        private float m_lodUpdateInterval = 15.75f;
         [Range(0, 10)]
         [SerializeField]
         private int m_numberOfLods = 4;
+        [Tooltip("Determines how aggressive lodding along the given axis is.")]
+        [SerializeField]
+        private float3 m_lodDistanceFactor = 1.0f;
+        [Tooltip("Specifies how much the viewer needs to move to cause an update of the level of detail.")]
+        [Min(0.0f)]
+        [SerializeField]
+        private float m_lodUpdateInterval = 15.75f;
         [SerializeField]
         private Transform m_viewer;
 
         [Header("Editor")]
         [SerializeField]
+        private Color m_gizmoColor = Color.black;
+        [SerializeField]
         private bool m_showBounds = false;
 
         private VoxelVolume m_voxelVolume;
         private DualContouring m_dualContouring;
-
-        private ObjectPool<Chunk> m_chunkPool;
-        private Dictionary<Bounds, Chunk> m_chunks;
-        private HashSet<Bounds> m_oldChunks;
-
+        private ObjectPool<Chunk> m_sharedChunkPool;
         private ObjectPool<LodTree> m_lodTreePool;
         private Dictionary<int3, LodTree> m_lodTrees;
         private HashSet<int3> m_oldLodTrees;
-        [HideInInspector]
-        [SerializeField]
+        private float m_lodTreeInflationFactor;
         private float3 m_lodTreeDimensions;
-        [HideInInspector]
-        [SerializeField]
         private int m_numberOfLodTreesVisibleAlongAxis;
 
         // We don't want to update the visible world every frame.
@@ -68,30 +70,28 @@ namespace World
 
         private void Awake()
         {
-            Assert.IsNotNull(m_chunkPrefab);
             Assert.IsFalse(m_chunkPrefab.activeSelf);
-            Assert.IsNotNull(m_viewer);
 
-            m_configuration.OnDirty += OnValidate;
+#if UNITY_EDITOR
+            VoxelConfigs.VoxelVolumeConfig.OnDirty += ApplyVoxelVolumeConfig;
+            VoxelConfigs.DualContouringConfig.OnDirty += ApplyDualContouringConfig;
+            VoxelConfigs.NoiseConfig.OnDirty += ApplyNoiseConfig;
+#endif
+
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
-
-            m_chunkPool = new ObjectPool<Chunk>(() =>
+            m_sharedChunkPool = new ObjectPool<Chunk>(() =>
             {
-                GameObject gameObject = Instantiate(m_chunkPrefab, transform);
-                gameObject.SetActive(false);
-                Chunk chunk = gameObject.GetComponent<Chunk>();
-                chunk.CreateBuffers(m_configuration.NumberOfVoxels);
+                Chunk chunk = Instantiate(Instance.m_chunkPrefab, Instance.transform).GetComponent<Chunk>();
+                chunk.CreateBuffers(VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
 
                 return chunk;
-            }, 100, 50);
-            m_chunks = new Dictionary<Bounds, Chunk>();
-            m_oldChunks = new HashSet<Bounds>();
-
-            m_lodTreePool = new ObjectPool<LodTree>(() => { return new LodTree(); }, 20, 10);
+            });
+            m_lodTreePool = new ObjectPool<LodTree>(() => { return new LodTree(); });
             m_lodTrees = new Dictionary<int3, LodTree>();
             m_oldLodTrees = new HashSet<int3>();
-            m_lodTreeDimensions = (1 << m_numberOfLods) * m_configuration.CellVolumeDimensions;
+            m_lodTreeInflationFactor = CalculateLodTreeInflationFactor();
+            m_lodTreeDimensions = CalculateLodTreeDimensions();
             m_numberOfLodTreesVisibleAlongAxis = 1;
 
             m_lastViewerPositionWorld = m_viewer.position;
@@ -99,7 +99,8 @@ namespace World
             m_worldUpdateIntervalSquared = m_worldUpdateInterval * m_worldUpdateInterval;
             m_lodUpdateIntervalSquared = m_lodUpdateInterval * m_lodUpdateInterval;
 
-            ResetWorld();
+            UpdateVisibleWorld();
+            UpdateLodOfVisibleWorld();
         }
 
         private void Update()
@@ -123,12 +124,6 @@ namespace World
             }
         }
 
-        private void OnDestroy()
-        {
-            m_configuration.OnDirty -= OnValidate;
-            m_chunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
-        }
-
         private void OnDrawGizmos()
         {
             if (m_lodTrees == null || !m_showBounds)
@@ -136,33 +131,47 @@ namespace World
                 return;
             }
 
+            Gizmos.color = m_gizmoColor;
+
             foreach (LodTree lodTree in m_lodTrees.Values)
             {
-                foreach (LodTree.Node leaf in lodTree.Traverse(true))
+                foreach ((_, Bounds bounds) in lodTree.Traverse(true))
                 {
-                    Gizmos.DrawWireCube(leaf.Bounds.center, leaf.Bounds.size);
+                    Gizmos.DrawWireCube(bounds.center, bounds.size);
                 }
             }
         }
 
         private void OnValidate()
         {
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                m_lodTreeDimensions = (1 << m_numberOfLods) * m_configuration.CellVolumeDimensions;
-            }
-#endif
+            m_lodDistanceFactor = math.clamp(m_lodDistanceFactor, 0.5f, 1.5f);
             m_flags |= WorldFlags.SettingsUpdated;
         }
 
+        private void OnDestroy()
+        {
+#if UNITY_EDITOR
+            VoxelConfigs.VoxelVolumeConfig.OnDirty -= ApplyVoxelVolumeConfig;
+            VoxelConfigs.DualContouringConfig.OnDirty -= ApplyDualContouringConfig;
+            VoxelConfigs.NoiseConfig.OnDirty -= ApplyNoiseConfig;
+#endif
+        }
+
+        private float CalculateLodTreeInflationFactor() => 1.0f + (float)m_cellOverlap / VoxelConfigs.VoxelVolumeConfig.CellVolumeCount.x;
+
+        private float3 CalculateLodTreeDimensions() => VoxelConfigs.VoxelVolumeConfig.GetCellVolumeDimensions(m_numberOfLods) / m_lodTreeInflationFactor;
+
+        private int3 CalculateViewerLodTreeCoordinate() => (int3)math.round(m_viewer.position / m_lodTreeDimensions);
+
         private void UpdateVisibleWorld()
         {
+            // Remember the currently active lod trees.
             m_oldLodTrees.Clear();
             m_oldLodTrees.UnionWith(m_lodTrees.Keys);
 
             int3 viewerLodTreeCoordinate = CalculateViewerLodTreeCoordinate();
 
+            // Create new lod trees.
             for (int z = -m_numberOfLodTreesVisibleAlongAxis; z <= m_numberOfLodTreesVisibleAlongAxis; z++)
             {
                 for (int y = -m_numberOfLodTreesVisibleAlongAxis; y <= m_numberOfLodTreesVisibleAlongAxis; y++)
@@ -173,8 +182,13 @@ namespace World
 
                         if (!m_lodTrees.ContainsKey(lodTreeCoordinate))
                         {
-                            LodTree lodTree = m_lodTreePool.Acquire();
-                            lodTree.Initialize(new Bounds(lodTreeCoordinate * m_lodTreeDimensions, m_lodTreeDimensions), m_numberOfLods);
+                            LodTree lodTree = m_lodTreePool.Acquire((lodTree) =>
+                            {
+                                lodTree.Bounds = new Bounds(lodTreeCoordinate * m_lodTreeDimensions, m_lodTreeDimensions);
+                                lodTree.MaxDepth = m_numberOfLods;
+                                lodTree.DistanceFactor = m_lodDistanceFactor;
+                                lodTree.InflationFactor = m_lodTreeInflationFactor;
+                            });
                             m_lodTrees[lodTreeCoordinate] = lodTree;
                         }
                         m_oldLodTrees.Remove(lodTreeCoordinate);
@@ -182,6 +196,7 @@ namespace World
                 }
             }
 
+            // Remove old lod trees.
             foreach (int3 lodTreeCoordinate in m_oldLodTrees)
             {
                 m_lodTreePool.Release(m_lodTrees[lodTreeCoordinate]);
@@ -191,82 +206,73 @@ namespace World
 
         private void UpdateLodOfVisibleWorld()
         {
-            m_oldChunks.Clear();
-            m_oldChunks.UnionWith(m_chunks.Keys);
-
             foreach (LodTree lodTree in m_lodTrees.Values)
             {
                 lodTree.Update(m_viewer.position);
-
-                foreach (LodTree.Node leaf in lodTree.Traverse(true))
-                {
-                    if (!m_chunks.ContainsKey(leaf.Bounds))
-                    {
-                        Chunk chunk = m_chunkPool.Acquire();
-                        chunk.transform.position = leaf.Bounds.center;
-                        chunk.VoxelSpacing = leaf.Bounds.size.x / m_configuration.NumberOfCellsAlongAxis;
-                        m_voxelVolume.GenerateVoxelVolume(chunk);
-                        m_dualContouring.RequestMeshGeneration(chunk);
-                        chunk.gameObject.SetActive(true);
-                        m_chunks[leaf.Bounds] = chunk;
-                    }
-                    m_oldChunks.Remove(leaf.Bounds);
-                }
-            }
-
-            foreach (Bounds bounds in m_oldChunks)
-            {
-                Chunk chunk = m_chunks[bounds];
-                chunk.gameObject.SetActive(false);
-                m_chunkPool.Release(chunk);
-                m_chunks.Remove(bounds);
             }
         }
-
-        private int3 CalculateViewerLodTreeCoordinate() => (int3)math.round(m_viewer.position / m_lodTreeDimensions);
 
         private void OnSettingsUpdated()
         {
             m_worldUpdateIntervalSquared = m_worldUpdateInterval * m_worldUpdateInterval;
             m_lodUpdateIntervalSquared = m_lodUpdateInterval * m_lodUpdateInterval;
 
-            m_chunkPool.Apply((chunk, inUse) =>
-            {
-                chunk.CreateBuffers(m_configuration.NumberOfVoxels);
+            m_lodTreeInflationFactor = CalculateLodTreeInflationFactor();
+            m_lodTreeDimensions = CalculateLodTreeDimensions();
 
-                if (inUse)
-                {
-                    m_voxelVolume.GenerateVoxelVolume(chunk);
-                    m_dualContouring.RequestMeshGeneration(chunk);
-                }
-            });
-
-            float3 lodTreeDimensions = (1 << m_numberOfLods) * m_configuration.CellVolumeDimensions;
-
-            if (math.any(m_lodTreeDimensions != lodTreeDimensions))
-            {
-                m_lodTreeDimensions = lodTreeDimensions;
-                ResetWorld();
-            }
-        }
-
-        private void ResetWorld()
-        {
             foreach (LodTree lodTree in m_lodTrees.Values)
             {
                 m_lodTreePool.Release(lodTree);
             }
             m_lodTrees.Clear();
 
-            foreach (Chunk chunk in m_chunks.Values)
-            {
-                chunk.gameObject.SetActive(false);
-                m_chunkPool.Release(chunk);
-            }
-            m_chunks.Clear();
-
             UpdateVisibleWorld();
             UpdateLodOfVisibleWorld();
+        }
+
+        private void ApplyVoxelVolumeConfig()
+        {
+            SharedChunkPool.Apply((chunk, inUse) =>
+            {
+                chunk.CreateBuffers(VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
+
+                if (!inUse)
+                {
+                    return;
+                }
+
+                VoxelVolume.GenerateVoxelVolume(chunk);
+                DualContouring.RequestMeshGeneration(chunk);
+            });
+
+            m_flags |= WorldFlags.SettingsUpdated;
+        }
+
+        private void ApplyDualContouringConfig()
+        {
+            SharedChunkPool.Apply((chunk, inUse) =>
+            {
+                if (!inUse)
+                {
+                    return;
+                }
+
+                DualContouring.RequestMeshGeneration(chunk);
+            });
+        }
+
+        private void ApplyNoiseConfig()
+        {
+            SharedChunkPool.Apply((chunk, inUse) =>
+            {
+                if (!inUse)
+                {
+                    return;
+                }
+
+                VoxelVolume.GenerateVoxelVolume(chunk);
+                DualContouring.RequestMeshGeneration(chunk);
+            });
         }
 
         [Flags]

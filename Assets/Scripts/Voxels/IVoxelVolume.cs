@@ -6,8 +6,8 @@ namespace Voxels
 {
     public interface IVoxelVolume
     {
-        public (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) GetArguments();
+        internal (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) GetArguments();
 
-        public void OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles);
+        internal void OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles);
     }
 }

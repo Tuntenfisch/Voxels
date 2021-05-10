@@ -14,26 +14,25 @@ RWStructuredBuffer<Vertex> generatedVertices;
 RWStructuredBuffer<uint> generatedVertexIndicesLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
+static const uint maxNumberOfIntersections = 6;
+
 static uint numberOfIntersections;
-static Vertex intersections[6];
-static float3 forces[8];
+static Vertex intersections[maxNumberOfIntersections];
+static float3 forces[numberOfCellCorners];
 
 void CalculatePositionsAndNormals(uint3 id)
 {
     numberOfIntersections = 0;
 
-    for (uint cellEdgeIndex = 0; cellEdgeIndex < 12; cellEdgeIndex++)
+    for (uint cellEdgeIndex = 0; cellEdgeIndex < numberOfCellEdges; cellEdgeIndex++)
     {
         CellEdge cellEdge = cellEdges[cellEdgeIndex];
 
         uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
         uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
 
-        uint indexA = CalculateVoxelVolumeIndex(id + cellCornerA);
-        uint indexB = CalculateVoxelVolumeIndex(id + cellCornerB);
-
-        Voxel sampleA = voxelVolume[indexA];
-        Voxel sampleB = voxelVolume[indexB];
+        Voxel sampleA = GetVoxel(id + cellCornerA);
+        Voxel sampleB = GetVoxel(id + cellCornerB);
 
         if (sampleA.GetValue() >= 0.0f != sampleB.GetValue() >= 0.0f)
         {
@@ -124,7 +123,7 @@ Vertex CalculateVertex(uint3 id)
 
     if (HasSharpFeature())
     {
-        for (uint cornerIndex = 0; cornerIndex < 8; cornerIndex++)
+        for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
         {
             forces[cornerIndex] = CalculateForce(cellCorners[cornerIndex]);
         }
@@ -161,6 +160,32 @@ void GenerateVertices(uint3 id : SV_DispatchThreadID)
     generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id)] = vertexIndex;
 }
 
+CellEdge GetCellEdge(uint index)
+{
+    const uint3 edgeIndices = uint3(5, 6, 10);
+
+    return cellEdges[edgeIndices[index]];
+}
+
+uint3 GetVertexIndices(uint3 id, uint index)
+{
+    const uint3 cellCornerIndices[3] =
+    {
+        uint3(3, 2, 1),
+        uint3(4, 5, 1),
+        uint3(3, 7, 4)
+    };
+
+    uint3 vertexIndices = uint3
+    (
+        generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + cellCorners[cellCornerIndices[index][0]])],
+        generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + cellCorners[cellCornerIndices[index][1]])],
+        generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + cellCorners[cellCornerIndices[index][2]])]
+    );
+
+    return vertexIndices;
+}
+
 [numthreads(4, 4, 4)]
 void GenerateTriangles(uint3 id : SV_DispatchThreadID)
 {
@@ -169,36 +194,31 @@ void GenerateTriangles(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint vertexIndex0 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id)];
+    uint vertexIndex = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id)];
 
-    if (vertexIndex0 == -1)
+    if (vertexIndex == -1)
     {
         return;
     }
 
-    for (uint farEdgeIndex = 0; farEdgeIndex < 3; farEdgeIndex++)
+    for (uint index = 0; index < 3; index++)
     {
-        CellEdge cellEdge = cellEdges[farEdgeIndices[farEdgeIndex]];
+        CellEdge cellEdge = GetCellEdge(index);
 
         uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
         uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
 
-        uint indexA = CalculateVoxelVolumeIndex(id + cellCornerA);
-        uint indexB = CalculateVoxelVolumeIndex(id + cellCornerB);
-
-        Voxel sampleA = voxelVolume[indexA];
-        Voxel sampleB = voxelVolume[indexB];
+        Voxel sampleA = GetVoxel(id + cellCornerA);
+        Voxel sampleB = GetVoxel(id + cellCornerB);
 
         if (sampleA.GetValue() >= 0.0f != sampleB.GetValue() >= 0.0f)
         {
-            uint vertexIndex1 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][0])];
-            uint vertexIndex2 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][1])];
-            uint vertexIndex3 = generatedVertexIndicesLookupTable[CalculateVoxelVolumeIndex(id + vertexIndexOffsets[farEdgeIndex][2])];
+            uint3 vertexIndices = GetVertexIndices(id, index);
 
-            uint3 triangle0 = uint3(vertexIndex0, vertexIndex2, vertexIndex1);
-            uint3 triangle1 = uint3(vertexIndex0, vertexIndex3, vertexIndex2);
+            uint3 triangle0 = uint3(vertexIndex, vertexIndices.yx);
+            uint3 triangle1 = uint3(vertexIndex, vertexIndices.zy);
 
-            if (sampleA.GetValue() < 0.0f == (farEdgeIndex == 0))
+            if (sampleA.GetValue() < 0.0f == (index == 0))
             {
                 triangle0 = triangle0.xzy;
                 triangle1 = triangle1.xzy;

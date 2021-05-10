@@ -1,215 +1,303 @@
-﻿using System;
+﻿using Generics.Pool;
+using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace World
 {
-    internal class LodTree
+    internal class LodTree : IPoolable
     {
-        public Bounds Bounds => m_nodes[0].Bounds;
-        public Node this[int index] { get => m_nodes[index]; }
+        public Bounds Bounds
+        {
+            get => m_bounds;
 
+            set
+            {
+                if (m_bounds == value)
+                {
+                    return;
+                }
+
+                m_bounds = value;
+                m_flags |= LodTreeFlags.isDirty;
+            }
+        }
+        public int MaxDepth
+        {
+            get => m_maxDepth;
+
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(MaxDepth), value, "Max depth must be positive!");
+                }
+
+                m_maxDepth = value;
+                m_flags |= LodTreeFlags.isDirty;
+            }
+        }
+        public float InflationFactor
+        {
+            get => m_inflationFactor;
+
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(InflationFactor), value, "Inflation factor must be at least 1!");
+                }
+
+                m_inflationFactor = value;
+                m_flags |= LodTreeFlags.isDirty;
+            }
+        }
+        public float3 DistanceFactor
+        {
+            get => m_distanceFactor;
+
+            set
+            {
+                if (math.any(value < 0))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(DistanceFactor), value, "LOD distance factor must be positive!");
+                }
+
+                m_distanceFactor = value;
+                m_flags |= LodTreeFlags.isDirty;
+            }
+        }
+
+        private Bounds m_bounds;
         private readonly List<Node> m_nodes;
         private int m_firstFreeNodeIndex;
         private int m_maxDepth;
+        private float m_inflationFactor;
+        private float3 m_distanceFactor;
+
+        // Stacks used for some methods internally to avoid dynamically allocating memory.
+        private readonly Stack<int> m_internalStack0;
+        private readonly Stack<Bounds> m_internalStack1;
 
         private LodTreeFlags m_flags;
 
-        // Stack used for some methods internally to avoid dynamically allocating memory.
-        private readonly Stack<int> m_internalStack0;
+        void IPoolable.OnAcquire() { }
+
+        void IPoolable.OnRelease() => Clear();
 
         public LodTree()
         {
-            m_nodes = new List<Node>();
-            m_internalStack0 = new Stack<int>();
-        }
-
-        public void Initialize(Bounds bounds, int maxDepth)
-        {
-            if (m_flags.HasFlag(LodTreeFlags.Traversing))
+            m_nodes = new List<Node>
             {
-                throw new InvalidOperationException("Cannot call this method while traversing!");
-            }
-
-            if (maxDepth < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(maxDepth), maxDepth, "Max depth must be positive!");
-            }
-
-            m_nodes.Clear();
-            m_nodes.Add(Node.Create(bounds, 0));
+                Node.Create(0)
+            };
             m_firstFreeNodeIndex = -1;
-            m_maxDepth = maxDepth;
+            m_internalStack0 = new Stack<int>();
+            m_internalStack1 = new Stack<Bounds>();
         }
 
-        public IEnumerable<Node> Traverse(bool onlyLeaves = false)
+        public IEnumerable<(Node, Bounds)> Traverse(bool onlyLeaves = false)
         {
-            if (m_flags.HasFlag(LodTreeFlags.Traversing))
+            if (m_flags.HasFlag(LodTreeFlags.isDirty))
             {
-                throw new InvalidOperationException("Already traversing!");
+                m_flags &= ~LodTreeFlags.isDirty;
+                Clear();
             }
-
-            m_flags |= LodTreeFlags.Traversing;
 
             m_internalStack0.Clear();
             m_internalStack0.Push(0);
+            m_internalStack1.Clear();
+            m_internalStack1.Push(m_bounds);
 
             while (m_internalStack0.Count > 0)
             {
                 int nodeIndex = m_internalStack0.Pop();
                 Node node = m_nodes[nodeIndex];
+                Bounds bounds = m_internalStack1.Pop();
 
                 if (!node.IsLeaf)
                 {
                     for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                     {
                         m_internalStack0.Push(node.FirstChildIndex + childIndexOffset);
+                        m_internalStack1.Push(GetChildBounds(bounds.center, node.Depth, childIndexOffset));
+                    }
+
+                    if (onlyLeaves)
+                    {
+                        continue;
                     }
                 }
 
-                if (onlyLeaves && !node.IsLeaf)
-                {
-                    continue;
-                }
-
-                yield return node;
+                yield return (node, bounds);
             }
-            m_flags &= ~LodTreeFlags.Traversing;
         }
 
-        public IEnumerable<Node> Query(Bounds bounds)
+        public void Clear()
         {
-            throw new NotImplementedException();
+            foreach ((Node leaf, _) in Traverse(true))
+            {
+                if (leaf.Chunk != null)
+                {
+                    World.SharedChunkPool.Release(leaf.Chunk);
+                }
+            }
+            m_nodes.Clear();
+            m_nodes.Add(Node.Create(0));
+            m_firstFreeNodeIndex = -1;
         }
 
         public void Update(float3 viewerPosition)
         {
-            if (m_flags.HasFlag(LodTreeFlags.Traversing))
+            if (m_flags.HasFlag(LodTreeFlags.isDirty))
             {
-                throw new InvalidOperationException("Cannot call this method while traversing!");
+                m_flags &= ~LodTreeFlags.isDirty;
+                Clear();
             }
 
+            // Update tree structure.
             Node root = m_nodes[0];
-            Update(ref root, 0, viewerPosition);
+            Update(ref root, new Bounds(m_bounds.center, m_inflationFactor * m_bounds.size), viewerPosition);
             m_nodes[0] = root;
         }
 
-        private void Update(ref Node node, int nodeIndex, float3 viewerPosition)
+        private void Update(ref Node node, Bounds bounds, float3 viewerPosition)
         {
-            Assert.IsFalse(m_flags.HasFlag(LodTreeFlags.Traversing));
-
-            if (math.lengthsq((float3)node.Bounds.ClosestPoint(viewerPosition) - viewerPosition) <= node.Bounds.extents.x * node.Bounds.extents.x)
+            // Split criterium.
+            if (math.lengthsq(m_distanceFactor * (viewerPosition - (float3)bounds.center)) <= math.lengthsq(bounds.extents))
             {
+                // Only split if we aren't at maximum depth already.
                 if (node.Depth < m_maxDepth)
                 {
-                    Split(ref node, nodeIndex);
-                }
+                    Split(ref node);
 
-                if (!node.IsLeaf)
-                {
                     for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                     {
                         int childIndex = node.FirstChildIndex + childIndexOffset;
                         Node child = m_nodes[childIndex];
-                        Update(ref child, childIndex, viewerPosition);
+                        Bounds childBounds = GetInflatedChildBounds(bounds.center, node.Depth, childIndexOffset);
+                        Update(ref child, childBounds, viewerPosition);
                         m_nodes[childIndex] = child;
                     }
                 }
             }
-            else
+            else if (!node.IsLeaf) // If we don't fullfil the split citerium we need to merge (assuming we are not a leaf already).
             {
                 MergeChildren(ref node);
             }
+
+            if (node.IsLeaf && node.Chunk == null)
+            {
+                float3 center = bounds.center;
+                int lod = m_maxDepth - node.Depth;
+
+                node.Chunk = World.SharedChunkPool.Acquire((chunk) =>
+                {
+                    chunk.transform.position = center;
+                    chunk.Lod = lod;
+                });
+                World.VoxelVolume.GenerateVoxelVolume(node.Chunk);
+                World.DualContouring.RequestMeshGeneration(node.Chunk);
+            }
         }
 
-        private void Split(ref Node parentNode, int parentNodeIndex)
+        private void Split(ref Node node)
         {
-            Assert.IsFalse(m_flags.HasFlag(LodTreeFlags.Traversing));
-
-            if (!parentNode.IsLeaf)
+            // If this nose is an intermediate node, it's already split. Do nothing.
+            if (!node.IsLeaf)
             {
                 return;
             }
 
-            // Create new children.
-            int firstChildIndex;
+            // Does this node have a chunk referenced? If yes, release it. It will
+            // be replaced by the new children.
+            if (node.Chunk != null)
+            {
+                World.SharedChunkPool.Release(node.Chunk);
+                node.Chunk = null;
+            }
 
+            // Create the new children.
             if (m_firstFreeNodeIndex != -1)
             {
-                firstChildIndex = m_firstFreeNodeIndex;
+                node.FirstChildIndex = m_firstFreeNodeIndex;
                 m_firstFreeNodeIndex = m_nodes[m_firstFreeNodeIndex].FirstChildIndex;
 
                 for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                 {
-                    m_nodes[firstChildIndex + childIndexOffset] = Node.Create(GetChildBounds(parentNode.Bounds, childIndexOffset), parentNode.Depth + 1, parentNodeIndex);
+                    m_nodes[node.FirstChildIndex + childIndexOffset] = Node.Create(node.Depth + 1);
                 }
             }
             else
             {
-                firstChildIndex = m_nodes.Count;
+                node.FirstChildIndex = m_nodes.Count;
 
                 for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                 {
-                    m_nodes.Add(Node.Create(GetChildBounds(parentNode.Bounds, childIndexOffset), parentNode.Depth + 1, parentNodeIndex));
+                    m_nodes.Add(Node.Create(node.Depth + 1));
                 }
             }
-            parentNode.FirstChildIndex = firstChildIndex;
         }
 
-        private void MergeChildren(ref Node parentNode)
+        private void MergeChildren(ref Node node)
         {
-            Assert.IsFalse(m_flags.HasFlag(LodTreeFlags.Traversing));
-
-            if (parentNode.IsLeaf)
+            if (node.IsLeaf)
             {
+                World.SharedChunkPool.Release(node.Chunk);
+                node.Chunk = null;
+
                 return;
             }
 
+            // It might be the case that this parent node's children have children of their own.
+            // Recursively merge them...
             for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
             {
-                int childIndex = parentNode.FirstChildIndex + childIndexOffset;
+                int childIndex = node.FirstChildIndex + childIndexOffset;
                 Node child = m_nodes[childIndex];
                 MergeChildren(ref child);
                 m_nodes[childIndex] = child;
             }
 
-            Node firstChild = m_nodes[parentNode.FirstChildIndex];
+            Node firstChild = m_nodes[node.FirstChildIndex];
             firstChild.FirstChildIndex = m_firstFreeNodeIndex;
-            m_nodes[parentNode.FirstChildIndex] = firstChild;
-            m_firstFreeNodeIndex = parentNode.FirstChildIndex;
-            parentNode.FirstChildIndex = -1;
+            m_nodes[node.FirstChildIndex] = firstChild;
+            m_firstFreeNodeIndex = node.FirstChildIndex;
+            node.FirstChildIndex = -1;
         }
 
-        private Bounds GetChildBounds(Bounds parentBounds, int childIndexOffset)
+        private Bounds GetChildBounds(float3 parentBoundsCenter, int parentDepth, int childIndexOffset)
         {
-            int x = (childIndexOffset >> 0) & 1;
-            int y = (childIndexOffset >> 1) & 1;
-            int z = (childIndexOffset >> 2) & 1;
+            int3 xyz = new int3(childIndexOffset >> 0, childIndexOffset >> 1, childIndexOffset >> 2) & 1;
+            float3 parentBoundsExtent = m_bounds.extents / (1 << parentDepth);
+            float3 parentBoundsMin = parentBoundsCenter - parentBoundsExtent;
+            float3 center = parentBoundsMin + 0.5f * parentBoundsExtent + xyz * parentBoundsExtent;
 
-            float3 center = (float3)parentBounds.min + 0.5f * (float3)parentBounds.extents + new float3(x * parentBounds.extents.x, y * parentBounds.extents.y, z * parentBounds.extents.z);
+            return new Bounds(center, parentBoundsExtent);
+        }
 
-            return new Bounds(center, parentBounds.extents);
+        private Bounds GetInflatedChildBounds(float3 parentBoundsCenter, int parentDepth, int childIndexOffset)
+        {
+            Bounds childBounds = GetChildBounds(parentBoundsCenter, parentDepth, childIndexOffset);
+
+            return new Bounds(childBounds.center, m_inflationFactor * childBounds.size);
         }
 
         public struct Node
         {
-            public bool IsRoot => ParentIndex == -1;
             public bool IsLeaf => FirstChildIndex == -1;
-            public Bounds Bounds { get; set; }
             public int Depth { get; set; }
-            public int ParentIndex { get; set; }
             public int FirstChildIndex { get; set; }
+            public Chunk Chunk { get; set; }
 
-            public static Node Create(Bounds bounds, int depth, int parentIndex = -1, int firstChildIndex = -1)
+            public static Node Create(int depth, int firstChildIndex = -1, Chunk chunk = null)
             {
                 return new Node
                 {
-                    Bounds = bounds,
                     Depth = depth,
-                    ParentIndex = parentIndex,
-                    FirstChildIndex = firstChildIndex
+                    FirstChildIndex = firstChildIndex,
+                    Chunk = chunk
                 };
             }
         }
@@ -217,7 +305,7 @@ namespace World
         [Flags]
         private enum LodTreeFlags
         {
-            Traversing = 1
+            isDirty = 1
         }
     }
 }

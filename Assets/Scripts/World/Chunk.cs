@@ -1,4 +1,5 @@
 ﻿using Generics;
+using Generics.Pool;
 using System;
 using Unity.Collections;
 using Unity.Jobs;
@@ -6,13 +7,14 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Voxels;
+using Voxels.Config;
 
 namespace World
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-    internal class Chunk : MonoBehaviour, IVoxelVolume
+    internal class Chunk : MonoBehaviour, IVoxelVolume, IPoolable
     {
-        public float VoxelSpacing { get; set; }
+        public int Lod { get; set; }
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
@@ -22,28 +24,9 @@ namespace World
         private JobHandle m_bakeJobHandle;
         private ChunkFlags m_flags;
 
-        private void Awake()
-        {
-            InitializeMeshComponents();
-        }
+        (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) IVoxelVolume.GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelConfigs.VoxelVolumeConfig.GetVoxelSpacing(Lod));
 
-        private void Update()
-        {
-            if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
-            {
-                m_flags &= ~ChunkFlags.BakingMesh;
-                OnMeshBaked();
-            }
-        }
-
-        private void OnDestroy()
-        {
-            ReleaseBuffers();
-        }
-
-        public (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelSpacing);
-
-        public void OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles)
+        void IVoxelVolume.OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles)
         {
             if (!nullableVertices.HasValue || !nullableTriangles.HasValue)
             {
@@ -67,9 +50,29 @@ namespace World
             m_flags |= ChunkFlags.BakingMesh;
         }
 
+        void IPoolable.OnAcquire() => gameObject.SetActive(true);
+
+        void IPoolable.OnRelease() => gameObject.SetActive(false);
+
+        private void Awake()
+        {
+            InitializeMeshComponents();
+        }
+
+        private void Update()
+        {
+            if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
+            {
+                m_flags &= ~ChunkFlags.BakingMesh;
+                OnMeshBaked();
+            }
+        }
+
+        private void OnDestroy() => ReleaseBuffers();
+
         public void CreateBuffers(int numberOfVoxels)
         {
-            if (m_voxelVolumeBuffer != null && m_voxelVolumeBuffer.count != numberOfVoxels)
+            if (m_voxelVolumeBuffer?.count == numberOfVoxels)
             {
                 return;
             }
