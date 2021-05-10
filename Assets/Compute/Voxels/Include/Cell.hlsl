@@ -1,6 +1,8 @@
 #ifndef CELL__559277903
 #define CELL__559277903
 
+static const uint numberOfCellCorners = 8;
+
 //     5---------6
 //    /|        /|
 //   / |       / |
@@ -12,7 +14,7 @@
 // | /       | /
 // |/        |/
 // 0---------3
-static const uint3 cellCorners[8] =
+static const uint3 cellCorners[numberOfCellCorners] =
 {
     uint3(0, 0, 0),
     uint3(0, 1, 0),
@@ -39,6 +41,8 @@ float3 ClampToCell(float3 position, float epsilon = 0.0f)
     
     return clamp(position, min, max);
 }
+
+static const uint numberOfCellEdges = 12;
 
 struct CellEdge
 {
@@ -75,7 +79,7 @@ struct CellEdge
 // | 3       | 1
 // |/        |/
 // +----0----+
-static const CellEdge cellEdges[12] =
+static const CellEdge cellEdges[numberOfCellEdges] =
 {
     CellEdge::Create(0, 3),
     CellEdge::Create(3, 7),
@@ -89,20 +93,6 @@ static const CellEdge cellEdges[12] =
     CellEdge::Create(3, 2),
     CellEdge::Create(7, 6),
     CellEdge::Create(4, 5)
-};
-
-static const int farEdgeIndices[3] =
-{
-    5,
-    6,
-    10
-};
-
-static const int3 vertexIndexOffsets[3][3] =
-{
-    { int3(1, 0, 0), int3(1, 1, 0), int3(0, 1, 0) },
-    { int3(0, 0, 1), int3(0, 1, 1), int3(0, 1, 0) },
-    { int3(1, 0, 0), int3(1, 0, 1), int3(0, 0, 1) }
 };
 
 #endif

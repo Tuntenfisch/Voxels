@@ -45,7 +45,7 @@ float4 GenerateFBMNoise
     float lacunarity
 )
 {
-    float4 fbm_value_gradient = 0.0f;
+    float4 fbmValue_fbmGradient = 0.0f;
     float3 sumOfGradients = 0.0f;
     float sumOfAmplitudes = 0.0f;
     float amplitude = 1.0f;
@@ -61,32 +61,32 @@ float4 GenerateFBMNoise
         sumOfAmplitudes += amplitude;
 
         value_gradient *= amplitude / (1.0f + dot(sumOfGradients, sumOfGradients));
-        fbm_value_gradient += value_gradient;
+        fbmValue_fbmGradient += value_gradient;
 
         amplitude *= persistence;
         frequency *= lacunarity;
     }
-    fbm_value_gradient /= sumOfAmplitudes;
+    fbmValue_fbmGradient /= sumOfAmplitudes;
     
-    return fbm_value_gradient;
+    return fbmValue_fbmGradient;
 }
 
-float4 GetBillowNoise(float4 value_gradient)
+float4 GetBillowNoise(float4 value_gradient, float offset = 0.25f)
 {
     value_gradient.yzw = value_gradient.x * value_gradient.yzw / abs(value_gradient.x);
-    value_gradient.x = abs(value_gradient.x) - 0.25f;
+    value_gradient.x = abs(value_gradient.x) - offset;
 
     return value_gradient;
 }
 
-float4 GetRidgeNoise(float4 value_gradient)
+float4 GetRidgeNoise(float4 value_gradient, float offset = 0.0625f)
 {
     value_gradient = GetBillowNoise(value_gradient);
     value_gradient *= -1.0f;
 
     // Square ridge noise for more pronounced ridges.
     value_gradient.yzw = 2.0f * value_gradient.x * value_gradient.yzw;
-    value_gradient.x *= value_gradient.x;
+    value_gradient.x = value_gradient.x * value_gradient.x - offset;
 
     return value_gradient;
 }

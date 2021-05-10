@@ -22,6 +22,16 @@ uint CalculateVoxelVolumeIndex(uint3 id)
     return dot(id, uint3(1, voxelVolumeCount.x, voxelVolumeCount.x * voxelVolumeCount.y));
 }
 
+Voxel GetVoxel(uint3 id)
+{
+    return voxelVolume[CalculateVoxelVolumeIndex(id)];
+}
+
+void SetVoxel(uint3 id, Voxel voxel)
+{
+    voxelVolume[CalculateVoxelVolumeIndex(id)] = voxel;
+}
+
 float3 VoxelToVoxelVolumeSpace(uint3 id, float3 position = 0.0f)
 {
     return voxelSpacing * (position + id - 0.5f * (voxelVolumeCount - 1.0f));

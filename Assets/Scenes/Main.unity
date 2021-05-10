@@ -267,7 +267,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 2000
   field of view: 60
   orthographic: 0
   orthographic size: 1.5
@@ -431,7 +431,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!23 &1450396124
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -491,7 +491,7 @@ Transform:
   m_GameObject: {fileID: 1450396122}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1512, y: 1, z: 1512}
+  m_LocalScale: {x: 1500, y: 1, z: 1500}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
@@ -618,14 +618,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1464136622}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a07c5025eaba447aec54813a2c41e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_movementSpeed: 5
   m_jumpHeight: 1.5
-  m_lookSensitivity: 0.1
+  m_lookSensitivity: 0.05
   m_camera: {fileID: 963194227}
 --- !u!4 &1464136626
 Transform:
@@ -653,8 +653,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1594834158}
   - component: {fileID: 1594834160}
-  - component: {fileID: 1594834157}
   - component: {fileID: 1594834159}
+  - component: {fileID: 1594834157}
+  - component: {fileID: 1594834161}
   m_Layer: 0
   m_Name: World
   m_TagString: Untagged
@@ -674,7 +675,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_configuration: {fileID: 11400000, guid: 62b42556c9dbb514ca83fa616e92a84b, type: 2}
   m_numberOfWorkers: 4
 --- !u!4 &1594834158
 Transform:
@@ -702,7 +702,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630fced4d30283948bda27d0f5bf4e0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_configuration: {fileID: 11400000, guid: 62b42556c9dbb514ca83fa616e92a84b, type: 2}
 --- !u!114 &1594834160
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -715,15 +714,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91dd3dfe69cdcb247af144a01a00e616, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_configuration: {fileID: 11400000, guid: 62b42556c9dbb514ca83fa616e92a84b, type: 2}
-  m_worldUpdateInterval: 126
+  m_worldUpdateInterval: 200
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
-  m_lodUpdateInterval: 31.5
-  m_numberOfLods: 4
+  m_cellOverlap: 2
+  m_numberOfLods: 5
+  m_lodDistanceFactor:
+    x: 0.5
+    y: 1
+    z: 0.5
+  m_lodUpdateInterval: 20
   m_viewer: {fileID: 1464136626}
-  m_showBounds: 0
-  m_lodTreeDimensions:
-    x: 504
-    y: 504
-    z: 504
-  m_numberOfLodTreesVisibleAlongAxis: 1
+  m_gizmoColor: {r: 0, g: 0, b: 0, a: 1}
+  m_showBounds: 1
+--- !u!114 &1594834161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1594834156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 916ffd094e2854e418e5ada422e89c0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_voxelVolumeConfig: {fileID: 11400000, guid: c739dde7e90ca314d88389045251e802, type: 2}
+  dualContouringConfig: {fileID: 11400000, guid: 2cc13e5883318294281f7b4ae4f9ac46, type: 2}
+  m_noiseConfig: {fileID: 11400000, guid: cc31ddf977a6fb1439d10c0b892f3bbc, type: 2}

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace Generics.Pool
 {
-    public class ObjectPool<T> where T : class
+    public class ObjectPool<T> where T : class, IPoolable
     {
         private readonly Stack<T> m_available;
         private readonly HashSet<T> m_inUse;
         private readonly Func<T> m_generator;
 
-        public ObjectPool(Func<T> generator, int initialCapacity, int initialCount = 0)
+        public ObjectPool(Func<T> generator, int initialCapacity = 0, int initialCount = 0)
         {
             if (initialCapacity < initialCount)
             {
@@ -23,7 +23,7 @@ namespace Generics.Pool
             Populate(initialCount);
         }
 
-        public T Acquire()
+        public T Acquire(Action<T> initializer)
         {
             T obj;
 
@@ -40,6 +40,9 @@ namespace Generics.Pool
             }
             m_inUse.Add(obj);
 
+            initializer(obj);
+            obj.OnAcquire();
+
             return obj;
         }
 
@@ -49,6 +52,8 @@ namespace Generics.Pool
             {
                 throw new ArgumentNullException(nameof(obj));
             }
+
+            obj.OnRelease();
 
             lock(m_available)
             {
