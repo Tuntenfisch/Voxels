@@ -67,7 +67,7 @@ float4 GenerateFBMNoise
         frequency *= lacunarity;
     }
     fbmValue_fbmGradient /= sumOfAmplitudes;
-    
+
     return fbmValue_fbmGradient;
 }
 

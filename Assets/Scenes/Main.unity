@@ -675,7 +675,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfWorkers: 4
+  m_numberOfWorkers: 2
 --- !u!4 &1594834158
 Transform:
   m_ObjectHideFlags: 0
@@ -725,7 +725,7 @@ MonoBehaviour:
   m_lodUpdateInterval: 20
   m_viewer: {fileID: 1464136626}
   m_gizmoColor: {r: 0, g: 0, b: 0, a: 1}
-  m_showBounds: 1
+  m_showBounds: 0
 --- !u!114 &1594834161
 MonoBehaviour:
   m_ObjectHideFlags: 0
