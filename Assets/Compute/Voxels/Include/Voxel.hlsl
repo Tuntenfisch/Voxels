@@ -1,25 +1,28 @@
 #ifndef VOXEL__559277903
 #define VOXEL__559277903
 
+#include "Assets/Compute/Include/Packing.hlsl"
+
 struct Voxel
 {
-    float4 value_gradient;
+    float value;
+    uint packedGradient;
     
     float GetValue()
     {
-        return value_gradient.x;
+        return value;
     }
     
     float3 GetGradient()
     {
-        return value_gradient.yzw;
+        return UnpackNormalOctQuadEncode(UnpackFloats(packedGradient));
     }
 
     static Voxel Create(float value, float3 gradient)
     {
         Voxel voxel;
-        voxel.value_gradient.x = value;
-        voxel.value_gradient.yzw = gradient;
+        voxel.value = value;
+        voxel.packedGradient = PackFloats(PackNormalOctQuadEncode(normalize(gradient)));
 
         return voxel;
     }

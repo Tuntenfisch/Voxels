@@ -79,7 +79,7 @@ namespace World
 
             ReleaseBuffers();
 
-            m_voxelVolumeBuffer = new ComputeBuffer(numberOfVoxels, 4 * sizeof(float));
+            m_voxelVolumeBuffer = new ComputeBuffer(numberOfVoxels, 1 * sizeof(float) + 1 * sizeof(uint));
         }
 
         public void ReleaseBuffers()

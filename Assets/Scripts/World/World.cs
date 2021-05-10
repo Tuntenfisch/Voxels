@@ -144,7 +144,7 @@ namespace World
 
         private void OnValidate()
         {
-            m_lodDistanceFactor = math.clamp(m_lodDistanceFactor, 0.5f, 1.5f);
+            m_lodDistanceFactor = math.clamp(m_lodDistanceFactor, 0.5f, 1.0f);
             m_flags |= WorldFlags.SettingsUpdated;
         }
 
