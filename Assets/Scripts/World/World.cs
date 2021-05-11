@@ -1,6 +1,7 @@
 ﻿using Generics;
 using Generics.Pool;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
@@ -17,7 +18,6 @@ namespace World
         internal static DualContouring DualContouring => Instance.m_dualContouring;
         internal static ObjectPool<Chunk> SharedChunkPool => Instance.m_sharedChunkPool;
 
-        [Header("General")]
         [Tooltip("Specifies how much the viewer needs to move to cause an update of world.")]
         [Min(0.0f)]
         [SerializeField]
@@ -27,12 +27,17 @@ namespace World
         [Tooltip("Overlapping cells of adjacent chunks hide LOD seams but increases inter-chunk dependency.")]
         [Range(0, 4)]
         [SerializeField]
-        private int m_cellOverlap = 2;
+        private int m_voxelOverlap = 2;
+        [SerializeField]
+        private Transform m_viewer;
 
         [Header("Level of Detail")]
         [Range(0, 10)]
         [SerializeField]
-        private int m_numberOfLods = 4;
+        private int m_lods = 4;
+        [Tooltip("Specifies how many additional Chunks at the lowest LOD are visible along each axis direction.")]
+        [SerializeField]
+        private int3 m_numberofLowestLodsVisible = 1;
         [Tooltip("Determines how aggressive lodding along the given axis is.")]
         [SerializeField]
         private float3 m_lodDistanceFactor = 1.0f;
@@ -40,8 +45,6 @@ namespace World
         [Min(0.0f)]
         [SerializeField]
         private float m_lodUpdateInterval = 15.75f;
-        [SerializeField]
-        private Transform m_viewer;
 
         [Header("Editor")]
         [SerializeField]
@@ -57,7 +60,6 @@ namespace World
         private HashSet<int3> m_oldLodTrees;
         private float m_lodTreeInflationFactor;
         private float3 m_lodTreeDimensions;
-        private int m_numberOfLodTreesVisibleAlongAxis;
 
         // We don't want to update the visible world every frame.
         // Sample applies to the level of details of the chunks.
@@ -65,8 +67,6 @@ namespace World
         private float3 m_lastViewerPositionLod;
         private float m_worldUpdateIntervalSquared;
         private float m_lodUpdateIntervalSquared;
-
-        private WorldFlags m_flags;
 
         private void Awake()
         {
@@ -77,7 +77,6 @@ namespace World
             VoxelConfigs.DualContouringConfig.OnDirty += ApplyDualContouringConfig;
             VoxelConfigs.NoiseConfig.OnDirty += ApplyNoiseConfig;
 #endif
-
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
             m_sharedChunkPool = new ObjectPool<Chunk>(() =>
@@ -92,7 +91,6 @@ namespace World
             m_oldLodTrees = new HashSet<int3>();
             m_lodTreeInflationFactor = CalculateLodTreeInflationFactor();
             m_lodTreeDimensions = CalculateLodTreeDimensions();
-            m_numberOfLodTreesVisibleAlongAxis = 1;
 
             m_lastViewerPositionWorld = m_viewer.position;
             m_lastViewerPositionLod = m_viewer.position;
@@ -116,12 +114,6 @@ namespace World
                 m_lastViewerPositionLod = m_viewer.position;
                 UpdateLodOfVisibleWorld();
             }
-
-            if (m_flags.HasFlag(WorldFlags.SettingsUpdated))
-            {
-                m_flags &= ~WorldFlags.SettingsUpdated;
-                OnSettingsUpdated();
-            }
         }
 
         private void OnDrawGizmos()
@@ -144,8 +136,13 @@ namespace World
 
         private void OnValidate()
         {
+            m_numberofLowestLodsVisible = math.clamp(m_numberofLowestLodsVisible, 1, 3);
             m_lodDistanceFactor = math.clamp(m_lodDistanceFactor, 0.5f, 1.0f);
-            m_flags |= WorldFlags.SettingsUpdated;
+
+            if (Application.isPlaying)
+            {
+                StartCoroutine(ApplySettings());
+            }
         }
 
         private void OnDestroy()
@@ -155,11 +152,15 @@ namespace World
             VoxelConfigs.DualContouringConfig.OnDirty -= ApplyDualContouringConfig;
             VoxelConfigs.NoiseConfig.OnDirty -= ApplyNoiseConfig;
 #endif
+            SharedChunkPool.Apply((chunk, inUse) =>
+            {
+                chunk.ReleaseBuffers();
+            });
         }
 
-        private float CalculateLodTreeInflationFactor() => 1.0f + (float)m_cellOverlap / VoxelConfigs.VoxelVolumeConfig.CellVolumeCount.x;
+        private float CalculateLodTreeInflationFactor() => 1.0f + (float)m_voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - m_voxelOverlap);
 
-        private float3 CalculateLodTreeDimensions() => VoxelConfigs.VoxelVolumeConfig.GetCellVolumeDimensions(m_numberOfLods) / m_lodTreeInflationFactor;
+        private float3 CalculateLodTreeDimensions() => VoxelConfigs.VoxelVolumeConfig.GetCellVolumeDimensions(m_lods) / m_lodTreeInflationFactor;
 
         private int3 CalculateViewerLodTreeCoordinate() => (int3)math.round(m_viewer.position / m_lodTreeDimensions);
 
@@ -172,11 +173,11 @@ namespace World
             int3 viewerLodTreeCoordinate = CalculateViewerLodTreeCoordinate();
 
             // Create new lod trees.
-            for (int z = -m_numberOfLodTreesVisibleAlongAxis; z <= m_numberOfLodTreesVisibleAlongAxis; z++)
+            for (int z = -m_numberofLowestLodsVisible.z + 1; z <= m_numberofLowestLodsVisible.z - 1; z++)
             {
-                for (int y = -m_numberOfLodTreesVisibleAlongAxis; y <= m_numberOfLodTreesVisibleAlongAxis; y++)
+                for (int y = -m_numberofLowestLodsVisible.y + 1; y <= m_numberofLowestLodsVisible.y - 1; y++)
                 {
-                    for (int x = -m_numberOfLodTreesVisibleAlongAxis; x <= m_numberOfLodTreesVisibleAlongAxis; x++)
+                    for (int x = -m_numberofLowestLodsVisible.x + 1; x <= m_numberofLowestLodsVisible.x - 1; x++)
                     {
                         int3 lodTreeCoordinate = viewerLodTreeCoordinate + new int3(x, y, z);
 
@@ -185,7 +186,7 @@ namespace World
                             LodTree lodTree = m_lodTreePool.Acquire((lodTree) =>
                             {
                                 lodTree.Bounds = new Bounds(lodTreeCoordinate * m_lodTreeDimensions, m_lodTreeDimensions);
-                                lodTree.MaxDepth = m_numberOfLods;
+                                lodTree.MaxDepth = m_lods;
                                 lodTree.DistanceFactor = m_lodDistanceFactor;
                                 lodTree.InflationFactor = m_lodTreeInflationFactor;
                             });
@@ -212,8 +213,10 @@ namespace World
             }
         }
 
-        private void OnSettingsUpdated()
+        private IEnumerator ApplySettings()
         {
+            yield return null;
+
             m_worldUpdateIntervalSquared = m_worldUpdateInterval * m_worldUpdateInterval;
             m_lodUpdateIntervalSquared = m_lodUpdateInterval * m_lodUpdateInterval;
 
@@ -244,8 +247,6 @@ namespace World
                 VoxelVolume.GenerateVoxelVolume(chunk);
                 DualContouring.RequestMeshGeneration(chunk);
             });
-
-            m_flags |= WorldFlags.SettingsUpdated;
         }
 
         private void ApplyDualContouringConfig()
@@ -273,12 +274,6 @@ namespace World
                 VoxelVolume.GenerateVoxelVolume(chunk);
                 DualContouring.RequestMeshGeneration(chunk);
             });
-        }
-
-        [Flags]
-        private enum WorldFlags
-        {
-            SettingsUpdated = 1
         }
     }
 }

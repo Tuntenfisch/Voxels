@@ -1,6 +1,7 @@
 ﻿using Generics;
 using Generics.Pool;
 using System;
+using System.Collections;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -14,23 +15,30 @@ namespace World
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     internal class Chunk : MonoBehaviour, IVoxelVolume, IPoolable
     {
-        public int Lod { get; set; }
+        public int Lod { set { m_lod = value; } }
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshCollider m_meshCollider;
+        private int m_lod;
 
         private ComputeBuffer m_voxelVolumeBuffer;
-        private JobHandle m_bakeJobHandle;
-        private ChunkFlags m_flags;
 
-        (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) IVoxelVolume.GetArguments() => (m_voxelVolumeBuffer, transform.position, VoxelConfigs.VoxelVolumeConfig.GetVoxelSpacing(Lod));
+        (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) IVoxelVolume.GetArguments()
+        {
+            return (m_voxelVolumeBuffer, transform.position, VoxelConfigs.VoxelVolumeConfig.GetVoxelSpacing(m_lod));
+        }
 
         void IVoxelVolume.OnMeshGenerated(NativeArray<Vertex>? nullableVertices, NativeArray<int>? nullableTriangles)
         {
+            if (!gameObject.activeSelf)
+            {
+                return;
+            }
+
             if (!nullableVertices.HasValue || !nullableTriangles.HasValue)
             {
-                m_mesh.Clear();
+                m_meshFilter.sharedMesh = null;
                 m_meshCollider.sharedMesh = null;
 
                 return;
@@ -46,29 +54,19 @@ namespace World
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
             m_mesh.RecalculateBounds();
 
-            m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
-            m_flags |= ChunkFlags.BakingMesh;
+            StartCoroutine(BakeMesh());
         }
 
         void IPoolable.OnAcquire() => gameObject.SetActive(true);
 
-        void IPoolable.OnRelease() => gameObject.SetActive(false);
-
-        private void Awake()
+        void IPoolable.OnRelease()
         {
-            InitializeMeshComponents();
+            m_meshFilter.sharedMesh = null;
+            m_meshCollider.sharedMesh = null;
+            gameObject.SetActive(false);
         }
 
-        private void Update()
-        {
-            if (m_flags.HasFlag(ChunkFlags.BakingMesh) && m_bakeJobHandle.IsCompleted)
-            {
-                m_flags &= ~ChunkFlags.BakingMesh;
-                OnMeshBaked();
-            }
-        }
-
-        private void OnDestroy() => ReleaseBuffers();
+        private void Awake() => InitializeMeshComponents();
 
         public void CreateBuffers(int numberOfVoxels)
         {
@@ -78,7 +76,6 @@ namespace World
             }
 
             ReleaseBuffers();
-
             m_voxelVolumeBuffer = new ComputeBuffer(numberOfVoxels, 1 * sizeof(float) + 1 * sizeof(uint));
         }
 
@@ -98,21 +95,20 @@ namespace World
             m_mesh = new Mesh();
             m_mesh.MarkDynamic();
             m_meshFilter = GetComponent<MeshFilter>();
-            m_meshFilter.sharedMesh = m_mesh;
             m_meshCollider = GetComponent<MeshCollider>();
-            m_meshCollider.sharedMesh = m_mesh;
         }
 
-        private void OnMeshBaked()
+        private IEnumerator BakeMesh()
         {
-            m_bakeJobHandle.Complete();
-            m_meshCollider.sharedMesh = m_mesh;
-        }
+            JobHandle handle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
 
-        [Flags]
-        private enum ChunkFlags
-        {
-            BakingMesh = 1
+            while (!handle.IsCompleted)
+            {
+                yield return null;
+            }
+
+            m_meshFilter.sharedMesh = m_mesh;
+            m_meshCollider.sharedMesh = m_mesh;
         }
     }
 }

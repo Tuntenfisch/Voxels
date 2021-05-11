@@ -23,6 +23,13 @@ namespace World
                 m_flags |= LodTreeFlags.isDirty;
             }
         }
+        public Bounds InflatedBounds
+        {
+            get
+            {
+                return new Bounds(m_bounds.center, m_inflationFactor * m_bounds.size);
+            }
+        }
         public int MaxDepth
         {
             get => m_maxDepth;
@@ -158,11 +165,11 @@ namespace World
 
             // Update tree structure.
             Node root = m_nodes[0];
-            Update(ref root, new Bounds(m_bounds.center, m_inflationFactor * m_bounds.size), viewerPosition);
+            Update(ref root, InflatedBounds, viewerPosition);
             m_nodes[0] = root;
         }
 
-        private void Update(ref Node node, Bounds bounds, float3 viewerPosition)
+        private void Update(ref Node node, Bounds bounds, float3 viewerPosition, MeshSynchronizer synchronizer = null)
         {
             // Split criterium.
             if (math.lengthsq(m_distanceFactor * (viewerPosition - (float3)bounds.center)) <= math.lengthsq(bounds.extents))
@@ -170,21 +177,28 @@ namespace World
                 // Only split if we aren't at maximum depth already.
                 if (node.Depth < m_maxDepth)
                 {
-                    Split(ref node);
+                    // Only split this node if it's a leaf.
+                    if (node.IsLeaf)
+                    {
+                        Split(ref node);
+                    }
 
                     for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                     {
                         int childIndex = node.FirstChildIndex + childIndexOffset;
                         Node child = m_nodes[childIndex];
                         Bounds childBounds = GetInflatedChildBounds(bounds.center, node.Depth, childIndexOffset);
-                        Update(ref child, childBounds, viewerPosition);
+                        Update(ref child, childBounds, viewerPosition, synchronizer);
                         m_nodes[childIndex] = child;
                     }
                 }
             }
-            else if (!node.IsLeaf) // If we don't fullfil the split citerium we need to merge (assuming we are not a leaf already).
+            else // If we don't fullfil the split citerium we need to merge.
             {
-                MergeChildren(ref node);
+                if (!node.IsLeaf)
+                {
+                    MergeChildren(ref node);
+                }
             }
 
             if (node.IsLeaf && node.Chunk == null)
@@ -204,14 +218,9 @@ namespace World
 
         private void Split(ref Node node)
         {
-            // If this nose is an intermediate node, it's already split. Do nothing.
-            if (!node.IsLeaf)
-            {
-                return;
-            }
-
-            // Does this node have a chunk referenced? If yes, release it. It will
-            // be replaced by the new children.
+            // Even tho this node is a leaf and should have an associated chunk,
+            // we still need to safeguard against null for the edge case of a newly
+            // created tree.
             if (node.Chunk != null)
             {
                 World.SharedChunkPool.Release(node.Chunk);
