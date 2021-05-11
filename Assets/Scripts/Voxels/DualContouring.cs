@@ -1,11 +1,10 @@
 ﻿using Extensions;
 using Generics;
 using System;
+using System.Collections;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Assertions;
-using UnityEngine.Profiling;
 using Voxels.Config;
 
 namespace Voxels
@@ -36,13 +35,9 @@ namespace Voxels
         {
             foreach (Worker worker in m_workers)
             {
-                if (worker.IsWaitingForData)
+                if (!worker.IsWaitingForData && m_requests.TryDequeue(out IVoxelVolume requester))
                 {
-                    worker.CheckIfDataReceived();
-                }
-                else if (m_requests.TryDequeue(out IVoxelVolume requester))
-                {
-                    worker.GenerateMeshAsync(requester);
+                    StartCoroutine(DispatchWorker(worker, requester));
                 }
             }
         }
@@ -63,6 +58,18 @@ namespace Voxels
             }
 
             m_requests.Enqueue(requester);
+        }
+
+        private IEnumerator DispatchWorker(Worker worker, IVoxelVolume requester)
+        {
+            worker.GenerateMeshAsync(requester);
+
+            while (worker.IsWaitingForData)
+            {
+                worker.CheckIfDataReceived();
+
+                yield return null;
+            }
         }
 
         private class Worker : IDisposable
@@ -127,7 +134,6 @@ namespace Voxels
 
                 ComputeBuffer.CopyCount(m_vertexBuffer, m_countBuffer, 0);
                 ComputeBuffer.CopyCount(m_triangleBuffer, m_countBuffer, sizeof(int));
-
                 m_countBuffer.RequestData();
 
                 m_flags |= WorkerFlags.Busy;
@@ -141,7 +147,6 @@ namespace Voxels
                 }
 
                 ReleaseBuffers();
-
                 m_vertexBuffer = new AsyncComputeBuffer(maxNumberOfVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
                 m_generatedVertexIndexLookupTable = new AsyncComputeBuffer(numberOfVoxels, sizeof(int));
                 m_triangleBuffer = new AsyncComputeBuffer(maxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
@@ -201,11 +206,8 @@ namespace Voxels
 
                 if (triangleCount == 0)
                 {
-                    Assert.IsNotNull(m_requester, "The requester for this worker is null. Did you forget to assign it?");
-
                     m_requester.OnMeshGenerated(null, null);
                     m_requester = null;
-
                     m_flags &= ~WorkerFlags.Busy;
 
                     return;
@@ -218,8 +220,6 @@ namespace Voxels
 
             private void OnMeshDataRetrieved()
             {
-                Profiler.BeginSample($"{nameof(Worker)}.{nameof(OnMeshDataRetrieved)}");
-
                 if (m_vertexBuffer.HasError || m_triangleBuffer.HasError)
                 {
                     Debug.Log("GPU readback error detected.");
@@ -230,14 +230,9 @@ namespace Voxels
                 NativeArray<Vertex> vertices = m_vertexBuffer.GetData<Vertex>();
                 NativeArray<int> triangles = m_triangleBuffer.GetData<int>();
 
-                Assert.IsNotNull(m_requester, "The requester for this worker is null. Did you forget to assign it?");
-
                 m_requester.OnMeshGenerated(vertices, triangles);
                 m_requester = null;
-
                 m_flags &= ~WorkerFlags.Busy;
-
-                Profiler.EndSample();
             }
 
             private void ApplyDualContouringConfig()

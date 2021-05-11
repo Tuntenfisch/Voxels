@@ -7,7 +7,7 @@ struct Voxel
 {
     float value;
     uint packedGradient;
-    
+
     float GetValue()
     {
         return value;

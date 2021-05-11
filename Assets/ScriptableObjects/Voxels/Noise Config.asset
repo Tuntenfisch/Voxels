@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6edbf8177061c64db5d8ab5cb53283b, type: 3}
   m_Name: Noise Config
   m_EditorClassIdentifier: 
-  m_seed: 0
+  m_seed: 1000
   m_height: 300
   m_wavelength: 1000
   m_numberOfOctaves: 16
