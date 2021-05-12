@@ -12,8 +12,8 @@ namespace Voxels
         private void Awake()
         {
 #if UNITY_EDITOR
-            VoxelConfigs.VoxelVolumeConfig.OnDirty += ApplyVoxelVolumeConfig;
-            VoxelConfigs.NoiseConfig.OnDirty += ApplyNoiseConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
+            VoxelConfigs.NoiseConfig.OnDirtied += ApplyNoiseConfig;
 #endif
             ApplyVoxelVolumeConfig();
             ApplyNoiseConfig();
@@ -22,8 +22,8 @@ namespace Voxels
         private void OnDestroy()
         {
 #if UNITY_EDITOR
-            VoxelConfigs.VoxelVolumeConfig.OnDirty -= ApplyVoxelVolumeConfig;
-            VoxelConfigs.NoiseConfig.OnDirty -= ApplyNoiseConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
+            VoxelConfigs.NoiseConfig.OnDirtied -= ApplyNoiseConfig;
 #endif
         }
 
@@ -52,7 +52,8 @@ namespace Voxels
 
         private void ApplyVoxelVolumeConfig()
         {
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetInts(ComputeShaderProperties.s_voxelVolumeCount, VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount.x, VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount.y, VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount.z);
+            int3 voxelVolumeCount = VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount;
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetInts(ComputeShaderProperties.s_voxelVolumeCount, voxelVolumeCount.x, voxelVolumeCount.y, voxelVolumeCount.z);
         }
 
         private void ApplyNoiseConfig()

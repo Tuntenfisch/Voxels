@@ -73,9 +73,9 @@ namespace World
             Assert.IsFalse(m_chunkPrefab.activeSelf);
 
 #if UNITY_EDITOR
-            VoxelConfigs.VoxelVolumeConfig.OnDirty += ApplyVoxelVolumeConfig;
-            VoxelConfigs.DualContouringConfig.OnDirty += ApplyDualContouringConfig;
-            VoxelConfigs.NoiseConfig.OnDirty += ApplyNoiseConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
+            VoxelConfigs.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
+            VoxelConfigs.NoiseConfig.OnDirtied += ApplyNoiseConfig;
 #endif
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
@@ -148,14 +148,11 @@ namespace World
         private void OnDestroy()
         {
 #if UNITY_EDITOR
-            VoxelConfigs.VoxelVolumeConfig.OnDirty -= ApplyVoxelVolumeConfig;
-            VoxelConfigs.DualContouringConfig.OnDirty -= ApplyDualContouringConfig;
-            VoxelConfigs.NoiseConfig.OnDirty -= ApplyNoiseConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
+            VoxelConfigs.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
+            VoxelConfigs.NoiseConfig.OnDirtied -= ApplyNoiseConfig;
 #endif
-            SharedChunkPool.Apply((chunk, inUse) =>
-            {
-                chunk.ReleaseBuffers();
-            });
+            SharedChunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
         }
 
         private float CalculateLodTreeInflationFactor() => 1.0f + (float)m_voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - m_voxelOverlap);
@@ -171,13 +168,14 @@ namespace World
             m_oldLodTrees.UnionWith(m_lodTrees.Keys);
 
             int3 viewerLodTreeCoordinate = CalculateViewerLodTreeCoordinate();
+            int3 end = m_numberofLowestLodsVisible - 1;
 
             // Create new lod trees.
-            for (int z = -m_numberofLowestLodsVisible.z + 1; z <= m_numberofLowestLodsVisible.z - 1; z++)
+            for (int z = -end.z; z <= end.z; z++)
             {
-                for (int y = -m_numberofLowestLodsVisible.y + 1; y <= m_numberofLowestLodsVisible.y - 1; y++)
+                for (int y = -end.y; y <= end.y; y++)
                 {
-                    for (int x = -m_numberofLowestLodsVisible.x + 1; x <= m_numberofLowestLodsVisible.x - 1; x++)
+                    for (int x = -end.x; x <= end.x; x++)
                     {
                         int3 lodTreeCoordinate = viewerLodTreeCoordinate + new int3(x, y, z);
 

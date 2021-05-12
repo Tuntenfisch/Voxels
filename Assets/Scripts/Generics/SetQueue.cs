@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Generics
 {
-    public class SetQueue<T>
+    public class SetQueue<T> where T : class
     {
         public int Count => m_items.Count;
 

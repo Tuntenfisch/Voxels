@@ -6,7 +6,7 @@ namespace Voxels.Config
     [CreateAssetMenu(fileName = "Dual Contouring Config", menuName = "Voxels/Dual Contouring Config", order = 2)]
     public class DualContouringConfig : ScriptableObject
     {
-        public event Action OnDirty;
+        public event Action OnDirtied;
 
         // Dual contouring properties.
         public ComputeShader Compute => m_compute;
@@ -27,6 +27,6 @@ namespace Voxels.Config
         [SerializeField]
         private float m_sharpFeatureAngle = 50.0f;
 
-        private void OnValidate() => OnDirty?.Invoke();
+        private void OnValidate() => OnDirtied?.Invoke();
     }
 }

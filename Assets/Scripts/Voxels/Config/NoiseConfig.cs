@@ -6,7 +6,7 @@ namespace Voxels.Config
     [CreateAssetMenu(fileName = "Noise Config", menuName = "Voxels/Noise Config", order = 3)]
     public class NoiseConfig : ScriptableObject
     {
-        public event Action OnDirty;
+        public event Action OnDirtied;
 
         // Noise properties.
         public int Seed => m_seed;
@@ -43,6 +43,6 @@ namespace Voxels.Config
         [SerializeField]
         private float m_lacunarity = 2.0f;
 
-        private void OnValidate() => OnDirty?.Invoke();
+        private void OnValidate() => OnDirtied?.Invoke();
     }
 }
