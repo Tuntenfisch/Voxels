@@ -2,6 +2,8 @@
 using Generics;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -12,43 +14,30 @@ namespace Voxels
     [RequireComponent(typeof(VoxelConfigs))]
     public class DualContouring : MonoBehaviour
     {
-        [Range(1, 4)]
+        private event Action OnDestroyed;
+
+        [Range(1, 8)]
         [SerializeField]
         private int m_numberOfWorkers = 2;
 
         private SetQueue<IVoxelVolume> m_requests;
-        private Worker[] m_workers;
+        private Stack<Worker> m_workers;
 
         private void Awake()
         {
             m_requests = new SetQueue<IVoxelVolume>();
-            m_workers = new Worker[m_numberOfWorkers];
-
-            for (int index = 0; index < m_workers.Length; index++)
-            {
-                Worker worker = new Worker();
-                m_workers[index] = worker;
-            }
+            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
         }
 
         private void Update()
         {
-            foreach (Worker worker in m_workers)
+            if (m_requests.Count > 0 && m_workers.Count > 0)
             {
-                if (!worker.IsWaitingForData && m_requests.TryDequeue(out IVoxelVolume requester))
-                {
-                    StartCoroutine(DispatchWorker(worker, requester));
-                }
+                StartCoroutine(DispatchWorker(m_workers.Pop(), m_requests.Dequeue()));
             }
         }
 
-        private void OnDestroy()
-        {
-            foreach (Worker worker in m_workers)
-            {
-                worker.Dispose();
-            }
-        }
+        private void OnDestroy() => OnDestroyed?.Invoke();
 
         public void RequestMeshGeneration(IVoxelVolume requester)
         {
@@ -70,11 +59,13 @@ namespace Voxels
 
                 yield return null;
             }
+
+            m_workers.Push(worker);
         }
 
-        private class Worker : IDisposable
+        private class Worker
         {
-            public bool IsWaitingForData => m_flags.HasFlag(WorkerFlags.Busy);
+            public bool IsWaitingForData => m_requester != null;
 
             private AsyncComputeBuffer m_vertexBuffer;
             private AsyncComputeBuffer m_generatedVertexIndexLookupTable;
@@ -82,25 +73,16 @@ namespace Voxels
             private AsyncComputeBuffer m_countBuffer;
 
             private IVoxelVolume m_requester;
-            private WorkerFlags m_flags;
 
-            public Worker()
+            public Worker(DualContouring parent)
             {
 #if UNITY_EDITOR
-                VoxelConfigs.DualContouringConfig.OnDirty += ApplyDualContouringConfig;
-                VoxelConfigs.VoxelVolumeConfig.OnDirty += ApplyVoxelVolumeConfig;
+                VoxelConfigs.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
+                VoxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
 #endif
+                parent.OnDestroyed += OnDestroy;
                 ApplyDualContouringConfig();
                 ApplyVoxelVolumeConfig();
-            }
-
-            public void Dispose()
-            {
-#if UNITY_EDITOR
-                VoxelConfigs.DualContouringConfig.OnDirty -= ApplyDualContouringConfig;
-                VoxelConfigs.VoxelVolumeConfig.OnDirty -= ApplyVoxelVolumeConfig;
-#endif
-                ReleaseBuffers();
             }
 
             public void CheckIfDataReceived()
@@ -135,8 +117,6 @@ namespace Voxels
                 ComputeBuffer.CopyCount(m_vertexBuffer, m_countBuffer, 0);
                 ComputeBuffer.CopyCount(m_triangleBuffer, m_countBuffer, sizeof(int));
                 m_countBuffer.RequestData();
-
-                m_flags |= WorkerFlags.Busy;
             }
 
             private void CreateBuffers(int maxNumberOfVertices, int numberOfVoxels, int maxNumberOfTriangles)
@@ -208,7 +188,6 @@ namespace Voxels
                 {
                     m_requester.OnMeshGenerated(null, null);
                     m_requester = null;
-                    m_flags &= ~WorkerFlags.Busy;
 
                     return;
                 }
@@ -232,12 +211,12 @@ namespace Voxels
 
                 m_requester.OnMeshGenerated(vertices, triangles);
                 m_requester = null;
-                m_flags &= ~WorkerFlags.Busy;
             }
 
             private void ApplyDualContouringConfig()
             {
-                VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, math.cos(math.radians(VoxelConfigs.DualContouringConfig.SharpFeatureAngle)));
+                float cosOfSharpFeatureAngle = math.cos(math.radians(VoxelConfigs.DualContouringConfig.SharpFeatureAngle));
+                VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, cosOfSharpFeatureAngle);
                 VoxelConfigs.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.s_schmitzParticleIterations, VoxelConfigs.DualContouringConfig.SchmitzParticleIterations);
                 VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_schmitzParticleStepSize, VoxelConfigs.DualContouringConfig.SchmitzParticleStepSize);
             }
@@ -254,10 +233,13 @@ namespace Voxels
                 );
             }
 
-            [Flags]
-            private enum WorkerFlags
+            private void OnDestroy()
             {
-                Busy = 1
+#if UNITY_EDITOR
+                VoxelConfigs.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
+                VoxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
+#endif
+                ReleaseBuffers();
             }
         }
     }

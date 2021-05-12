@@ -16,11 +16,10 @@ namespace World
     {
         public int Lod { set { m_lod = value; } }
 
+        private int m_lod;
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshCollider m_meshCollider;
-        private int m_lod;
-
         private ComputeBuffer m_voxelVolumeBuffer;
 
         (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) IVoxelVolume.GetArguments()

@@ -19,7 +19,6 @@ namespace Generics.Pool
             m_available = new Stack<T>(initialCapacity);
             m_inUse = new HashSet<T>();
             m_generator = generator;
-
             Populate(initialCount);
         }
 
@@ -27,19 +26,15 @@ namespace Generics.Pool
         {
             T obj;
 
-            lock(m_available)
+            if (m_available.Count == 0)
             {
-                if (m_available.Count == 0)
-                {
-                    obj = m_generator();
-                }
-                else
-                {
-                    obj = m_available.Pop();
-                }
+                obj = m_generator();
+            }
+            else
+            {
+                obj = m_available.Pop();
             }
             m_inUse.Add(obj);
-
             initializer(obj);
             obj.OnAcquire();
 
@@ -53,17 +48,13 @@ namespace Generics.Pool
                 throw new ArgumentNullException(nameof(obj));
             }
 
-            obj.OnRelease();
-
-            lock(m_available)
+            if (!m_inUse.Remove(obj))
             {
-                if (!m_inUse.Remove(obj))
-                {
-                    throw new ArgumentException("Released object doesn't belong to this pool!", nameof(obj));
-                }
-
-                m_available.Push(obj);
+                throw new ArgumentException("Released object doesn't belong to this pool!", nameof(obj));
             }
+
+            obj.OnRelease();
+            m_available.Push(obj);
         }
 
         public void Populate(int count)

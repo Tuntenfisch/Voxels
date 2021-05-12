@@ -7,7 +7,7 @@ namespace Voxels.Config
     [CreateAssetMenu(fileName = "Voxel Volume Configuration", menuName = "Voxels/Voxel Volume Configuration", order = 1)]
     public class VoxelVolumeConfig : ScriptableObject
     {
-        public event Action OnDirty;
+        public event Action OnDirtied;
 
         // Voxel volume properties.
         public ComputeShader Compute => m_compute;
@@ -37,7 +37,7 @@ namespace Voxels.Config
         private void OnValidate()
         {
             m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis);
-            OnDirty?.Invoke();
+            OnDirtied?.Invoke();
         }
 
     }
