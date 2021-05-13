@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Voxels.Config
+namespace Tuntenfisch.Voxels.Config
 {
     [CreateAssetMenu(fileName = "Voxel Volume Configuration", menuName = "Voxels/Voxel Volume Configuration", order = 1)]
     public class VoxelVolumeConfig : ScriptableObject

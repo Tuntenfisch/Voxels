@@ -1,4 +1,4 @@
-﻿namespace Generics.Pool
+﻿namespace Tuntenfisch.Generics.Pool
 {
     public interface IPoolable
     {

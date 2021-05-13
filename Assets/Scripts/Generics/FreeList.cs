@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Generics
+namespace Tuntenfisch.Generics
 {
     // Based on https://stackoverflow.com/questions/41946007/efficient-and-well-explained-implementation-of-a-quadtree-for-2d-collision-det/48384354#48384354.
     public class FreeList<T>
@@ -19,7 +19,7 @@ namespace Generics
         public T this[int index]
         {
             get => m_items[index].Item;
-            set => m_items[index] = new FreeItem { Item = value, NextFreeIndex = m_items[index].NextFreeIndex };
+            set => m_items[index] = FreeItem.Create(value, m_items[index].NextFreeIndex);
         }
 
         public int Insert(T item)
@@ -28,14 +28,14 @@ namespace Generics
             {
                 int index = m_firstFreeIndex;
                 m_firstFreeIndex = m_items[m_firstFreeIndex].NextFreeIndex;
-                m_items[index] = new FreeItem { Item = item };
+                m_items[index] = FreeItem.Create(item);
 
                 return index;
 
             }
             else
             {
-                FreeItem freeItem = new FreeItem { Item = item };
+                FreeItem freeItem = FreeItem.Create(item);
                 m_items.Add(freeItem);
 
                 return m_items.Count - 1;
@@ -63,6 +63,15 @@ namespace Generics
         {
             public T Item { get; set; }
             public int NextFreeIndex { get; set; }
+
+            public static FreeItem Create(T item = default, int nextFreeIndex = -1)
+            {
+                return new FreeItem
+                {
+                    Item = item,
+                    NextFreeIndex = nextFreeIndex
+                };
+            }
         }
     }
 }

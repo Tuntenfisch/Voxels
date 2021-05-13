@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Voxels
+namespace Tuntenfisch.Voxels
 {
     internal static class ComputeShaderProperties
     {

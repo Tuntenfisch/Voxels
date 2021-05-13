@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Assertions;
 
-namespace Generics
+namespace Tuntenfisch.Generics
 {
     public abstract class SingletonComponent<T> : MonoBehaviour where T : MonoBehaviour
     {

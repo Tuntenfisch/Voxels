@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Generics.Pool
+namespace Tuntenfisch.Generics.Pool
 {
     public class ObjectPool<T> where T : class, IPoolable
     {

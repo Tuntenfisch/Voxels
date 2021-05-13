@@ -1,5 +1,5 @@
-#ifndef VOXEL_VOLUME__559277903
-#define VOXEL_VOLUME__559277903
+#ifndef TUNTENFISCH_VOXEL_VOLUME
+#define TUNTENFISCH_VOXEL_VOLUME
 
 RWStructuredBuffer<Voxel> voxelVolume;
 

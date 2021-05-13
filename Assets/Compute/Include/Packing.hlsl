@@ -1,5 +1,5 @@
-#ifndef PACKING__559277903
-#define PACKING__559277903
+#ifndef TUNTENFISCH_PACKING
+#define TUNTENFISCH_PACKING
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"

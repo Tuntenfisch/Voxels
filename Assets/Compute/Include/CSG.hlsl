@@ -1,5 +1,5 @@
-#ifndef CSG__559277903
-#define CSG__559277903
+#ifndef TUNTENFISCH_CSG
+#define TUNTENFISCH_CSG
 
 // Pretty much everything below is either copied from or based on articles by Inigo Quilez (https://www.iquilezles.org/).
 

@@ -2,7 +2,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Player
+namespace Tuntenfisch.Player
 {
     public class PlayerController : MonoBehaviour
     {
