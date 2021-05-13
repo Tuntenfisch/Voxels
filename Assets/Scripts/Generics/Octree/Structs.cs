@@ -1,6 +1,6 @@
 ﻿using Unity.Mathematics;
 
-namespace Generics.Octree
+namespace Tuntenfisch.Generics.Octree
 {
     public struct OctreeNode
     {

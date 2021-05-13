@@ -1,5 +1,5 @@
-﻿#ifndef VERTEX__559277903
-#define VERTEX__559277903
+﻿#ifndef TUNTENFISCH_VERTEX
+#define TUNTENFISCH_VERTEX
 
 struct Vertex
 {

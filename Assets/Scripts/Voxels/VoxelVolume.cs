@@ -1,10 +1,10 @@
-﻿using Extensions;
-using System;
+﻿using System;
+using Tuntenfisch.Extensions;
+using Tuntenfisch.Voxels.Config;
 using Unity.Mathematics;
 using UnityEngine;
-using Voxels.Config;
 
-namespace Voxels
+namespace Tuntenfisch.Voxels
 {
     [RequireComponent(typeof(VoxelConfigs))]
     public class VoxelVolume : MonoBehaviour
@@ -27,10 +27,8 @@ namespace Voxels
 #endif
         }
 
-        public void GenerateVoxelVolume(IVoxelVolume requester)
+        public void GenerateVoxelVolume(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
         {
-            (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) = requester.GetArguments();
-
             if (voxelVolumeBuffer == null)
             {
                 throw new ArgumentNullException(nameof(voxelVolumeBuffer));

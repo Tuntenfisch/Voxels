@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Voxels.Config
+namespace Tuntenfisch.Voxels.Config
 {
     [CreateAssetMenu(fileName = "Noise Config", menuName = "Voxels/Noise Config", order = 3)]
     public class NoiseConfig : ScriptableObject

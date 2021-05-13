@@ -1,5 +1,5 @@
-#ifndef FLAGS__559277903
-#define FLAGS__559277903
+#ifndef TUNTENFISCH_FLAGS
+#define TUNTENFISCH_FLAGS
 
 struct Flags
 {

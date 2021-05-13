@@ -1,7 +1,7 @@
 ﻿using Unity.Mathematics;
 using UnityEditor;
 
-namespace Extensions
+namespace Tuntenfisch.Extensions
 {
     public static class SerializedPropertyExtensions
     {

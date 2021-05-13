@@ -2,7 +2,7 @@
 using Unity.Jobs;
 using UnityEngine;
 
-namespace Generics
+namespace Tuntenfisch.Generics
 {
     [BurstCompile]
     public struct BakeJob : IJob

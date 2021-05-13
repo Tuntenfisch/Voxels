@@ -1,15 +1,14 @@
-﻿using Generics;
-using Generics.Pool;
-using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using Tuntenfisch.Generics;
+using Tuntenfisch.Generics.Pool;
+using Tuntenfisch.Voxels;
+using Tuntenfisch.Voxels.Config;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
-using Voxels;
-using Voxels.Config;
 
-namespace World
+namespace Tuntenfisch.World
 {
     [RequireComponent(typeof(VoxelVolume), typeof(DualContouring))]
     public class World : SingletonComponent<World>
@@ -237,13 +236,10 @@ namespace World
             {
                 chunk.CreateBuffers(VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
 
-                if (!inUse)
+                if (inUse)
                 {
-                    return;
+                    chunk.Generate();
                 }
-
-                VoxelVolume.GenerateVoxelVolume(chunk);
-                DualContouring.RequestMeshGeneration(chunk);
             });
         }
 
@@ -251,12 +247,10 @@ namespace World
         {
             SharedChunkPool.Apply((chunk, inUse) =>
             {
-                if (!inUse)
+                if (inUse)
                 {
-                    return;
+                    chunk.Generate();
                 }
-
-                DualContouring.RequestMeshGeneration(chunk);
             });
         }
 
@@ -264,13 +258,10 @@ namespace World
         {
             SharedChunkPool.Apply((chunk, inUse) =>
             {
-                if (!inUse)
+                if (inUse)
                 {
-                    return;
+                    chunk.Generate();
                 }
-
-                VoxelVolume.GenerateVoxelVolume(chunk);
-                DualContouring.RequestMeshGeneration(chunk);
             });
         }
     }

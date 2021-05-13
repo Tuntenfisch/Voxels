@@ -1,10 +1,10 @@
-﻿using Generics.Pool;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Tuntenfisch.Generics.Pool;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace World
+namespace Tuntenfisch.World
 {
     internal class LodTree : IPoolable
     {
@@ -20,7 +20,7 @@ namespace World
                 }
 
                 m_bounds = value;
-                m_flags |= LodTreeFlags.isDirty;
+                m_flags |= LodTreeFlags.IsDirty;
             }
         }
         public Bounds InflatedBounds
@@ -42,7 +42,7 @@ namespace World
                 }
 
                 m_maxDepth = value;
-                m_flags |= LodTreeFlags.isDirty;
+                m_flags |= LodTreeFlags.IsDirty;
             }
         }
         public float InflationFactor
@@ -57,7 +57,7 @@ namespace World
                 }
 
                 m_inflationFactor = value;
-                m_flags |= LodTreeFlags.isDirty;
+                m_flags |= LodTreeFlags.IsDirty;
             }
         }
         public float3 DistanceFactor
@@ -72,7 +72,7 @@ namespace World
                 }
 
                 m_distanceFactor = value;
-                m_flags |= LodTreeFlags.isDirty;
+                m_flags |= LodTreeFlags.IsDirty;
             }
         }
 
@@ -106,9 +106,9 @@ namespace World
 
         public IEnumerable<(Node, Bounds)> Traverse(bool onlyLeaves = false)
         {
-            if (m_flags.HasFlag(LodTreeFlags.isDirty))
+            if (m_flags.HasFlag(LodTreeFlags.IsDirty))
             {
-                m_flags &= ~LodTreeFlags.isDirty;
+                m_flags &= ~LodTreeFlags.IsDirty;
                 Clear();
             }
 
@@ -145,7 +145,7 @@ namespace World
         {
             foreach ((Node leaf, _) in Traverse(true))
             {
-                if (leaf.Chunk != null)
+                if (leaf.HasChunk)
                 {
                     World.SharedChunkPool.Release(leaf.Chunk);
                 }
@@ -157,9 +157,9 @@ namespace World
 
         public void Update(float3 viewerPosition)
         {
-            if (m_flags.HasFlag(LodTreeFlags.isDirty))
+            if (m_flags.HasFlag(LodTreeFlags.IsDirty))
             {
-                m_flags &= ~LodTreeFlags.isDirty;
+                m_flags &= ~LodTreeFlags.IsDirty;
                 Clear();
             }
 
@@ -169,7 +169,7 @@ namespace World
             m_nodes[0] = root;
         }
 
-        private void Update(ref Node node, Bounds bounds, float3 viewerPosition, MeshSynchronizer synchronizer = null)
+        private void Update(ref Node node, Bounds bounds, float3 viewerPosition)
         {
             // Split criterium.
             if (math.lengthsq(m_distanceFactor * (viewerPosition - (float3)bounds.center)) <= math.lengthsq(bounds.extents))
@@ -188,20 +188,17 @@ namespace World
                         int childIndex = node.FirstChildIndex + childIndexOffset;
                         Node child = m_nodes[childIndex];
                         Bounds childBounds = GetInflatedChildBounds(bounds.center, node.Depth, childIndexOffset);
-                        Update(ref child, childBounds, viewerPosition, synchronizer);
+                        Update(ref child, childBounds, viewerPosition);
                         m_nodes[childIndex] = child;
                     }
                 }
             }
-            else // If we don't fullfil the split citerium we need to merge.
+            else if (!node.IsLeaf) // If we don't fullfil the split citerium we need to merge.
             {
-                if (!node.IsLeaf)
-                {
-                    MergeChildren(ref node);
-                }
+                MergeChildren(ref node);
             }
 
-            if (node.IsLeaf && node.Chunk == null)
+            if (node.IsLeaf && !node.HasChunk)
             {
                 float3 center = bounds.center;
                 int lod = m_maxDepth - node.Depth;
@@ -211,17 +208,16 @@ namespace World
                     chunk.transform.position = center;
                     chunk.Lod = lod;
                 });
-                World.VoxelVolume.GenerateVoxelVolume(node.Chunk);
-                World.DualContouring.RequestMeshGeneration(node.Chunk);
+                node.Chunk.Generate();
             }
         }
 
         private void Split(ref Node node)
         {
-            // Even tho this node is a leaf and should have an associated chunk,
+            // Even tho this node is a leaf and should always have an associated chunk,
             // we still need to safeguard against null for the edge case of a newly
             // created tree.
-            if (node.Chunk != null)
+            if (node.HasChunk)
             {
                 World.SharedChunkPool.Release(node.Chunk);
                 node.Chunk = null;
@@ -251,11 +247,14 @@ namespace World
 
         private void MergeChildren(ref Node node)
         {
-            if (node.IsLeaf)
+            if (node.HasChunk)
             {
                 World.SharedChunkPool.Release(node.Chunk);
                 node.Chunk = null;
+            }
 
+            if (node.IsLeaf)
+            {
                 return;
             }
 
@@ -296,6 +295,7 @@ namespace World
         public struct Node
         {
             public bool IsLeaf => FirstChildIndex == -1;
+            public bool HasChunk => Chunk != null;
             public int Depth { get; set; }
             public int FirstChildIndex { get; set; }
             public Chunk Chunk { get; set; }
@@ -314,7 +314,7 @@ namespace World
         [Flags]
         private enum LodTreeFlags
         {
-            isDirty = 1
+            IsDirty = 1
         }
     }
 }

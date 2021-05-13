@@ -1,5 +1,5 @@
-#ifndef CELL__559277903
-#define CELL__559277903
+#ifndef TUNTENFISCH_CELL
+#define TUNTENFISCH_CELL
 
 static const uint numberOfCellCorners = 8;
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Generics
+namespace Tuntenfisch.Generics
 {
     public class SetQueue<T> where T : class
     {

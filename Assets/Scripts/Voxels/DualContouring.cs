@@ -1,16 +1,19 @@
-﻿using Extensions;
-using Generics;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Tuntenfisch.Extensions;
+using Tuntenfisch.Generics;
+using Tuntenfisch.Generics.Pool;
+using Tuntenfisch.Voxels.Config;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using Voxels.Config;
 
-namespace Voxels
+namespace Tuntenfisch.Voxels
 {
+    public delegate void OnMeshGenerated(NativeArray<Vertex> vertices, NativeArray<int> triangles);
+
     [RequireComponent(typeof(VoxelConfigs))]
     public class DualContouring : MonoBehaviour
     {
@@ -20,59 +23,92 @@ namespace Voxels
         [SerializeField]
         private int m_numberOfWorkers = 2;
 
-        private SetQueue<IVoxelVolume> m_requests;
         private Stack<Worker> m_workers;
+        private Queue<(RequestHandle, Worker.Payload, OnMeshGenerated)> m_requests;
+        private ObjectPool<Worker.Payload> m_payloadPool;
 
         private void Awake()
         {
-            m_requests = new SetQueue<IVoxelVolume>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
+            m_requests = new Queue<(RequestHandle, Worker.Payload, OnMeshGenerated)>();
+            m_payloadPool = new ObjectPool<Worker.Payload>(() => { return new Worker.Payload(); });
         }
 
         private void Update()
         {
-            if (m_requests.Count > 0 && m_workers.Count > 0)
+            while (m_requests.Count > 0 && m_workers.Count > 0)
             {
-                StartCoroutine(DispatchWorker(m_workers.Pop(), m_requests.Dequeue()));
+                (RequestHandle handle, Worker.Payload payload, OnMeshGenerated callback) = m_requests.Dequeue();
+
+                if (!handle.Canceled)
+                {
+                    StartCoroutine(DispatchWorker(handle, payload, callback));
+                }
             }
         }
 
         private void OnDestroy() => OnDestroyed?.Invoke();
 
-        public void RequestMeshGeneration(IVoxelVolume requester)
+        public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, OnMeshGenerated callback)
         {
-            if (requester == null)
+            if (voxelVolumeBuffer == null)
             {
-                throw new ArgumentNullException(nameof(requester));
+                throw new ArgumentNullException(nameof(voxelVolumeBuffer));
             }
 
-            m_requests.Enqueue(requester);
+            RequestHandle handle = new RequestHandle();
+            Worker.Payload payload = m_payloadPool.Acquire((payload) =>
+            {
+                payload.VoxelVolumeBuffer = voxelVolumeBuffer;
+                payload.WorldPosition = worldPosition;
+                payload.VoxelSpacing = voxelSpacing;
+            });
+            m_requests.Enqueue((handle, payload, callback));
+
+            return handle;
         }
 
-        private IEnumerator DispatchWorker(Worker worker, IVoxelVolume requester)
+        private IEnumerator DispatchWorker(RequestHandle handle, Worker.Payload payload, OnMeshGenerated callback)
         {
-            worker.GenerateMeshAsync(requester);
+            Worker worker = m_workers.Pop();
+            worker.GenerateMeshAsync(payload);
+            Worker.Status status;
 
-            while (worker.IsWaitingForData)
+            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback)
             {
-                worker.CheckIfDataReceived();
-
                 yield return null;
             }
 
+            switch (status)
+            {
+                case Worker.Status.GPUReadbackError:
+                    Debug.Log("GPU readback error detected.");
+                    break;
+
+                default:
+                    // Is the request still valid?
+                    if (!handle.Canceled)
+                    {
+                        (NativeArray<Vertex> vertices, NativeArray<int> triangles) = worker.Data;
+                        callback(vertices, triangles);
+                    }
+                    break;
+            }
             m_workers.Push(worker);
+            m_payloadPool.Release(payload);
         }
 
         private class Worker
         {
-            public bool IsWaitingForData => m_requester != null;
+            public (NativeArray<Vertex> vertices, NativeArray<int> triangles) Data => (m_vertices, m_triangles);
 
             private AsyncComputeBuffer m_vertexBuffer;
             private AsyncComputeBuffer m_generatedVertexIndexLookupTable;
             private AsyncComputeBuffer m_triangleBuffer;
             private AsyncComputeBuffer m_countBuffer;
 
-            private IVoxelVolume m_requester;
+            private NativeArray<Vertex> m_vertices;
+            private NativeArray<int> m_triangles;
 
             public Worker(DualContouring parent)
             {
@@ -85,31 +121,52 @@ namespace Voxels
                 ApplyVoxelVolumeConfig();
             }
 
-            public void CheckIfDataReceived()
+            public Status Process()
             {
                 if (m_countBuffer.IsDataAvailable())
                 {
-                    OnVertexAndTriangleCountRetrieved();
+                    if (m_countBuffer.HasError)
+                    {
+                        return Status.GPUReadbackError;
+                    }
+
+                    NativeArray<int> counts = m_countBuffer.GetData<int>();
+
+                    int vertexCount = counts[0];
+                    int triangleCount = counts[1];
+
+                    if (triangleCount == 0)
+                    {
+                        m_vertices = new NativeArray<Vertex>(0, Allocator.Temp);
+                        m_triangles = new NativeArray<int>(0, Allocator.Temp);
+
+                        return Status.Done;
+                    }
+
+                    // Retrieve vertices and triangles asynchronously.
+                    m_vertexBuffer.RequestData(vertexCount);
+                    m_triangleBuffer.RequestData(triangleCount);
                 }
 
                 if (m_vertexBuffer.IsDataAvailable() && m_triangleBuffer.IsDataAvailable())
                 {
-                    OnMeshDataRetrieved();
+                    if (m_vertexBuffer.HasError || m_triangleBuffer.HasError)
+                    {
+                        return Status.GPUReadbackError;
+                    }
+
+                    m_vertices = m_vertexBuffer.GetData<Vertex>();
+                    m_triangles = m_triangleBuffer.GetData<int>();
+
+                    return Status.Done;
                 }
+
+                return Status.WaitingForGPUReadback;
             }
 
-            public void GenerateMeshAsync(IVoxelVolume requester)
+            public void GenerateMeshAsync(Payload payload)
             {
-                m_requester = requester;
-
-                (ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing) = requester.GetArguments();
-
-                if (voxelVolumeBuffer == null)
-                {
-                    throw new NullReferenceException("Voxel volume buffer can't be null!");
-                }
-
-                SetupMeshGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing);
+                SetupMeshGeneration(payload.VoxelVolumeBuffer, payload.WorldPosition, payload.VoxelSpacing);
 
                 VoxelConfigs.DualContouringConfig.Compute.Dispatch(0, VoxelConfigs.VoxelVolumeConfig.CellVolumeCount);
                 VoxelConfigs.DualContouringConfig.Compute.Dispatch(1, VoxelConfigs.VoxelVolumeConfig.CellVolumeCount);
@@ -170,49 +227,6 @@ namespace Voxels
                 VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.s_generatedTriangles, m_triangleBuffer);
             }
 
-            private void OnVertexAndTriangleCountRetrieved()
-            {
-                if (m_countBuffer.HasError)
-                {
-                    Debug.Log("GPU readback error detected.");
-
-                    return;
-                }
-
-                NativeArray<int> counts = m_countBuffer.GetData<int>();
-
-                int vertexCount = counts[0];
-                int triangleCount = counts[1];
-
-                if (triangleCount == 0)
-                {
-                    m_requester.OnMeshGenerated(null, null);
-                    m_requester = null;
-
-                    return;
-                }
-
-                // Retrieve vertices and triangles asynchronously.
-                m_vertexBuffer.RequestData(vertexCount);
-                m_triangleBuffer.RequestData(triangleCount);
-            }
-
-            private void OnMeshDataRetrieved()
-            {
-                if (m_vertexBuffer.HasError || m_triangleBuffer.HasError)
-                {
-                    Debug.Log("GPU readback error detected.");
-
-                    return;
-                }
-
-                NativeArray<Vertex> vertices = m_vertexBuffer.GetData<Vertex>();
-                NativeArray<int> triangles = m_triangleBuffer.GetData<int>();
-
-                m_requester.OnMeshGenerated(vertices, triangles);
-                m_requester = null;
-            }
-
             private void ApplyDualContouringConfig()
             {
                 float cosOfSharpFeatureAngle = math.cos(math.radians(VoxelConfigs.DualContouringConfig.SharpFeatureAngle));
@@ -241,6 +255,33 @@ namespace Voxels
 #endif
                 ReleaseBuffers();
             }
+
+            public class Payload : IPoolable
+            {
+                public ComputeBuffer VoxelVolumeBuffer { get; set; }
+                public float3 WorldPosition { get; set; }
+                public float VoxelSpacing { get; set; }
+
+                void IPoolable.OnAcquire() { }
+
+                void IPoolable.OnRelease() { }
+            }
+
+            public enum Status
+            {
+                WaitingForGPUReadback,
+                GPUReadbackError,
+                Done
+            }
+        }
+
+        public class RequestHandle
+        {
+            public bool Canceled => m_canceled;
+
+            private bool m_canceled;
+
+            public void Cancel() => m_canceled = true;
         }
     }
 }

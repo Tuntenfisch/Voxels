@@ -1,7 +1,7 @@
-﻿using Generics;
+﻿using Tuntenfisch.Generics;
 using UnityEngine;
 
-namespace Voxels.Config
+namespace Tuntenfisch.Voxels.Config
 {
     public class VoxelConfigs : SingletonComponent<VoxelConfigs>
     {

@@ -1,5 +1,5 @@
-#ifndef VOXEL__559277903
-#define VOXEL__559277903
+#ifndef TUNTENFISCH_VOXEL
+#define TUNTENFISCH_VOXEL
 
 #include "Assets/Compute/Include/Packing.hlsl"
 
