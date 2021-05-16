@@ -21,16 +21,16 @@ namespace Tuntenfisch.Voxels
 
         [Range(1, 8)]
         [SerializeField]
-        private int m_numberOfWorkers = 2;
+        private int m_numberOfWorkers = 4;
 
-        private Stack<Worker> m_workers;
         private Queue<(RequestHandle, Worker.Payload, OnMeshGenerated)> m_requests;
+        private Stack<Worker> m_workers;
         private ObjectPool<Worker.Payload> m_payloadPool;
 
         private void Awake()
         {
-            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_requests = new Queue<(RequestHandle, Worker.Payload, OnMeshGenerated)>();
+            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_payloadPool = new ObjectPool<Worker.Payload>(() => { return new Worker.Payload(); });
         }
 
@@ -82,7 +82,7 @@ namespace Tuntenfisch.Voxels
             switch (status)
             {
                 case Worker.Status.GPUReadbackError:
-                    Debug.Log("GPU readback error detected.");
+                    Debug.LogError("GPU readback error detected!");
                     break;
 
                 default:
@@ -264,7 +264,7 @@ namespace Tuntenfisch.Voxels
 
                 void IPoolable.OnAcquire() { }
 
-                void IPoolable.OnRelease() { }
+                void IPoolable.OnRelease() => VoxelVolumeBuffer = null;
             }
 
             public enum Status

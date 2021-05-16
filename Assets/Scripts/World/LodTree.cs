@@ -23,13 +23,6 @@ namespace Tuntenfisch.World
                 m_flags |= LodTreeFlags.IsDirty;
             }
         }
-        public Bounds InflatedBounds
-        {
-            get
-            {
-                return new Bounds(m_bounds.center, m_inflationFactor * m_bounds.size);
-            }
-        }
         public int MaxDepth
         {
             get => m_maxDepth;
@@ -42,21 +35,6 @@ namespace Tuntenfisch.World
                 }
 
                 m_maxDepth = value;
-                m_flags |= LodTreeFlags.IsDirty;
-            }
-        }
-        public float InflationFactor
-        {
-            get => m_inflationFactor;
-
-            set
-            {
-                if (value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(InflationFactor), value, "Inflation factor must be at least 1!");
-                }
-
-                m_inflationFactor = value;
                 m_flags |= LodTreeFlags.IsDirty;
             }
         }
@@ -80,7 +58,6 @@ namespace Tuntenfisch.World
         private readonly List<Node> m_nodes;
         private int m_firstFreeNodeIndex;
         private int m_maxDepth;
-        private float m_inflationFactor;
         private float3 m_distanceFactor;
 
         // Stacks used for some methods internally to avoid dynamically allocating memory.
@@ -165,7 +142,7 @@ namespace Tuntenfisch.World
 
             // Update tree structure.
             Node root = m_nodes[0];
-            Update(ref root, InflatedBounds, viewerPosition);
+            Update(ref root, m_bounds, viewerPosition);
             m_nodes[0] = root;
         }
 
@@ -180,6 +157,14 @@ namespace Tuntenfisch.World
                     // Only split this node if it's a leaf.
                     if (node.IsLeaf)
                     {
+                        // Even tho this node is a leaf and should always have an associated chunk,
+                        // we still need to safeguard against null for the edge case of a newly
+                        // created tree.
+                        if (node.HasChunk)
+                        {
+                            node.Chunk.Deactivate();
+                            node.Chunk = null;
+                        }
                         Split(ref node);
                     }
 
@@ -187,7 +172,7 @@ namespace Tuntenfisch.World
                     {
                         int childIndex = node.FirstChildIndex + childIndexOffset;
                         Node child = m_nodes[childIndex];
-                        Bounds childBounds = GetInflatedChildBounds(bounds.center, node.Depth, childIndexOffset);
+                        Bounds childBounds = GetChildBounds(bounds.center, node.Depth, childIndexOffset);
                         Update(ref child, childBounds, viewerPosition);
                         m_nodes[childIndex] = child;
                     }
@@ -195,7 +180,7 @@ namespace Tuntenfisch.World
             }
             else if (!node.IsLeaf) // If we don't fullfil the split citerium we need to merge.
             {
-                MergeChildren(ref node);
+                RecursivelyMergeChildren(ref node);
             }
 
             if (node.IsLeaf && !node.HasChunk)
@@ -208,21 +193,12 @@ namespace Tuntenfisch.World
                     chunk.transform.position = center;
                     chunk.Lod = lod;
                 });
-                node.Chunk.Generate();
+                node.Chunk.Activate();
             }
         }
 
         private void Split(ref Node node)
         {
-            // Even tho this node is a leaf and should always have an associated chunk,
-            // we still need to safeguard against null for the edge case of a newly
-            // created tree.
-            if (node.HasChunk)
-            {
-                World.SharedChunkPool.Release(node.Chunk);
-                node.Chunk = null;
-            }
-
             // Create the new children.
             if (m_firstFreeNodeIndex != -1)
             {
@@ -245,11 +221,11 @@ namespace Tuntenfisch.World
             }
         }
 
-        private void MergeChildren(ref Node node)
+        private void RecursivelyMergeChildren(ref Node node)
         {
             if (node.HasChunk)
             {
-                World.SharedChunkPool.Release(node.Chunk);
+                node.Chunk.Deactivate();
                 node.Chunk = null;
             }
 
@@ -264,7 +240,7 @@ namespace Tuntenfisch.World
             {
                 int childIndex = node.FirstChildIndex + childIndexOffset;
                 Node child = m_nodes[childIndex];
-                MergeChildren(ref child);
+                RecursivelyMergeChildren(ref child);
                 m_nodes[childIndex] = child;
             }
 
@@ -283,13 +259,6 @@ namespace Tuntenfisch.World
             float3 center = parentBoundsMin + 0.5f * parentBoundsExtent + xyz * parentBoundsExtent;
 
             return new Bounds(center, parentBoundsExtent);
-        }
-
-        private Bounds GetInflatedChildBounds(float3 parentBoundsCenter, int parentDepth, int childIndexOffset)
-        {
-            Bounds childBounds = GetChildBounds(parentBoundsCenter, parentDepth, childIndexOffset);
-
-            return new Bounds(childBounds.center, m_inflationFactor * childBounds.size);
         }
 
         public struct Node

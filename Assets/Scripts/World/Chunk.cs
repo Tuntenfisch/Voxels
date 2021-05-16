@@ -15,28 +15,27 @@ namespace Tuntenfisch.World
     internal class Chunk : MonoBehaviour, IPoolable
     {
         public int Lod { get; set; }
-        private bool HasPendingRequest => !m_handle?.Canceled ?? false;
+        private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshCollider m_meshCollider;
-        private ComputeBuffer m_voxelVolumeBuffer;
-        private DualContouring.RequestHandle m_handle;
 
-        void IPoolable.OnAcquire()
-        {
-            gameObject.SetActive(true);
-        }
+        private ComputeBuffer m_voxelVolumeBuffer;
+        private DualContouring.RequestHandle m_requestHandle;
+        private JobHandle m_bakeJobHandle;
+
+        void IPoolable.OnAcquire() => gameObject.SetActive(true);
 
         void IPoolable.OnRelease()
         {
             if (HasPendingRequest)
             {
-                ClearPendingRequest();
+                CancelPendingRequest();
             }
             m_meshFilter.sharedMesh = null;
             m_meshCollider.sharedMesh = null;
-            m_handle = null;
+            m_requestHandle = null;
             gameObject.SetActive(false);
         }
 
@@ -64,25 +63,21 @@ namespace Tuntenfisch.World
             m_voxelVolumeBuffer = null;
         }
 
-        public void Generate()
+        public void Activate()
         {
-            if (HasPendingRequest)
-            {
-                ClearPendingRequest();
-            }
             float voxelSpacing = VoxelConfigs.VoxelVolumeConfig.GetVoxelSpacing(Lod);
             World.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position, voxelSpacing);
-            m_handle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, transform.position, voxelSpacing, OnMeshGenerated);
+            m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, transform.position, voxelSpacing, OnMeshGenerated);
+        }
+
+        public void Deactivate()
+        {
+            World.SharedChunkPool.Release(this);
         }
 
         private void OnMeshGenerated(NativeArray<Vertex> vertices, NativeArray<int> triangles)
         {
-            m_handle = null;
-
-            if (!gameObject.activeSelf)
-            {
-                return;
-            }
+            m_requestHandle = null;
 
             if (vertices.Length == 0 || triangles.Length == 0)
             {
@@ -104,9 +99,9 @@ namespace Tuntenfisch.World
 
         private IEnumerator BakeMesh()
         {
-            JobHandle handle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
+            m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
 
-            while (!handle.IsCompleted)
+            while (!m_bakeJobHandle.IsCompleted)
             {
                 yield return null;
             }
@@ -115,10 +110,10 @@ namespace Tuntenfisch.World
             m_meshCollider.sharedMesh = m_mesh;
         }
 
-        private void ClearPendingRequest()
+        private void CancelPendingRequest()
         {
-            m_handle.Cancel();
-            m_handle = null;
+            m_requestHandle.Cancel();
+            m_requestHandle = null;
         }
 
         private void InitializeMeshComponents()
