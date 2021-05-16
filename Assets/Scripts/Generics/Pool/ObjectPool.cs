@@ -35,8 +35,8 @@ namespace Tuntenfisch.Generics.Pool
                 obj = m_available.Pop();
             }
             m_inUse.Add(obj);
-            initializer(obj);
             obj.OnAcquire();
+            initializer(obj);
 
             return obj;
         }

@@ -57,7 +57,6 @@ namespace Tuntenfisch.World
         private ObjectPool<LodTree> m_lodTreePool;
         private Dictionary<int3, LodTree> m_lodTrees;
         private HashSet<int3> m_oldLodTrees;
-        private float m_lodTreeInflationFactor;
         private float3 m_lodTreeDimensions;
 
         // We don't want to update the visible world every frame.
@@ -88,7 +87,6 @@ namespace Tuntenfisch.World
             m_lodTreePool = new ObjectPool<LodTree>(() => { return new LodTree(); });
             m_lodTrees = new Dictionary<int3, LodTree>();
             m_oldLodTrees = new HashSet<int3>();
-            m_lodTreeInflationFactor = CalculateLodTreeInflationFactor();
             m_lodTreeDimensions = CalculateLodTreeDimensions();
 
             m_lastViewerPositionWorld = m_viewer.position;
@@ -154,9 +152,12 @@ namespace Tuntenfisch.World
             SharedChunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
         }
 
-        private float CalculateLodTreeInflationFactor() => 1.0f + (float)m_voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - m_voxelOverlap);
+        private float3 CalculateLodTreeDimensions()
+        {
+            float lodTreeInflationFactor = 1.0f + (float)m_voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - m_voxelOverlap);
 
-        private float3 CalculateLodTreeDimensions() => VoxelConfigs.VoxelVolumeConfig.GetCellVolumeDimensions(m_lods) / m_lodTreeInflationFactor;
+            return VoxelConfigs.VoxelVolumeConfig.GetCellVolumeDimensions(m_lods) / lodTreeInflationFactor;
+        }
 
         private int3 CalculateViewerLodTreeCoordinate() => (int3)math.round(m_viewer.position / m_lodTreeDimensions);
 
@@ -185,7 +186,6 @@ namespace Tuntenfisch.World
                                 lodTree.Bounds = new Bounds(lodTreeCoordinate * m_lodTreeDimensions, m_lodTreeDimensions);
                                 lodTree.MaxDepth = m_lods;
                                 lodTree.DistanceFactor = m_lodDistanceFactor;
-                                lodTree.InflationFactor = m_lodTreeInflationFactor;
                             });
                             m_lodTrees[lodTreeCoordinate] = lodTree;
                         }
@@ -216,8 +216,6 @@ namespace Tuntenfisch.World
 
             m_worldUpdateIntervalSquared = m_worldUpdateInterval * m_worldUpdateInterval;
             m_lodUpdateIntervalSquared = m_lodUpdateInterval * m_lodUpdateInterval;
-
-            m_lodTreeInflationFactor = CalculateLodTreeInflationFactor();
             m_lodTreeDimensions = CalculateLodTreeDimensions();
 
             foreach (LodTree lodTree in m_lodTrees.Values)
@@ -238,7 +236,7 @@ namespace Tuntenfisch.World
 
                 if (inUse)
                 {
-                    chunk.Generate();
+                    chunk.Activate();
                 }
             });
         }
@@ -249,7 +247,7 @@ namespace Tuntenfisch.World
             {
                 if (inUse)
                 {
-                    chunk.Generate();
+                    chunk.Activate();
                 }
             });
         }
@@ -260,7 +258,7 @@ namespace Tuntenfisch.World
             {
                 if (inUse)
                 {
-                    chunk.Generate();
+                    chunk.Activate();
                 }
             });
         }
