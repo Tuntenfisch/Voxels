@@ -28,12 +28,12 @@ namespace Tuntenfisch.Generics.Octree
         {
             if (maxDepth < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDepth), maxDepth, "Max depth must be positive!");
+                throw new ArgumentOutOfRangeException(nameof(maxDepth), maxDepth, $"Paremeter {nameof(maxDepth)} must be positive!");
             }
 
             if (maxElementsPerNode < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxElementsPerNode), maxElementsPerNode, "Maximum number of elements per node must be positive!");
+                throw new ArgumentOutOfRangeException(nameof(maxElementsPerNode), maxElementsPerNode, $"Parameter {nameof(maxElementsPerNode)} must be positive!");
             }
 
             m_bounds = bounds;
@@ -199,7 +199,7 @@ namespace Tuntenfisch.Generics.Octree
 
             if (!m_bounds.Contains(position))
             {
-                throw new ArgumentOutOfRangeException(nameof(position), position, "Position is outside of octree bounds!");
+                throw new ArgumentOutOfRangeException(nameof(position), position, $"Parameter {nameof(position)} is outside of octree bounds!");
             }
 
             // Store this item in our list of items.

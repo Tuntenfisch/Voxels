@@ -27,41 +27,41 @@ namespace Tuntenfisch.Voxels
 #endif
         }
 
-        public void GenerateVoxelVolume(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
+        public void GenerateVoxelVolume(ComputeBuffer voxelVolumeBuffer, float3 worldPosition)
         {
             if (voxelVolumeBuffer == null)
             {
                 throw new ArgumentNullException(nameof(voxelVolumeBuffer));
             }
 
-            SetupVoxelVolumeGeneration(voxelVolumeBuffer, worldPosition, voxelSpacing);
+            SetupVoxelVolumeGeneration(voxelVolumeBuffer, worldPosition);
 
-            VoxelConfigs.VoxelVolumeConfig.Compute.Dispatch(0, VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount);
+            VoxelConfigs.VoxelVolumeConfig.Compute.Dispatch(0, VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
         }
 
-        private void SetupVoxelVolumeGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
+        private void SetupVoxelVolumeGeneration(ComputeBuffer voxelVolumeBuffer, float3 voxelVolumeToWorldOffset)
         {
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.s_voxelSpacing, voxelSpacing);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetVector(ComputeShaderProperties.s_voxelVolumeToWorldOffset, (Vector3)worldPosition);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldOffset, (Vector3)voxelVolumeToWorldOffset);
 
             // Link buffer for kernel 0.
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
         }
 
         private void ApplyVoxelVolumeConfig()
         {
-            int3 voxelVolumeCount = VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount;
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetInts(ComputeShaderProperties.s_voxelVolumeCount, voxelVolumeCount.x, voxelVolumeCount.y, voxelVolumeCount.z);
+            int3 numberOfVoxels = VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels;
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, numberOfVoxels.x, numberOfVoxels.y, numberOfVoxels.z);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, VoxelConfigs.VoxelVolumeConfig.VoxelSpacing);
         }
 
         private void ApplyNoiseConfig()
         {
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.s_seed, VoxelConfigs.NoiseConfig.Seed);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.s_wavelength, VoxelConfigs.NoiseConfig.WaveLength);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.s_numberOfOctaves, VoxelConfigs.NoiseConfig.NumberOfOctaves);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.s_persistence, VoxelConfigs.NoiseConfig.Persistence);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.s_lacunarity, VoxelConfigs.NoiseConfig.Lacunarity);
-            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.s_height, VoxelConfigs.NoiseConfig.Height);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.Seed, VoxelConfigs.NoiseConfig.Seed);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Wavelength, VoxelConfigs.NoiseConfig.WaveLength);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfOctaves, VoxelConfigs.NoiseConfig.NumberOfOctaves);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Persistence, VoxelConfigs.NoiseConfig.Persistence);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Lacunarity, VoxelConfigs.NoiseConfig.Lacunarity);
+            VoxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Height, VoxelConfigs.NoiseConfig.Height);
         }
     }
 }
