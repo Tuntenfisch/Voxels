@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Voxels;
@@ -15,6 +14,7 @@ namespace Tuntenfisch.World
     internal class Chunk : MonoBehaviour, IPoolable
     {
         public int Lod { get; set; }
+
         private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
         private Mesh m_mesh;
@@ -41,15 +41,15 @@ namespace Tuntenfisch.World
 
         private void Awake() => InitializeMeshComponents();
 
-        public void CreateBuffers(int numberOfVoxels)
+        public void CreateBuffers()
         {
-            if (m_voxelVolumeBuffer?.count == numberOfVoxels)
+            if (m_voxelVolumeBuffer?.count == VoxelConfigs.VoxelVolumeConfig.VoxelCount)
             {
                 return;
             }
 
             ReleaseBuffers();
-            m_voxelVolumeBuffer = new ComputeBuffer(numberOfVoxels, sizeof(float) + sizeof(uint));
+            m_voxelVolumeBuffer = new ComputeBuffer(VoxelConfigs.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
         }
 
         public void ReleaseBuffers()
@@ -63,16 +63,15 @@ namespace Tuntenfisch.World
             m_voxelVolumeBuffer = null;
         }
 
-        public void Activate()
-        {
-            float voxelSpacing = VoxelConfigs.VoxelVolumeConfig.GetVoxelSpacing(Lod);
-            World.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position, voxelSpacing);
-            m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, transform.position, voxelSpacing, OnMeshGenerated);
-        }
+        public void Regenerate() => World.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
 
-        public void Deactivate()
+        public void Remeshify()
         {
-            World.SharedChunkPool.Release(this);
+            if (HasPendingRequest)
+            {
+                CancelPendingRequest();
+            }
+            m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
         }
 
         private void OnMeshGenerated(NativeArray<Vertex> vertices, NativeArray<int> triangles)
@@ -94,10 +93,10 @@ namespace Tuntenfisch.World
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
             m_mesh.RecalculateBounds();
 
-            StartCoroutine(BakeMesh());
+            StartCoroutine(BakeMeshCoroutine());
         }
 
-        private IEnumerator BakeMesh()
+        private IEnumerator BakeMeshCoroutine()
         {
             m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
 

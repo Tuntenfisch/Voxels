@@ -19,7 +19,7 @@ namespace Tuntenfisch.Voxels
     {
         private event Action OnDestroyed;
 
-        [Range(1, 8)]
+        [Range(1, 16)]
         [SerializeField]
         private int m_numberOfWorkers = 4;
 
@@ -29,9 +29,16 @@ namespace Tuntenfisch.Voxels
 
         private void Awake()
         {
+#if UNITY_EDITOR
+            VoxelConfigs.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
+#endif
             m_requests = new Queue<(RequestHandle, Worker.Payload, OnMeshGenerated)>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_payloadPool = new ObjectPool<Worker.Payload>(() => { return new Worker.Payload(); });
+
+            ApplyDualContouringConfig();
+            ApplyVoxelVolumeConfig();
         }
 
         private void Update()
@@ -42,14 +49,35 @@ namespace Tuntenfisch.Voxels
 
                 if (!handle.Canceled)
                 {
-                    StartCoroutine(DispatchWorker(handle, payload, callback));
+                    StartCoroutine(DispatchWorkerCoroutine(handle, payload, callback));
                 }
             }
         }
 
-        private void OnDestroy() => OnDestroyed?.Invoke();
+        private void OnDestroy()
+        {
+#if UNITY_EDITOR
+            VoxelConfigs.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
+            VoxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
+#endif
+            OnDestroyed?.Invoke();
+        }
 
-        public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing, OnMeshGenerated callback)
+        private void OnValidate()
+        {
+            if (m_workers == null)
+            {
+                return;
+            }
+
+            foreach (Worker worker in m_workers)
+            {
+                worker.Dispose();
+            }
+            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
+        }
+
+        public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, int lod, float3 worldPosition, OnMeshGenerated callback)
         {
             if (voxelVolumeBuffer == null)
             {
@@ -60,21 +88,21 @@ namespace Tuntenfisch.Voxels
             Worker.Payload payload = m_payloadPool.Acquire((payload) =>
             {
                 payload.VoxelVolumeBuffer = voxelVolumeBuffer;
+                payload.Lod = lod;
                 payload.WorldPosition = worldPosition;
-                payload.VoxelSpacing = voxelSpacing;
             });
             m_requests.Enqueue((handle, payload, callback));
 
             return handle;
         }
 
-        private IEnumerator DispatchWorker(RequestHandle handle, Worker.Payload payload, OnMeshGenerated callback)
+        private IEnumerator DispatchWorkerCoroutine(RequestHandle handle, Worker.Payload payload, OnMeshGenerated callback)
         {
             Worker worker = m_workers.Pop();
             worker.GenerateMeshAsync(payload);
             Worker.Status status;
 
-            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback)
+            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback && !handle.Canceled)
             {
                 yield return null;
             }
@@ -94,13 +122,38 @@ namespace Tuntenfisch.Voxels
                     }
                     break;
             }
-            m_workers.Push(worker);
+
+            if (m_workers.Count < m_numberOfWorkers)
+            {
+                m_workers.Push(worker);
+            }
+            else
+            {
+                worker.Dispose();
+            }
             m_payloadPool.Release(payload);
         }
 
-        private class Worker
+        private void ApplyDualContouringConfig()
+        {
+            float cosOfSharpFeatureAngle = math.cos(math.radians(VoxelConfigs.DualContouringConfig.SharpFeatureAngle));
+            VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.CosOfSharpFeatureAngle, cosOfSharpFeatureAngle);
+            VoxelConfigs.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.SchmitzParticleIterations, VoxelConfigs.DualContouringConfig.SchmitzParticleIterations);
+            VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.SchmitzParticleStepSize, VoxelConfigs.DualContouringConfig.SchmitzParticleStepSize);
+        }
+
+        private void ApplyVoxelVolumeConfig()
+        {
+            int3 numberOfVoxels = VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels;
+            VoxelConfigs.DualContouringConfig.Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, numberOfVoxels.x, numberOfVoxels.y, numberOfVoxels.z);
+            VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, VoxelConfigs.VoxelVolumeConfig.VoxelSpacing);
+        }
+
+        private class Worker : IDisposable
         {
             public (NativeArray<Vertex> vertices, NativeArray<int> triangles) Data => (m_vertices, m_triangles);
+
+            private DualContouring m_parent;
 
             private AsyncComputeBuffer m_vertexBuffer;
             private AsyncComputeBuffer m_generatedVertexIndexLookupTable;
@@ -110,15 +163,24 @@ namespace Tuntenfisch.Voxels
             private NativeArray<Vertex> m_vertices;
             private NativeArray<int> m_triangles;
 
+            public void Dispose()
+            {
+#if UNITY_EDITOR
+                VoxelConfigs.VoxelVolumeConfig.OnDirtied -= CreateBuffers;
+#endif
+                ReleaseBuffers();
+                m_parent.OnDestroyed -= Dispose;
+                m_parent = null;
+            }
+
             public Worker(DualContouring parent)
             {
 #if UNITY_EDITOR
-                VoxelConfigs.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
-                VoxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
+                VoxelConfigs.VoxelVolumeConfig.OnDirtied += CreateBuffers;
 #endif
-                parent.OnDestroyed += OnDestroy;
-                ApplyDualContouringConfig();
-                ApplyVoxelVolumeConfig();
+                m_parent = parent;
+                m_parent.OnDestroyed += Dispose;
+                CreateBuffers();
             }
 
             public Status Process()
@@ -166,27 +228,31 @@ namespace Tuntenfisch.Voxels
 
             public void GenerateMeshAsync(Payload payload)
             {
-                SetupMeshGeneration(payload.VoxelVolumeBuffer, payload.WorldPosition, payload.VoxelSpacing);
+                ComputeBuffer voxelVolumeBuffer = payload.VoxelVolumeBuffer;
+                float3 voxelVolumeToWorldOffset = payload.WorldPosition;
+                int cellStride = VoxelConfigs.DualContouringConfig.GetCellStride(payload.Lod);
 
-                VoxelConfigs.DualContouringConfig.Compute.Dispatch(0, VoxelConfigs.VoxelVolumeConfig.CellVolumeCount);
-                VoxelConfigs.DualContouringConfig.Compute.Dispatch(1, VoxelConfigs.VoxelVolumeConfig.CellVolumeCount);
+                SetupMeshGeneration(voxelVolumeBuffer, voxelVolumeToWorldOffset, cellStride);
+
+                VoxelConfigs.DualContouringConfig.Compute.Dispatch(0, VoxelConfigs.VoxelVolumeConfig.NumberOfCells);
+                VoxelConfigs.DualContouringConfig.Compute.Dispatch(1, VoxelConfigs.VoxelVolumeConfig.NumberOfCells - 1);
 
                 ComputeBuffer.CopyCount(m_vertexBuffer, m_countBuffer, 0);
                 ComputeBuffer.CopyCount(m_triangleBuffer, m_countBuffer, sizeof(int));
                 m_countBuffer.RequestData();
             }
 
-            private void CreateBuffers(int maxNumberOfVertices, int numberOfVoxels, int maxNumberOfTriangles)
+            private void CreateBuffers()
             {
-                if (m_vertexBuffer?.Count == maxNumberOfVertices)
+                if (m_vertexBuffer?.Count == VoxelConfigs.VoxelVolumeConfig.MaxNumberOfVertices)
                 {
                     return;
                 }
 
                 ReleaseBuffers();
-                m_vertexBuffer = new AsyncComputeBuffer(maxNumberOfVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
-                m_generatedVertexIndexLookupTable = new AsyncComputeBuffer(numberOfVoxels, sizeof(int));
-                m_triangleBuffer = new AsyncComputeBuffer(maxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
+                m_vertexBuffer = new AsyncComputeBuffer(VoxelConfigs.VoxelVolumeConfig.MaxNumberOfVertices, Vertex.SizeInBytes, ComputeBufferType.Counter);
+                m_generatedVertexIndexLookupTable = new AsyncComputeBuffer(VoxelConfigs.VoxelVolumeConfig.CellCount, sizeof(int));
+                m_triangleBuffer = new AsyncComputeBuffer(VoxelConfigs.VoxelVolumeConfig.MaxNumberOfTriangles, 3 * sizeof(int), ComputeBufferType.Append);
                 m_countBuffer = new AsyncComputeBuffer(2, sizeof(int), ComputeBufferType.Raw);
             }
 
@@ -207,60 +273,31 @@ namespace Tuntenfisch.Voxels
                 m_countBuffer = null;
             }
 
-            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, float voxelSpacing)
+            private void SetupMeshGeneration(ComputeBuffer voxelVolumeBuffer, float3 voxelVolumeToWorldOffset, int cellStride)
             {
                 m_vertexBuffer.SetCounterValue(0);
                 m_triangleBuffer.SetCounterValue(0);
 
-                VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_voxelSpacing, voxelSpacing);
-                VoxelConfigs.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.s_voxelVolumeToWorldOffset, (Vector3)worldPosition);
+                VoxelConfigs.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldOffset, (Vector3)voxelVolumeToWorldOffset);
+                VoxelConfigs.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.CellStride, cellStride);
 
                 // Link buffer for kernel 0.
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.s_generatedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.GeneratedVertices, m_vertexBuffer);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.GeneratedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
 
                 // Link buffer for kernel 1.
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.s_voxelVolume, voxelVolumeBuffer);
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.s_generatedVertices, m_vertexBuffer);
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.s_generatedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
-                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.s_generatedTriangles, m_triangleBuffer);
-            }
-
-            private void ApplyDualContouringConfig()
-            {
-                float cosOfSharpFeatureAngle = math.cos(math.radians(VoxelConfigs.DualContouringConfig.SharpFeatureAngle));
-                VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_cosOfSharpFeatureAngle, cosOfSharpFeatureAngle);
-                VoxelConfigs.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.s_schmitzParticleIterations, VoxelConfigs.DualContouringConfig.SchmitzParticleIterations);
-                VoxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.s_schmitzParticleStepSize, VoxelConfigs.DualContouringConfig.SchmitzParticleStepSize);
-            }
-
-            private void ApplyVoxelVolumeConfig()
-            {
-                int3 voxelVolumeCount = VoxelConfigs.VoxelVolumeConfig.VoxelVolumeCount;
-                VoxelConfigs.DualContouringConfig.Compute.SetInts(ComputeShaderProperties.s_voxelVolumeCount, voxelVolumeCount.x, voxelVolumeCount.y, voxelVolumeCount.z);
-                CreateBuffers
-                (
-                    VoxelConfigs.VoxelVolumeConfig.MaxNumberOfVertices,
-                    VoxelConfigs.VoxelVolumeConfig.NumberOfVoxels,
-                    VoxelConfigs.VoxelVolumeConfig.MaxNumberOfTriangles
-                );
-            }
-
-            private void OnDestroy()
-            {
-#if UNITY_EDITOR
-                VoxelConfigs.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
-                VoxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-#endif
-                ReleaseBuffers();
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVertices, m_vertexBuffer);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
+                VoxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedTriangles, m_triangleBuffer);
             }
 
             public class Payload : IPoolable
             {
                 public ComputeBuffer VoxelVolumeBuffer { get; set; }
+                public int Lod { get; set; }
                 public float3 WorldPosition { get; set; }
-                public float VoxelSpacing { get; set; }
 
                 void IPoolable.OnAcquire() { }
 

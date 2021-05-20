@@ -6,6 +6,8 @@ namespace Tuntenfisch.Player
 {
     public class PlayerController : MonoBehaviour
     {
+        private float Gravity => Physics.gravity.y;
+
         [Header("Movement")]
         [Range(1.0f, 10.0f)]
         [SerializeField]
@@ -20,8 +22,6 @@ namespace Tuntenfisch.Player
         private float m_lookSensitivity = 0.1f;
         [SerializeField]
         private Camera m_camera;
-
-        private float Gravity => Physics.gravity.y;
 
         private CharacterController m_controller;
 

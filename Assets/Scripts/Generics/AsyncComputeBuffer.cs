@@ -13,37 +13,37 @@ namespace Tuntenfisch.Generics
 
         private readonly ComputeBuffer m_buffer;
         private AsyncGPUReadbackRequest m_request;
-        private bool m_retrievingData;
+        private AsyncComputeBufferFlags m_flags;
 
         public AsyncComputeBuffer(int count, int stride, ComputeBufferType type = ComputeBufferType.Default)
         {
             m_buffer = new ComputeBuffer(count, stride, type);
         }
 
-        public void RequestData()
-        {
-            RequestData(m_buffer.count);
-        }
+        public void RequestData() => RequestData(m_buffer.count);
 
         public void RequestData(int count)
         {
             if (count > m_buffer.count)
             {
-                throw new ArgumentOutOfRangeException(nameof(count), count, "Requested number of elements is larger than the total buffer's number of elements!");
+                throw new ArgumentOutOfRangeException(nameof(count), count, $"Parameter {nameof(count)} is larger than the buffer's total number of elements!");
             }
 
             m_request = AsyncGPUReadback.Request(m_buffer, count * m_buffer.stride, 0);
-            m_retrievingData = true;
+            m_flags |= AsyncComputeBufferFlags.RetrievingData;
         }
 
         public bool IsDataAvailable()
         {
-            if (!m_retrievingData)
+            if (!m_flags.HasFlag(AsyncComputeBufferFlags.RetrievingData))
             {
                 return false;
             }
 
-            m_retrievingData = !HasError;
+            if (HasError)
+            {
+                m_flags &= ~AsyncComputeBufferFlags.RetrievingData;
+            }
 
             return m_request.done;
         }
@@ -56,7 +56,7 @@ namespace Tuntenfisch.Generics
             }
 
             NativeArray<T> data = m_request.GetData<T>();
-            m_retrievingData = false;
+            m_flags &= ~AsyncComputeBufferFlags.RetrievingData;
 
             return data;
         }
@@ -64,5 +64,11 @@ namespace Tuntenfisch.Generics
         public void SetCounterValue(uint counterValue) => m_buffer.SetCounterValue(counterValue);
 
         public void Release() => m_buffer.Release();
+
+        [Flags]
+        private enum AsyncComputeBufferFlags
+        {
+            RetrievingData = 1
+        }
     }
 }

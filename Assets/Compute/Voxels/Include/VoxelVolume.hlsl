@@ -3,43 +3,38 @@
 
 RWStructuredBuffer<Voxel> voxelVolume;
 
-uint3 voxelVolumeCount;
+uint3 numberOfVoxels;
 float voxelSpacing;
 float3 voxelVolumeToWorldOffset;
 
-bool IsOutOfVoxelVolumeBounds(uint3 id, int padding = 0)
+bool IsOutOfVoxelVolumeBounds(uint3 coordinate)
 {
-    return any(step(voxelVolumeCount + padding, id));
+    return any(step(numberOfVoxels, coordinate));
 }
 
-uint3 ClampToVoxelVolumeBounds(uint3 id)
+uint CalculateVoxelVolumeIndex(uint3 coordinate)
 {
-    return clamp(id, 0, voxelVolumeCount - 1);
+    return dot(coordinate, uint3(1, numberOfVoxels.x, numberOfVoxels.x * numberOfVoxels.y));
 }
 
-uint CalculateVoxelVolumeIndex(uint3 id)
+Voxel GetVoxel(uint3 coordinate)
 {
-    return dot(id, uint3(1, voxelVolumeCount.x, voxelVolumeCount.x * voxelVolumeCount.y));
+    return voxelVolume[CalculateVoxelVolumeIndex(coordinate)];
 }
 
-Voxel GetVoxel(uint3 id)
+void SetVoxel(uint3 coordinate, Voxel voxel)
 {
-    return voxelVolume[CalculateVoxelVolumeIndex(id)];
+    voxelVolume[CalculateVoxelVolumeIndex(coordinate)] = voxel;
 }
 
-void SetVoxel(uint3 id, Voxel voxel)
+float3 VoxelToVoxelVolumeSpace(uint3 coordinate, float3 position = 0.0f)
 {
-    voxelVolume[CalculateVoxelVolumeIndex(id)] = voxel;
+    return voxelSpacing * (position + coordinate - 0.5f * (numberOfVoxels - 1.0f));
 }
 
-float3 VoxelToVoxelVolumeSpace(uint3 id, float3 position = 0.0f)
+float3 VoxelVolumeToVoxelSpace(uint3 coordinate, float3 position = 0.0f)
 {
-    return voxelSpacing * (position + id - 0.5f * (voxelVolumeCount - 1.0f));
-}
-
-float3 VoxelVolumeToVoxelSpace(uint3 id, float3 position = 0.0f)
-{
-    return position / voxelSpacing - id + 0.5f * (voxelVolumeCount - 1.0f);
+    return position / voxelSpacing - coordinate + 0.5f * (numberOfVoxels - 1.0f);
 }
 
 float3 VoxelVolumeToWorldSpace(float3 position)

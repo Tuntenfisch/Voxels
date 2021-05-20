@@ -33,9 +33,9 @@ void GenerateVoxelVolume(uint3 id : SV_DispatchThreadID)
     }
 
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(id));
-    float4 cube = SDFCube::Create(float3(0.0f, 2.0f, 0.0f), float3(15.0f, 3.0f, 20.0f)).Evaluate(worldPosition);
-    float4 sphere0 = SDFSphere::Create(float3(0.0f, 2.0f, 0.0f), 2.0f).Evaluate(worldPosition);
-    float4 sphere1 = SDFSphere::Create(float3(0.0f, 2.0f, 0.0f), 5.0f).Evaluate(worldPosition);
+    float4 cube = SDFCube::Create(float3(0.5f, 2.5f, 0.5f), float3(15.0f, 3.0f, 20.0f)).Evaluate(worldPosition);
+    float4 sphere0 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 2.0f).Evaluate(worldPosition);
+    float4 sphere1 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 5.0f).Evaluate(worldPosition);
     float4 height = GenerateHeight(worldPosition);
     float4 value_gradient = Union(sphere0, Difference(SmoothUnion(height, cube, 2.0f), sphere1));
 

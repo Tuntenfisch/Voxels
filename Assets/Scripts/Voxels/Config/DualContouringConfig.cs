@@ -8,13 +8,14 @@ namespace Tuntenfisch.Voxels.Config
     {
         public event Action OnDirtied;
 
+        public static readonly int[] CellStrides = { 1, 2, 3, 4, 6, 8, 12, 24 };
+
         // Dual contouring properties.
         public ComputeShader Compute => m_compute;
         public int SchmitzParticleIterations => m_schmitzParticleIterations;
         public float SchmitzParticleStepSize => m_schmitzParticleStepSize;
         public float SharpFeatureAngle => m_sharpFeatureAngle;
 
-        [Header("General")]
         [SerializeField]
         private ComputeShader m_compute;
         [Range(0, 50)]
@@ -28,5 +29,7 @@ namespace Tuntenfisch.Voxels.Config
         private float m_sharpFeatureAngle = 50.0f;
 
         private void OnValidate() => OnDirtied?.Invoke();
+
+        public int GetCellStride(int lod) => CellStrides[lod];
     }
 }

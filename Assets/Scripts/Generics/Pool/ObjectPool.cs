@@ -13,7 +13,7 @@ namespace Tuntenfisch.Generics.Pool
         {
             if (initialCapacity < initialCount)
             {
-                throw new ArgumentOutOfRangeException(nameof(initialCapacity), initialCapacity, "Initial capacity must be at least as large as initial preheat count!");
+                throw new ArgumentOutOfRangeException(nameof(initialCapacity), initialCapacity, $"Parameter {nameof(initialCapacity)} must be at least as large parameter {nameof(initialCount)}!");
             }
 
             m_available = new Stack<T>(initialCapacity);
@@ -22,7 +22,7 @@ namespace Tuntenfisch.Generics.Pool
             Populate(initialCount);
         }
 
-        public T Acquire(Action<T> initializer)
+        public T Acquire(Action<T> initializer = null)
         {
             T obj;
 
@@ -35,8 +35,8 @@ namespace Tuntenfisch.Generics.Pool
                 obj = m_available.Pop();
             }
             m_inUse.Add(obj);
+            initializer?.Invoke(obj);
             obj.OnAcquire();
-            initializer(obj);
 
             return obj;
         }
@@ -50,7 +50,7 @@ namespace Tuntenfisch.Generics.Pool
 
             if (!m_inUse.Remove(obj))
             {
-                throw new ArgumentException("Released object doesn't belong to this pool!", nameof(obj));
+                throw new ArgumentException($"Paremeter {nameof(obj)} doesn't belong to this pool!", nameof(obj));
             }
 
             obj.OnRelease();
