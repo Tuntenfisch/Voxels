@@ -5,7 +5,7 @@ RWStructuredBuffer<Voxel> voxelVolume;
 
 uint3 numberOfVoxels;
 float voxelSpacing;
-float3 voxelVolumeToWorldOffset;
+float3 voxelVolumeToWorldSpaceOffset;
 
 bool IsOutOfVoxelVolumeBounds(uint3 coordinate)
 {
@@ -39,12 +39,12 @@ float3 VoxelVolumeToVoxelSpace(uint3 coordinate, float3 position = 0.0f)
 
 float3 VoxelVolumeToWorldSpace(float3 position)
 {
-    return position + voxelVolumeToWorldOffset;
+    return position + voxelVolumeToWorldSpaceOffset;
 }
 
 float3 WorldToVoxelVolumeSpace(float3 position)
 {
-    return position - voxelVolumeToWorldOffset;
+    return position - voxelVolumeToWorldSpaceOffset;
 }
 
 #endif

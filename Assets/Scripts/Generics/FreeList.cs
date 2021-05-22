@@ -19,7 +19,7 @@ namespace Tuntenfisch.Generics
         public T this[int index]
         {
             get => m_items[index].Item;
-            set => m_items[index] = FreeItem.Create(value, m_items[index].NextFreeIndex);
+            set => m_items[index] = new FreeItem(value, m_items[index].NextFreeIndex);
         }
 
         public int Insert(T item)
@@ -28,14 +28,14 @@ namespace Tuntenfisch.Generics
             {
                 int index = m_firstFreeIndex;
                 m_firstFreeIndex = m_items[m_firstFreeIndex].NextFreeIndex;
-                m_items[index] = FreeItem.Create(item);
+                m_items[index] = new FreeItem(item);
 
                 return index;
 
             }
             else
             {
-                FreeItem freeItem = FreeItem.Create(item);
+                FreeItem freeItem = new FreeItem(item);
                 m_items.Add(freeItem);
 
                 return m_items.Count - 1;
@@ -64,13 +64,10 @@ namespace Tuntenfisch.Generics
             public T Item { get; set; }
             public int NextFreeIndex { get; set; }
 
-            public static FreeItem Create(T item = default, int nextFreeIndex = -1)
+            public FreeItem(T item = default, int nextFreeIndex = -1)
             {
-                return new FreeItem
-                {
-                    Item = item,
-                    NextFreeIndex = nextFreeIndex
-                };
+                Item = item;
+                NextFreeIndex = nextFreeIndex;
             }
         }
     }

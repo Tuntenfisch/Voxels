@@ -715,7 +715,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_viewer: {fileID: 1464136626}
-  m_updateInterval: 63
+  m_updateInterval: 96
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
   m_maxNumberOfChunksProcessedEachFrame: 20
   m_voxelOverlap: 1
@@ -737,5 +737,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_voxelVolumeConfig: {fileID: 11400000, guid: c739dde7e90ca314d88389045251e802, type: 2}
-  dualContouringConfig: {fileID: 11400000, guid: 2cc13e5883318294281f7b4ae4f9ac46, type: 2}
+  m_dualContouringConfig: {fileID: 11400000, guid: 2cc13e5883318294281f7b4ae4f9ac46, type: 2}
   m_noiseConfig: {fileID: 11400000, guid: cc31ddf977a6fb1439d10c0b892f3bbc, type: 2}

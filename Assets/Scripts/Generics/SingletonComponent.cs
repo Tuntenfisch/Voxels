@@ -12,7 +12,7 @@ namespace Tuntenfisch.Generics
                 if (s_instance == null)
                 {
                     s_instance = FindObjectOfType<T>();
-                    Assert.IsNotNull(s_instance, $"Scene is missing an instance of {typeof(T)}!");
+                    Assert.IsNotNull(s_instance, $"Scene is missing an instance of {typeof(T)}.");
                 }
 
                 return s_instance;

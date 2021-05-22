@@ -26,14 +26,6 @@ static const uint3 cellCorners[numberOfCellCorners] =
     uint3(1, 0, 1)
 };
 
-bool IsOutsideCell(float3 position, float epsilon = 0.0f)
-{
-    float3 min = (float3) (cellCorners[0] - epsilon);
-    float3 max = (float3) (cellCorners[6] + epsilon);
-    
-    return any(position < min || position > max);
-}
-
 float3 ClampToCell(float3 position, float epsilon = 0.0f)
 {
     float3 min = (float3) (cellCorners[0] - epsilon);

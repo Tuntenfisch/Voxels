@@ -1,8 +1,8 @@
 ﻿using System.Collections;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
+using Tuntenfisch.Generics.Request;
 using Tuntenfisch.Voxels;
-using Tuntenfisch.Voxels.Config;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -22,7 +22,7 @@ namespace Tuntenfisch.World
         private MeshCollider m_meshCollider;
 
         private ComputeBuffer m_voxelVolumeBuffer;
-        private DualContouring.RequestHandle m_requestHandle;
+        private RequestHandle m_requestHandle;
         private JobHandle m_bakeJobHandle;
 
         void IPoolable.OnAcquire() => gameObject.SetActive(true);
@@ -43,13 +43,13 @@ namespace Tuntenfisch.World
 
         public void CreateBuffers()
         {
-            if (m_voxelVolumeBuffer?.count == VoxelConfigs.VoxelVolumeConfig.VoxelCount)
+            if (m_voxelVolumeBuffer?.count == World.VoxelConfigs.VoxelVolumeConfig.VoxelCount)
             {
                 return;
             }
 
             ReleaseBuffers();
-            m_voxelVolumeBuffer = new ComputeBuffer(VoxelConfigs.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
+            m_voxelVolumeBuffer = new ComputeBuffer(World.VoxelConfigs.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
         }
 
         public void ReleaseBuffers()
@@ -74,11 +74,11 @@ namespace Tuntenfisch.World
             m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
         }
 
-        private void OnMeshGenerated(NativeArray<Vertex> vertices, NativeArray<int> triangles)
+        private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<Vertex> vertices, NativeArray<int> triangles)
         {
             m_requestHandle = null;
 
-            if (vertices.Length == 0 || triangles.Length == 0)
+            if (vertexCount == 0 || triangleCount == 0)
             {
                 m_meshFilter.sharedMesh = null;
                 m_meshCollider.sharedMesh = null;
@@ -86,11 +86,11 @@ namespace Tuntenfisch.World
                 return;
             }
 
-            m_mesh.SetVertexBufferParams(vertices.Length, Vertex.Attributes);
-            m_mesh.SetVertexBufferData(vertices, 0, 0, vertices.Length);
-            m_mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangles.Length);
-            m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length));
+            m_mesh.SetVertexBufferParams(vertexCount, Vertex.Attributes);
+            m_mesh.SetVertexBufferData(vertices, 0, 0, vertexCount);
+            m_mesh.SetIndexBufferParams(triangleCount, IndexFormat.UInt32);
+            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount);
+            m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds();
 
             StartCoroutine(BakeMeshCoroutine());

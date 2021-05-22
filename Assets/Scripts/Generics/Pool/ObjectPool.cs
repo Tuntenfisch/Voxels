@@ -13,7 +13,7 @@ namespace Tuntenfisch.Generics.Pool
         {
             if (initialCapacity < initialCount)
             {
-                throw new ArgumentOutOfRangeException(nameof(initialCapacity), initialCapacity, $"Parameter {nameof(initialCapacity)} must be at least as large parameter {nameof(initialCount)}!");
+                throw new ArgumentOutOfRangeException(nameof(initialCapacity), initialCapacity, $"Parameter {nameof(initialCapacity)} must be at least as large parameter {nameof(initialCount)}.");
             }
 
             m_available = new Stack<T>(initialCapacity);
@@ -50,7 +50,7 @@ namespace Tuntenfisch.Generics.Pool
 
             if (!m_inUse.Remove(obj))
             {
-                throw new ArgumentException($"Paremeter {nameof(obj)} doesn't belong to this pool!", nameof(obj));
+                throw new ArgumentException($"Paremeter {nameof(obj)} doesn't belong to this pool.", nameof(obj));
             }
 
             obj.OnRelease();
