@@ -20,7 +20,7 @@ namespace Tuntenfisch.Voxels
         public static readonly int SubSampledCellVolumeFaces = Shader.PropertyToID("subSampledCellVolumeFaces");
         public static readonly int VoxelSpacing = Shader.PropertyToID("voxelSpacing");
         public static readonly int VoxelVolume = Shader.PropertyToID("voxelVolume");
-        public static readonly int VoxelVolumeToWorldOffset = Shader.PropertyToID("voxelVolumeToWorldOffset");
+        public static readonly int VoxelVolumeToWorldSpaceOffset = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
         public static readonly int Wavelength = Shader.PropertyToID("wavelength");
     }
 }

@@ -10,13 +10,10 @@ namespace Tuntenfisch.Generics.Octree
         public int Index { get; set; }
         public int Count { get; set; }
 
-        public static OctreeNode Create(int index = -1, int count = 0)
+        public OctreeNode(int index = -1, int count = 0)
         {
-            return new OctreeNode
-            {
-                Index = index,
-                Count = count
-            };
+            Index = index;
+            Count = count;
         }
     }
 
@@ -32,13 +29,10 @@ namespace Tuntenfisch.Generics.Octree
         public int ItemIndex { get; set; }
         public int NextItemNodeIndex { get; set; }
 
-        public static OctreeItemNode Create(int itemIndex = -1, int nextItemNodeIndex = -1)
+        public OctreeItemNode(int itemIndex = -1, int nextItemNodeIndex = -1)
         {
-            return new OctreeItemNode
-            {
-                ItemIndex = itemIndex,
-                NextItemNodeIndex = nextItemNodeIndex
-            };
+            ItemIndex = itemIndex;
+            NextItemNodeIndex = nextItemNodeIndex;
         }
     }
 }

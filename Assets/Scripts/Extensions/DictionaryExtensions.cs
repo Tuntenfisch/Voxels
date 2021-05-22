@@ -11,7 +11,7 @@ namespace Tuntenfisch.Extensions
 
             if (!enumerator.MoveNext())
             {
-                throw new InvalidOperationException("Dictionary is empty!");
+                throw new InvalidOperationException("Dictionary is empty.");
             }
 
             KeyValuePair<TKey, TValue> item = enumerator.Current;

@@ -28,17 +28,17 @@ namespace Tuntenfisch.Generics.Octree
         {
             if (maxDepth < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDepth), maxDepth, $"Paremeter {nameof(maxDepth)} must be positive!");
+                throw new ArgumentOutOfRangeException(nameof(maxDepth), maxDepth, $"Paremeter {nameof(maxDepth)} must be positive.");
             }
 
             if (maxElementsPerNode < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxElementsPerNode), maxElementsPerNode, $"Parameter {nameof(maxElementsPerNode)} must be positive!");
+                throw new ArgumentOutOfRangeException(nameof(maxElementsPerNode), maxElementsPerNode, $"Parameter {nameof(maxElementsPerNode)} must be positive.");
             }
 
             m_bounds = bounds;
 
-            m_nodes = new List<OctreeNode> { OctreeNode.Create() }; // Root node is always stored at index 0.
+            m_nodes = new List<OctreeNode> { new OctreeNode() }; // Root node is always stored at index 0.
             m_items = new FreeList<OctreeItem<T>>();
             m_itemNodes = new FreeList<OctreeItemNode>();
 
@@ -53,7 +53,7 @@ namespace Tuntenfisch.Generics.Octree
         public void Clear()
         {
             m_nodes.Clear();
-            m_nodes.Add(OctreeNode.Create());
+            m_nodes.Add(new OctreeNode());
             m_items.Clear();
             m_itemNodes.Clear();
             m_firstFreeNodeIndex = -1;
@@ -63,7 +63,7 @@ namespace Tuntenfisch.Generics.Octree
         {
             if (m_flags.HasFlag(OctreeFlags.Traversing))
             {
-                throw new InvalidOperationException("Cannot call this method while octree is being traversed!");
+                throw new InvalidOperationException("Cannot call this method while octree is being traversed.");
             }
 
             if (m_nodes[0].IsLeaf)
@@ -98,9 +98,9 @@ namespace Tuntenfisch.Generics.Octree
                 {
                     // We "abuse" the node's index field to implement our singly linked list. The same
                     // working principle as in FreeList<T> applies (difference being the stride is 8 instead of 1).
-                    m_nodes[node.Index] = OctreeNode.Create(m_firstFreeNodeIndex, 0);
+                    m_nodes[node.Index] = new OctreeNode(m_firstFreeNodeIndex, 0);
                     m_firstFreeNodeIndex = node.Index;
-                    m_nodes[nodeIndex] = OctreeNode.Create();
+                    m_nodes[nodeIndex] = new OctreeNode();
                 }
             }
         }
@@ -114,7 +114,7 @@ namespace Tuntenfisch.Generics.Octree
 
             if (m_flags.HasFlag(OctreeFlags.Traversing))
             {
-                throw new InvalidOperationException("Already traversing octree!");
+                throw new InvalidOperationException("Already traversing octree.");
             }
 
             m_flags |= OctreeFlags.Traversing;
@@ -148,7 +148,7 @@ namespace Tuntenfisch.Generics.Octree
         {
             if (m_flags.HasFlag(OctreeFlags.Traversing))
             {
-                throw new InvalidOperationException("Cannot call this method while octree is being traversed!");
+                throw new InvalidOperationException("Cannot call this method while octree is being traversed.");
             }
 
             OctreeItem<T> octreeItem = m_items[itemIndex];
@@ -194,12 +194,12 @@ namespace Tuntenfisch.Generics.Octree
         {
             if (m_flags.HasFlag(OctreeFlags.Traversing))
             {
-                throw new InvalidOperationException("Cannot call this method while octree is being traversed!");
+                throw new InvalidOperationException("Cannot call this method while octree is being traversed.");
             }
 
             if (!m_bounds.Contains(position))
             {
-                throw new ArgumentOutOfRangeException(nameof(position), position, $"Parameter {nameof(position)} is outside of octree bounds!");
+                throw new ArgumentOutOfRangeException(nameof(position), position, $"Parameter {nameof(position)} is outside of octree bounds.");
             }
 
             // Store this item in our list of items.
@@ -267,7 +267,7 @@ namespace Tuntenfisch.Generics.Octree
         {
             Assert.IsTrue(node.IsLeaf);
 
-            OctreeItemNode itemNode = OctreeItemNode.Create(itemIndex);
+            OctreeItemNode itemNode = new OctreeItemNode(itemIndex);
             int itemNodeIndex = m_itemNodes.Insert(itemNode);
 
             if (node.Count == 0)
@@ -299,7 +299,7 @@ namespace Tuntenfisch.Generics.Octree
 
                 for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                 {
-                    m_nodes[firstChildIndex + childIndexOffset] = OctreeNode.Create();
+                    m_nodes[firstChildIndex + childIndexOffset] = new OctreeNode();
                 }
             }
             else
@@ -308,7 +308,7 @@ namespace Tuntenfisch.Generics.Octree
 
                 for (int childIndexOffset = 0; childIndexOffset < 8; childIndexOffset++)
                 {
-                    m_nodes.Add(OctreeNode.Create());
+                    m_nodes.Add(new OctreeNode());
                 }
             }
 
