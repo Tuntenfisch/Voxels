@@ -1,4 +1,6 @@
-﻿namespace Tuntenfisch.Generics.Request
+﻿using System;
+
+namespace Tuntenfisch.Generics.Request
 {
     public class RequestHandle
     {
@@ -9,16 +11,13 @@
 
         public RequestHandle(IRequest request)
         {
-            m_request = request;
+            m_request = request ?? throw new ArgumentNullException(nameof(request));
             m_canceled = false;
         }
 
         public void Cancel()
         {
-            if (m_request != null)
-            {
-                m_request.Cancel();
-            }
+            m_request.Cancel();
             m_canceled = true;
         }
     }

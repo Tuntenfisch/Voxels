@@ -81,13 +81,8 @@ namespace Tuntenfisch.World
 
         private void Update()
         {
-            if (math.lengthsq((float3)m_viewer.position - m_lastViewerPosition) >= m_updateIntervalSquared)
+            if (math.lengthsq((float3)m_viewer.position - m_lastViewerPosition) >= m_updateIntervalSquared && m_updateWorldCoroutine == null)
             {
-                if (m_updateWorldCoroutine != null)
-                {
-                    StopCoroutine(m_updateWorldCoroutine);
-                    m_updateWorldCoroutine = null;
-                }
                 m_lastViewerPosition = m_viewer.position;
                 UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
             }
@@ -119,13 +114,13 @@ namespace Tuntenfisch.World
 
         private IEnumerator UpdateWorldCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
         {
-            yield return DestroyChunksOutsideOfViewDistanceCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame);
+            yield return DestroyChunksOutsideViewDistanceCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame);
             yield return CreateChunksWithinViewDistanceCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame);
 
             m_updateWorldCoroutine = null;
         }
 
-        private IEnumerator DestroyChunksOutsideOfViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
+        private IEnumerator DestroyChunksOutsideViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
         {
             int numberOfChunksProcessed = 0;
 

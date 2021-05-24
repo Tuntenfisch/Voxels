@@ -25,19 +25,19 @@ float4 GenerateHeight(float3 position)
 }
 
 [numthreads(4, 4, 4)]
-void GenerateVoxelVolume(uint3 id : SV_DispatchThreadID)
+void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
 {
-    if (IsOutOfVoxelVolumeBounds(id))
+    if (IsOutOfVoxelVolumeBounds(voxelID))
     {
         return;
     }
 
-    float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(id));
+    float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
     float4 cube = SDFCube::Create(float3(0.5f, 2.5f, 0.5f), float3(15.0f, 3.0f, 20.0f)).Evaluate(worldPosition);
     float4 sphere0 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 2.0f).Evaluate(worldPosition);
     float4 sphere1 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 5.0f).Evaluate(worldPosition);
     float4 height = GenerateHeight(worldPosition);
     float4 value_gradient = Union(sphere0, Difference(SmoothUnion(height, cube, 2.0f), sphere1));
 
-    SetVoxel(id, Voxel::Create(value_gradient.x, value_gradient.yzw));
+    SetVoxel(voxelID, Voxel::Create(value_gradient.x, value_gradient.yzw));
 }
