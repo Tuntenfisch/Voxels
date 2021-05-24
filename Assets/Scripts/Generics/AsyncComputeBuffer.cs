@@ -75,9 +75,7 @@ namespace Tuntenfisch.Generics
                 throw new InvalidOperationException("An error was encountered during readback. Retrieving the data is not possible.");
             }
 
-            NativeArray<T> data = m_request.GetData<T>();
-
-            return data;
+            return m_request.GetData<T>();
         }
 
         public void SetCounterValue(uint counterValue) => m_buffer.SetCounterValue(counterValue);

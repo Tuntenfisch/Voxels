@@ -49,6 +49,7 @@ namespace Tuntenfisch.World
             }
 
             ReleaseBuffers();
+
             m_voxelVolumeBuffer = new ComputeBuffer(World.VoxelConfigs.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
         }
 

@@ -109,7 +109,7 @@ namespace Tuntenfisch.Voxels
             worker.GenerateMeshAsync(request.VoxelVolumeBuffer, request.VoxelVolumeToWorldSpaceOffset, request.Lod);
             Worker.Status status;
 
-            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback && !request.Canceled)
+            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback)
             {
                 yield return null;
             }
