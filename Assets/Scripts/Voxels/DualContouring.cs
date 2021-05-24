@@ -96,7 +96,7 @@ namespace Tuntenfisch.Voxels
             {
                 payload.VoxelVolumeBuffer = voxelVolumeBuffer;
                 payload.Lod = lod;
-                payload.WorldPosition = worldPosition;
+                payload.VoxelVolumeToWorldSpaceOffset = worldPosition;
             });
             m_requests.Enqueue((request, callback));
 
@@ -106,7 +106,7 @@ namespace Tuntenfisch.Voxels
         private IEnumerator DispatchWorkerCoroutine(Request request, OnMeshGenerated callback)
         {
             Worker worker = m_workers.Pop();
-            worker.GenerateMeshAsync(request.VoxelVolumeBuffer, request.WorldPosition, request.Lod);
+            worker.GenerateMeshAsync(request.VoxelVolumeBuffer, request.VoxelVolumeToWorldSpaceOffset, request.Lod);
             Worker.Status status;
 
             while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback && !request.Canceled)
@@ -123,7 +123,7 @@ namespace Tuntenfisch.Voxels
                     break;
 
                 default:
-                    // Only call the callback if the request isn't canceled.
+                    // Only call the callback if the request hasn't been canceled.
                     if (!request.Canceled)
                     {
                         callback(worker.VertexCount, worker.TriangleCount, worker.Vertices, worker.Triangles);
@@ -237,8 +237,7 @@ namespace Tuntenfisch.Voxels
                 SetupMeshGeneration(voxelVolumeBuffer, voxelVolumeToWorldOffset, m_parent.m_voxelConfigs.DualContouringConfig.GetCellStride(lod));
 
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(0, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells);
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(1, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells);
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(2, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells - 1);
+                m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(1, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells - 1);
 
                 ComputeBuffer.CopyCount(m_vertexBuffer, m_countBuffer, 0);
                 ComputeBuffer.CopyCount(m_triangleBuffer, m_countBuffer, sizeof(uint));
@@ -273,7 +272,8 @@ namespace Tuntenfisch.Voxels
                     return;
                 }
 
-                // Release CPU buffers.
+                // Dispose CPU buffers.
+                // We need to ensure none of the CPU buffers are currently in use before disposing them.
                 if (m_countBuffer.ReadbackInProgress)
                 {
                     m_countBuffer.EndReadback();
@@ -317,13 +317,10 @@ namespace Tuntenfisch.Voxels
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.GeneratedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
 
                 // Link buffer for kernel 1.
+                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVertices, m_vertexBuffer);
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
-
-                // Link buffer for kernel 2.
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.GeneratedVertices, m_vertexBuffer);
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.GeneratedVertexIndicesLookupTable, m_generatedVertexIndexLookupTable);
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.GeneratedTriangles, m_triangleBuffer);
+                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedTriangles, m_triangleBuffer);
             }
 
             public enum Status
@@ -339,7 +336,7 @@ namespace Tuntenfisch.Voxels
             public bool Canceled => m_canceled;
             public ComputeBuffer VoxelVolumeBuffer { get; set; }
             public int Lod { get; set; }
-            public float3 WorldPosition { get; set; }
+            public float3 VoxelVolumeToWorldSpaceOffset { get; set; }
 
             private bool m_canceled;
 
