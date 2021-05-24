@@ -53,7 +53,7 @@ namespace Tuntenfisch.World
         private Coroutine m_updateWorldCoroutine;
         private Coroutine m_applySettingsCoroutine;
 
-        private void Awake()
+        private void Start()
         {
             Assert.IsFalse(m_chunkPrefab.activeSelf);
 
@@ -98,7 +98,7 @@ namespace Tuntenfisch.World
             SharedChunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
         }
 
-        private void OnValidate() => ApplySettingsCoroutine();
+        private void OnValidate() => ApplySettings();
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
         {
