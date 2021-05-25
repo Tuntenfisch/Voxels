@@ -3,6 +3,7 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"
+#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
 
 interface INoise
@@ -14,9 +15,9 @@ struct SimplexNoise2D : INoise
 {
     float4 GenerateNoise(float3 position)
     {
-        float4 value_gradient = snoise_grad(float3(position.x, 0.0f, position.z)).wxyz;
+        float3 value_gradient = SimplexNoiseGrad(position.xz).zxy;
 
-        return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.w));
+        return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.z));
     }
 };
 
@@ -24,7 +25,7 @@ struct SimplexNoise3D : INoise
 {
     float4 GenerateNoise(float3 position)
     {
-        return snoise_grad(position).wxyz;
+        return SimplexNoiseGrad(position).wxyz;
     }
 };
 
