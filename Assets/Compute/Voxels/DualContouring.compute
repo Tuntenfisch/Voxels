@@ -42,7 +42,9 @@ float3 CalculateCombinedForce(float3 center)
 
     float gamma = center.y;
 
-    return(1.0f - gamma) * force0347 + gamma * force1256;
+    float3 force03471256 = (1.0f - gamma) * force0347 + gamma * force1256;
+
+    return force03471256;
 }
 
 float3 CalculateForce(float3 corner)
@@ -96,7 +98,7 @@ Vertex CalculateCenterVertex()
     return vertex;
 }
 
-Vertex CalculateVertex(uint3 coordinate, uint3 stride)
+Vertex CalculateVertex(uint3 coordinate, uint stride)
 {
     Vertex vertex = CalculateCenterVertex();
 
@@ -113,13 +115,13 @@ Vertex CalculateVertex(uint3 coordinate, uint3 stride)
         }
     }
 
-    vertex.position = ClampToCell(vertex.position, 1e-3f);
-    vertex.position = stride * voxelSpacing * vertex.position + VoxelToVoxelVolumeSpace(coordinate);
+    vertex.position = ClampToCell(vertex.position);
+    vertex.position = VoxelToVoxelVolumeSpace(coordinate, stride * vertex.position);
 
     return vertex;
 }
 
-void CalculatePositionsAndNormals(uint3 coordinate, uint3 stride)
+void CalculatePositionsAndNormals(uint3 coordinate, uint stride)
 {
     numberOfIntersections = 0;
 
@@ -148,49 +150,44 @@ void CalculatePositionsAndNormals(uint3 coordinate, uint3 stride)
     }
 }
 
-bool IsOutsideBoundsForVertexGeneration(uint3 coordinate)
-{
-    return any(step(numberOfVoxels - 1, coordinate));
-}
-
-bool IsMultipleOfStride(uint3 coordinate, uint3 stride)
+bool IsMultipleOfStride(uint3 coordinate, uint stride)
 {
     return all(coordinate % stride == 0);
 }
 
-uint3 CalculateStrideForVertexGeneration(uint3 coordinate)
+bool IsOutsideBoundsForVertexGeneration(uint3 coordinate)
 {
-    return cellStride;
+    return any(coordinate > numberOfVoxels - 2);
 }
 
 [numthreads(4, 4, 4)]
 void GenerateVertices(uint3 cellID : SV_DispatchThreadID)
 {
-    uint3 stride = CalculateStrideForVertexGeneration(cellID);
-
-    if (!IsMultipleOfStride(cellID, stride))
-    {
-        return;
-    }
-
     if (IsOutsideBoundsForVertexGeneration(cellID))
     {
         return;
     }
-
-    CalculatePositionsAndNormals(cellID, stride);
+    
     uint vertexIndex = -1;
+
+    if (!IsMultipleOfStride(cellID, cellStride))
+    {
+        generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)] = vertexIndex;
+
+        return;
+    }
+
+    CalculatePositionsAndNormals(cellID, cellStride);
 
     if (numberOfIntersections > 0)
     {
         vertexIndex = generatedVertices.IncrementCounter();
-        generatedVertices[vertexIndex] = CalculateVertex(cellID, stride);
+        generatedVertices[vertexIndex] = CalculateVertex(cellID, cellStride);
     }
-
     generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)] = vertexIndex;
 }
 
-uint3 GetVertexIndices(uint3 coordinate, uint index, uint3 stride)
+uint3 GetVertexIndices(uint3 coordinate, uint index, uint stride)
 {
     const uint3 cellCornerIndices[3] =
     {
@@ -216,27 +213,20 @@ CellEdge GetCellEdge(uint index)
     return cellEdges[edgeIndices[index]];
 }
 
-bool IsOutsideBoundsForTriangleGeneration(uint3 coordinate, uint3 stride)
+bool IsOutsideBoundsForTriangleGeneration(uint3 coordinate, uint stride)
 {
-    return any(step(numberOfVoxels - 1 - stride, coordinate));
-}
-
-uint3 CalculateStrideForTriangleGeneration(uint3 coordinate)
-{
-    return cellStride;
+    return any(coordinate > numberOfVoxels - 2 - stride);
 }
 
 [numthreads(4, 4, 4)]
 void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
 {
-    uint3 stride = CalculateStrideForTriangleGeneration(cellID);
-
-    if (!IsMultipleOfStride(cellID, stride))
+    if (IsOutsideBoundsForTriangleGeneration(cellID, cellStride))
     {
         return;
     }
 
-    if (IsOutsideBoundsForTriangleGeneration(cellID, stride))
+    if (!IsMultipleOfStride(cellID, cellStride))
     {
         return;
     }
@@ -255,15 +245,15 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
         uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
         uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
 
-        Voxel sampleA = GetVoxel(cellID + stride * cellCornerA);
-        Voxel sampleB = GetVoxel(cellID + stride * cellCornerB);
+        Voxel sampleA = GetVoxel(cellID + cellStride * cellCornerA);
+        Voxel sampleB = GetVoxel(cellID + cellStride * cellCornerB);
 
         if (sampleA.GetValue() >= 0.0f == sampleB.GetValue() >= 0.0f)
         {
             continue;
         }
 
-        uint3 vertexIndices = GetVertexIndices(cellID, index, stride);
+        uint3 vertexIndices = GetVertexIndices(cellID, index, cellStride);
 
         uint3 triangle0 = uint3(vertexIndex, vertexIndices.yx);
         uint3 triangle1 = uint3(vertexIndex, vertexIndices.zy);

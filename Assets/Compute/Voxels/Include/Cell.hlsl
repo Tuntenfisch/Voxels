@@ -28,8 +28,8 @@ static const uint3 cellCorners[numberOfCellCorners] =
 
 float3 ClampToCell(float3 position, float epsilon = 0.0f)
 {
-    float3 min = (float3) (cellCorners[0] - epsilon);
-    float3 max = (float3) (cellCorners[6] + epsilon);
+    float3 min = ((float3)cellCorners[0] - epsilon);
+    float3 max = ((float3)cellCorners[6] + epsilon);
     
     return clamp(position, min, max);
 }
