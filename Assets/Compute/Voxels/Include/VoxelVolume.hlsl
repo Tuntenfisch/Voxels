@@ -9,7 +9,7 @@ float3 voxelVolumeToWorldSpaceOffset;
 
 bool IsOutOfVoxelVolumeBounds(uint3 coordinate)
 {
-    return any(step(numberOfVoxels, coordinate));
+    return any(coordinate > numberOfVoxels - 1);
 }
 
 uint CalculateVoxelVolumeIndex(uint3 coordinate)

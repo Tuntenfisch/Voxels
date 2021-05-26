@@ -718,7 +718,7 @@ MonoBehaviour:
   m_updateInterval: 96
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
   m_maxNumberOfChunksProcessedEachFrame: 20
-  m_voxelOverlap: 1
+  m_voxelOverlap: 0
   m_lodDistances:
   - 200
   - 400
