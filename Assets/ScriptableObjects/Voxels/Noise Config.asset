@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Noise Config
   m_EditorClassIdentifier: 
   m_seed: 3
-  m_height: 50
+  m_height: 32
   m_wavelength: 300
   m_numberOfOctaves: 16
   m_persistence: 0.5

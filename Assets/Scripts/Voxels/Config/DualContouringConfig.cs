@@ -8,7 +8,7 @@ namespace Tuntenfisch.Voxels.Config
     {
         public event Action OnDirtied;
 
-        public static readonly int[] CellStrides = { 1, 2, 3, 4, 6, 8, 12, 24 };
+        public static readonly int[] CellStrides = { 1, 2, 4, 8, 16, 32 };
 
         // Dual contouring properties.
         public ComputeShader Compute => m_compute;

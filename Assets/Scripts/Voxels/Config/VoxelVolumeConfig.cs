@@ -9,7 +9,7 @@ namespace Tuntenfisch.Voxels.Config
     {
         public event Action OnDirtied;
 
-        public static readonly int[] PossibleNumberOfVoxelsAlongAxis = { 97 };
+        public static readonly int[] PossibleNumberOfVoxelsAlongAxis = { 65, 129 };
 
         // Voxel volume properties.
         public ComputeShader Compute => m_compute;
