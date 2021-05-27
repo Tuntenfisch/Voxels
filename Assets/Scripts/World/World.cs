@@ -81,8 +81,13 @@ namespace Tuntenfisch.World
 
         private void Update()
         {
-            if (math.lengthsq((float3)m_viewer.position - m_lastViewerPosition) >= m_updateIntervalSquared && m_updateWorldCoroutine == null)
+            if (math.lengthsq((float3)m_viewer.position - m_lastViewerPosition) >= m_updateIntervalSquared)
             {
+                if (m_updateWorldCoroutine != null)
+                {
+                    StopCoroutine(m_updateWorldCoroutine);
+                    m_updateWorldCoroutine = null;
+                }
                 m_lastViewerPosition = m_viewer.position;
                 UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
             }
