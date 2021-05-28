@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Voxel Volume Configuration
   m_EditorClassIdentifier: 
   m_compute: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
-  m_numberOfVoxelsAlongAxis: 129
+  m_numberOfVoxelsAlongAxis: 131
   m_voxelSpacing: 1
