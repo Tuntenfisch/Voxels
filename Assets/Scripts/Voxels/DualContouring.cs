@@ -154,6 +154,7 @@ namespace Tuntenfisch.Voxels
         {
             int3 numberOfVoxels = m_voxelConfigs.VoxelVolumeConfig.NumberOfVoxels;
             m_voxelConfigs.DualContouringConfig.Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, numberOfVoxels.x, numberOfVoxels.y, numberOfVoxels.z);
+            m_voxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, m_voxelConfigs.VoxelVolumeConfig.VoxelSpacing);
         }
 
         private class Worker : IDisposable
@@ -307,7 +308,6 @@ namespace Tuntenfisch.Voxels
                 m_vertexBuffer.SetCounterValue(0);
                 m_triangleBuffer.SetCounterValue(0);
 
-                m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, m_parent.m_voxelConfigs.VoxelVolumeConfig.VoxelSpacing);
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)voxelVolumeToWorldOffset);
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.CellStride, cellStride);
 
