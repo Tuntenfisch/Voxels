@@ -47,13 +47,16 @@ float3 CalculateCombinedForce(float3 center)
 
     float gamma = center.y;
 
-    return (1.0f - gamma) * force0347 + gamma * force1256;
+    float3 force03571256 = (1.0f - gamma) * force0347 + gamma * force1256;
+
+    return force03571256;
 }
 
 float3 CalculateForce(float3 corner)
 {
     float3 force = 0.0f;
 
+    [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
     {
         float3 position = intersections[intersectionIndex].position;
@@ -70,10 +73,12 @@ bool HasSharpFeature()
 {
     float cosOfAngle = 1.0f;
 
+    [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndexA = 0; intersectionIndexA < numberOfIntersections; intersectionIndexA++)
     {
         Vertex intersectionA = intersections[intersectionIndexA];
 
+        [unroll(maxNumberOfIntersections)]
         for (uint intersectionIndexB = 0; intersectionIndexB < numberOfIntersections; intersectionIndexB++)
         {
             Vertex intersectionB = intersections[intersectionIndexB];
@@ -89,6 +94,7 @@ Vertex CalculateCenterVertex()
 {
     Vertex vertex = Vertex::Create();
 
+    [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
     {
         vertex.position += intersections[intersectionIndex].position;
