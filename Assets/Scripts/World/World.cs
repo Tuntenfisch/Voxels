@@ -24,13 +24,11 @@ namespace Tuntenfisch.World
         [SerializeField]
         private Transform m_viewer;
         [SerializeField]
-        private float m_updateInterval = VoxelVolumeConfig.PossibleNumberOfVoxelsAlongAxis[0];
+        private float m_updateInterval = 20.0f;
         [SerializeField]
         private GameObject m_chunkPrefab;
         [SerializeField]
         private int m_maxNumberOfChunksProcessedEachFrame = 20;
-        [SerializeField]
-        private int m_voxelOverlap = 2;
         [SerializeField]
         private float[] m_lodDistances;
 
@@ -76,7 +74,10 @@ namespace Tuntenfisch.World
             m_updateIntervalSquared = math.pow(m_updateInterval, 2.0f);
             m_lodDistancesSquared = CalculateLodDistancesSquared();
 
-            UpdateWorld(m_viewer.position);
+            if (!Application.isEditor)
+            {
+                UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
+            }
         }
 
         private void Update()
@@ -226,7 +227,8 @@ namespace Tuntenfisch.World
 
         private float3 CalculateChunkDimensions()
         {
-            float inflationFactor = 1.0f + (float)m_voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - m_voxelOverlap);
+            const int voxelOverlap = 1;
+            float inflationFactor = 1.0f + (float)voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - voxelOverlap);
 
             return VoxelConfigs.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;
         }
@@ -254,7 +256,7 @@ namespace Tuntenfisch.World
                 lod = ~lod;
             }
 
-            if (lod == m_lodDistancesSquared.Length) 
+            if (lod == m_lodDistancesSquared.Length)
             {
                 lod = 0;
             }
@@ -288,7 +290,7 @@ namespace Tuntenfisch.World
             }
             m_chunks.Clear();
 
-            UpdateWorld(m_viewer.position);
+            UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
             m_applySettingsCoroutine = null;
         }
 

@@ -8,8 +8,6 @@ namespace Tuntenfisch.Voxels.Config
     {
         public event Action OnDirtied;
 
-        public static readonly int[] CellStrides = { 1, 2, 4, 8, 16, 32 };
-
         // Dual contouring properties.
         public ComputeShader Compute => m_compute;
         public int SchmitzParticleIterations => m_schmitzParticleIterations;
@@ -30,6 +28,6 @@ namespace Tuntenfisch.Voxels.Config
 
         private void OnValidate() => OnDirtied?.Invoke();
 
-        public int GetCellStride(int lod) => CellStrides[lod];
+        public int GetCellStride(int lod) => 1 << lod;
     }
 }

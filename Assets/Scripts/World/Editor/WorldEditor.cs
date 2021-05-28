@@ -1,4 +1,3 @@
-using Tuntenfisch.Voxels.Config;
 using Unity.Mathematics;
 using UnityEditor;
 
@@ -7,7 +6,7 @@ namespace Tuntenfisch.World
     [CustomEditor(typeof(World))]
     public class WorldEditor : Editor
     {
-        private static int MaxNumberOfLods => DualContouringConfig.CellStrides.Length;
+        private static int MaxNumberOfLods => 5;
 
         private static bool s_showWorldOptions;
         private static bool s_showChunkOptions;
@@ -16,7 +15,6 @@ namespace Tuntenfisch.World
         private SerializedProperty m_viewer;
         private SerializedProperty m_updateInterval;
         private SerializedProperty m_chunkPrefab;
-        private SerializedProperty m_voxelOverlap;
         private SerializedProperty m_lodDistances;
         private SerializedProperty m_maxNumberOfChunksProcessedEachFrame;
 
@@ -25,7 +23,6 @@ namespace Tuntenfisch.World
             m_viewer = serializedObject.FindProperty(nameof(m_viewer));
             m_updateInterval = serializedObject.FindProperty(nameof(m_updateInterval));
             m_chunkPrefab = serializedObject.FindProperty(nameof(m_chunkPrefab));
-            m_voxelOverlap = serializedObject.FindProperty(nameof(m_voxelOverlap));
             m_lodDistances = serializedObject.FindProperty(nameof(m_lodDistances));
             m_maxNumberOfChunksProcessedEachFrame = serializedObject.FindProperty(nameof(m_maxNumberOfChunksProcessedEachFrame));
         }
@@ -45,7 +42,6 @@ namespace Tuntenfisch.World
             if (s_showChunkOptions = EditorGUILayout.BeginFoldoutHeaderGroup(s_showChunkOptions, "Chunk"))
             {
                 EditorGUILayout.ObjectField(m_chunkPrefab);
-                m_voxelOverlap.intValue = EditorGUILayout.IntSlider("Voxel Overlap", m_voxelOverlap.intValue, 0, 6);
                 m_maxNumberOfChunksProcessedEachFrame.intValue = EditorGUILayout.IntSlider("Max Number Of Chunks Processed Each Frame", m_maxNumberOfChunksProcessedEachFrame.intValue, 10, 100);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();

@@ -9,8 +9,6 @@ namespace Tuntenfisch.Voxels.Config
     {
         public event Action OnDirtied;
 
-        public static readonly int[] PossibleNumberOfVoxelsAlongAxis = { 65, 129 };
-
         // Voxel volume properties.
         public ComputeShader Compute => m_compute;
         public int NumberOfVoxelsAlongAxis => m_numberOfVoxelsAlongAxis;
@@ -26,11 +24,16 @@ namespace Tuntenfisch.Voxels.Config
 
         [SerializeField]
         private ComputeShader m_compute;
+        [Range(35, 131)]
         [SerializeField]
-        private int m_numberOfVoxelsAlongAxis = PossibleNumberOfVoxelsAlongAxis[0];
+        private int m_numberOfVoxelsAlongAxis = 67;
         [SerializeField]
         private float m_voxelSpacing = 0.5f;
 
-        private void OnValidate() => OnDirtied?.Invoke();
+        private void OnValidate()
+        {
+            m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis) + 3;
+            OnDirtied?.Invoke();
+        }
     }
 }
