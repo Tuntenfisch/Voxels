@@ -276,11 +276,6 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
 
     uint vertexIndex = generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)];
 
-    if (vertexIndex == NULL_VERTEX_INDEX)
-    {
-        return;
-    }
-
     for (uint index = 0; index < 3; index++)
     {
         CellEdge cellEdge = GetCellEdge(index);
