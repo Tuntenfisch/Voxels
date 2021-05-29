@@ -26,8 +26,15 @@ static uint numberOfIntersections;
 static Vertex intersections[maxNumberOfIntersections];
 static float3 forces[numberOfCellCorners];
 
+bool IsSurfaceCell(uint3 coordinate)
+{
+    return any(coordinate == 0 || coordinate == numberOfVoxels - 2);
+}
+
 uint CalculateGeneratedVertexIndicesLookupTableIndex(uint3 coordinate)
 {
+    coordinate = IsSurfaceCell(coordinate) ? coordinate : (coordinate - 1) / cellStride * cellStride + 1;
+
     return dot(coordinate, uint3(1, numberOfVoxels.x - 1, (numberOfVoxels.x - 1) * (numberOfVoxels.y - 1)));
 }
 
@@ -35,21 +42,19 @@ float3 CalculateCombinedForce(float3 center)
 {
     float alpha = center.x;
 
-    float3 force03 = (1.0f - alpha) * forces[0] + alpha * forces[3];
-    float3 force47 = (1.0f - alpha) * forces[4] + alpha * forces[7];
-    float3 force12 = (1.0f - alpha) * forces[1] + alpha * forces[2];
-    float3 force56 = (1.0f - alpha) * forces[5] + alpha * forces[6];
+    float3 force03 = alpha * forces[3] + (1.0f - alpha) * forces[0];
+    float3 force47 = alpha * forces[7] + (1.0f - alpha) * forces[4];
+    float3 force12 = alpha * forces[2] + (1.0f - alpha) * forces[1];
+    float3 force56 = alpha * forces[6] + (1.0f - alpha) * forces[5];
 
     float beta = center.z;
 
-    float3 force0347 = (1.0f - beta) * force03 + beta * force47;
-    float3 force1256 = (1.0f - beta) * force12 + beta * force56;
+    float3 force0347 = beta * force47 + (1.0f - beta) * force03;
+    float3 force1256 = beta * force56 + (1.0f - beta) * force12;
 
     float gamma = center.y;
 
-    float3 force03571256 = (1.0f - gamma) * force0347 + gamma * force1256;
-
-    return force03571256;
+    return gamma * force1256 + (1.0f - gamma) * force0347;
 }
 
 float3 CalculateForce(float3 corner)
@@ -123,7 +128,6 @@ Vertex CalculateFeatureVertex(uint3 coordinate)
             vertex.position = vertex.position + schmitzParticleStepSize * CalculateCombinedForce(vertex.position);
         }
     }
-
     vertex.position = VoxelToVoxelVolumeSpace(coordinate, ClampToCell(vertex.position));
 
     return vertex;
@@ -160,14 +164,12 @@ void CalculatePositionsAndNormals(uint3 coordinate)
 
 bool IsMultipleOfStride(uint3 coordinate, uint stride)
 {
-    return all(coordinate % stride == 0);
+    return all((coordinate - 1) % stride == 0);
 }
 
 uint CalculateStride(uint3 coordinate)
 {
-    bool isSurfaceCell = any(coordinate == 0 || coordinate == numberOfVoxels - 2);
-
-    return isSurfaceCell ? 1 : cellStride;
+    return IsSurfaceCell(coordinate) ? 1 : cellStride;
 }
 
 bool IsOutsideBoundsForVertexGeneration(uint3 coordinate)
@@ -185,7 +187,7 @@ void GenerateVertices(uint3 cellID : SV_DispatchThreadID)
 
     uint stride = CalculateStride(cellID);
 
-    if (!IsMultipleOfStride(cellID - 1, stride))
+    if (!IsMultipleOfStride(cellID, stride))
     {
         return;
     }
@@ -209,13 +211,11 @@ void GenerateVertices(uint3 cellID : SV_DispatchThreadID)
                     {
                         vertexIndex = generatedVertices.IncrementCounter();
                     }
-
                     Vertex featureVertex = CalculateFeatureVertex(coordinate);
                     vertex.position += featureVertex.position;
                     vertex.normal += featureVertex.normal;
                     numberOfVertices++;
                 }
-                generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate)] = numberOfIntersections > 0 ? vertexIndex : NULL_VERTEX_INDEX;
             }
         }
     }
@@ -228,6 +228,7 @@ void GenerateVertices(uint3 cellID : SV_DispatchThreadID)
     vertex.position /= numberOfVertices;
     vertex.normal = normalize(vertex.normal);
     generatedVertices[vertexIndex] = vertex;
+    generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)] = vertexIndex;
 }
 
 bool ArePairwiseDistinct(uint3 indices)
@@ -244,12 +245,13 @@ uint3 GetVertexIndices(uint3 coordinate, uint index)
         uint3(3, 7, 4)
     };
 
-    uint3 vertexIndices = uint3
-    (
-        generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][0]])],
-        generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][1]])],
-        generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][2]])]
-    );
+    uint3 vertexIndices;
+
+    [unroll]
+    for (uint iterator = 0; iterator < 3; iterator++)
+    {
+        vertexIndices[iterator] = generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][iterator]])];
+    }
 
     return vertexIndices;
 }
@@ -292,7 +294,6 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
         }
 
         uint3 vertexIndices = GetVertexIndices(cellID, index);
-
         uint3 triangle0 = uint3(vertexIndex, vertexIndices.yx);
         uint3 triangle1 = uint3(vertexIndex, vertexIndices.zy);
 
