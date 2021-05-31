@@ -20,7 +20,7 @@ namespace Tuntenfisch.Voxels
     {
         private event Action OnDestroyed;
 
-        [Range(1, 16)]
+        [Range(1, 8)]
         [SerializeField]
         private int m_numberOfWorkers = 4;
 
@@ -247,7 +247,7 @@ namespace Tuntenfisch.Voxels
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.GeneratedVerticesIndexLookupTable, m_generatedVerticesIndexLookupTable);
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(0, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells - 2);
 
-                // Next we generate the desired level of detail for this chunk.
+                // Next we generate the desired level of detail for the previously generated vertices of this chunk.
                 // The safest way to go about level of detail is to first generate the mesh vertices at the highest lod (above dispatch call) and then merge those vertices
                 // to create a lower lod. In order to leverage the GPU's parallelism we do this iteratively, similarly to how parallel reduction works.
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVerticesIndexLookupTable, m_generatedVerticesIndexLookupTable);
@@ -262,11 +262,11 @@ namespace Tuntenfisch.Voxels
                     m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.GeneratedVertices1, m_generatedVerticesBuffer1);
                     m_parent.m_voxelConfigs.DualContouringConfig.Compute.Dispatch(1, m_parent.m_voxelConfigs.VoxelVolumeConfig.NumberOfCells / cellStride);
 
-                    // Swap the buffers, so during the next iteration the source buffer will be the current iteration's destination buffer.
+                    // Swap the buffers, so during the next iteration the source buffer will be the previous iteration's destination buffer.
                     (m_generatedVerticesBuffer0, m_generatedVerticesBuffer1) = (m_generatedVerticesBuffer1, m_generatedVerticesBuffer0);
                 }
 
-                // After the desired lod has been generated, we populate the outermost cells with vertices at the highest resolution. This will ensure that no
+                // After the desired lod has been generated, we populate the outermost cells with vertices at the highest level of detail. This will ensure that no
                 // seams will be visible, resulting in a watertight mesh.
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
                 m_parent.m_voxelConfigs.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.GeneratedVertices0, m_generatedVerticesBuffer0);
@@ -318,11 +318,6 @@ namespace Tuntenfisch.Voxels
                 if (m_generatedVerticesBuffer0.ReadbackInProgress)
                 {
                     m_generatedVerticesBuffer0.EndReadback();
-                }
-
-                if (m_generatedVerticesBuffer1.ReadbackInProgress)
-                {
-                    m_generatedVerticesBuffer1.EndReadback();
                 }
 
                 if (m_generatedTrianglesBuffer.ReadbackInProgress)

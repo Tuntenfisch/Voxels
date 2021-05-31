@@ -675,7 +675,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 525f5202e67f6834f9676bd34b027de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfWorkers: 8
+  m_numberOfWorkers: 4
 --- !u!4 &1594834158
 Transform:
   m_ObjectHideFlags: 0
@@ -719,7 +719,7 @@ MonoBehaviour:
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
   m_maxNumberOfChunksProcessedEachFrame: 20
   m_lodDistances:
-  - 400
+  - 200
   - 600
   - 1000
 --- !u!114 &1594834161
