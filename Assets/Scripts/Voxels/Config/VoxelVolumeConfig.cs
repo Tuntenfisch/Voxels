@@ -24,7 +24,7 @@ namespace Tuntenfisch.Voxels.Config
 
         [SerializeField]
         private ComputeShader m_compute;
-        [Range(35, 131)]
+        [Range(67, 131)]
         [SerializeField]
         private int m_numberOfVoxelsAlongAxis = 67;
         [SerializeField]

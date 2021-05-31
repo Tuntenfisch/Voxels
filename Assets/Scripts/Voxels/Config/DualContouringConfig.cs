@@ -27,7 +27,5 @@ namespace Tuntenfisch.Voxels.Config
         private float m_sharpFeatureAngle = 50.0f;
 
         private void OnValidate() => OnDirtied?.Invoke();
-
-        public int GetCellStride(int lod) => 1 << lod;
     }
 }

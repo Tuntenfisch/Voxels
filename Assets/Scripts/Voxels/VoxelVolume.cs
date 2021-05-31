@@ -37,17 +37,10 @@ namespace Tuntenfisch.Voxels
                 throw new ArgumentNullException(nameof(voxelVolumeBuffer));
             }
 
-            SetupVoxelVolumeGeneration(voxelVolumeBuffer, worldPosition);
+            m_voxelConfigs.VoxelVolumeConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)worldPosition);
 
-            m_voxelConfigs.VoxelVolumeConfig.Compute.Dispatch(0, m_voxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
-        }
-
-        private void SetupVoxelVolumeGeneration(ComputeBuffer voxelVolumeBuffer, float3 voxelVolumeToWorldOffset)
-        {
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)voxelVolumeToWorldOffset);
-
-            // Link buffer for kernel 0.
             m_voxelConfigs.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+            m_voxelConfigs.VoxelVolumeConfig.Compute.Dispatch(0, m_voxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
         }
 
         private void ApplyVoxelVolumeConfig()

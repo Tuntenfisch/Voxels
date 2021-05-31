@@ -6,9 +6,10 @@ namespace Tuntenfisch.Voxels
     {
         public static readonly int CellStride = Shader.PropertyToID("cellStride");
         public static readonly int CosOfSharpFeatureAngle = Shader.PropertyToID("cosOfSharpFeatureAngle");
-        public static readonly int GeneratedVertexIndicesLookupTable = Shader.PropertyToID("generatedVertexIndicesLookupTable");
+        public static readonly int GeneratedVerticesIndexLookupTable = Shader.PropertyToID("generatedVerticesIndexLookupTable");
         public static readonly int GeneratedTriangles = Shader.PropertyToID("generatedTriangles");
-        public static readonly int GeneratedVertices = Shader.PropertyToID("generatedVertices");
+        public static readonly int GeneratedVertices0 = Shader.PropertyToID("generatedVertices0");
+        public static readonly int GeneratedVertices1 = Shader.PropertyToID("generatedVertices1");
         public static readonly int Height = Shader.PropertyToID("height");
         public static readonly int Lacunarity = Shader.PropertyToID("lacunarity");
         public static readonly int NumberOfOctaves = Shader.PropertyToID("numberOfOctaves");
