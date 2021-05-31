@@ -1,4 +1,6 @@
-#pragma kernel GenerateVertices
+#pragma kernel GenerateInnerVertices
+#pragma kernel ApplyLevelOfDetail
+#pragma kernel GenerateOuterVertices
 #pragma kernel GenerateTriangles
 
 #include "Assets/Compute/Voxels/Include/Cell.hlsl"
@@ -13,8 +15,9 @@ float cosOfSharpFeatureAngle;
 uint schmitzParticleIterations;
 float schmitzParticleStepSize;
 
-RWStructuredBuffer<Vertex> generatedVertices;
-RWStructuredBuffer<uint> generatedVertexIndicesLookupTable;
+RWStructuredBuffer<Vertex> generatedVertices0;
+RWStructuredBuffer<Vertex> generatedVertices1;
+RWStructuredBuffer<uint> generatedVerticesIndexLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
 static const uint maxNumberOfIntersections = 6;
@@ -26,14 +29,14 @@ static uint numberOfIntersections;
 static Vertex intersections[maxNumberOfIntersections];
 static float3 forces[numberOfCellCorners];
 
-bool IsSurfaceCell(uint3 coordinate)
+bool IsOuterVoxel(uint3 coordinate)
 {
     return any(coordinate == 0 || coordinate == numberOfVoxels - 2);
 }
 
-uint CalculateGeneratedVertexIndicesLookupTableIndex(uint3 coordinate)
+uint CalculateGeneratedVerticesIndexLookupTableIndex(uint3 coordinate, uint stride = 1)
 {
-    coordinate = IsSurfaceCell(coordinate) ? coordinate : (coordinate - 1) / cellStride * cellStride + 1;
+    coordinate = IsOuterVoxel(coordinate) ? coordinate : (coordinate - 1) / stride * stride + 1;
 
     return dot(coordinate, uint3(1, numberOfVoxels.x - 1, (numberOfVoxels.x - 1) * (numberOfVoxels.y - 1)));
 }
@@ -162,73 +165,84 @@ void CalculatePositionsAndNormals(uint3 coordinate)
     }
 }
 
-bool IsMultipleOfStride(uint3 coordinate, uint stride)
+[numthreads(4, 4, 4)]
+void GenerateInnerVertices(uint3 id : SV_DispatchThreadID)
 {
-    return all((coordinate - 1) % stride == 0);
-}
+    uint3 cellID = id + 1;
 
-uint CalculateStride(uint3 coordinate)
-{
-    return IsSurfaceCell(coordinate) ? 1 : cellStride;
-}
+    if (any(cellID > numberOfVoxels - 3))
+    {
+        return;
+    }
 
-bool IsOutsideBoundsForVertexGeneration(uint3 coordinate)
-{
-    return any(coordinate > numberOfVoxels - 2);
+    uint vertexIndex = NULL_VERTEX_INDEX;
+
+    CalculatePositionsAndNormals(cellID);
+
+    if (numberOfIntersections > 0)
+    {
+        vertexIndex = generatedVertices0.IncrementCounter();
+        generatedVertices0[vertexIndex] = CalculateFeatureVertex(cellID);
+    }
+    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID)] = vertexIndex;
 }
 
 [numthreads(4, 4, 4)]
-void GenerateVertices(uint3 cellID : SV_DispatchThreadID)
+void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
 {
-    if (IsOutsideBoundsForVertexGeneration(cellID))
+    uint3 cellID = id * cellStride + 1;
+
+    if (any(cellID > numberOfVoxels - 3))
     {
         return;
     }
 
-    uint stride = CalculateStride(cellID);
+    uint numberOfChildVertices = 0;
+    uint parentVertexIndex = NULL_VERTEX_INDEX;
+    Vertex parentVertex = Vertex::Create();
 
-    if (!IsMultipleOfStride(cellID, stride))
+    for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
     {
-        return;
-    }
+        uint3 coordinate = cellID + cellStride / 2 * cellCorners[cornerIndex];
+        uint childVertexIndex = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(coordinate, cellStride / 2)];
 
-    uint numberOfVertices = 0;
-    uint vertexIndex = NULL_VERTEX_INDEX;
-    Vertex vertex = Vertex::Create();
-
-    for (uint x = 0; x < stride; x++)
-    {
-        for (uint y = 0; y < stride; y++)
+        if (childVertexIndex != NULL_VERTEX_INDEX)
         {
-            for (uint z = 0; z < stride; z++)
-            {
-                uint3 coordinate = cellID + uint3(x, y, z);
-                CalculatePositionsAndNormals(coordinate);
-
-                if (numberOfIntersections > 0)
-                {
-                    if (vertexIndex == NULL_VERTEX_INDEX)
-                    {
-                        vertexIndex = generatedVertices.IncrementCounter();
-                    }
-                    Vertex featureVertex = CalculateFeatureVertex(coordinate);
-                    vertex.position += featureVertex.position;
-                    vertex.normal += featureVertex.normal;
-                    numberOfVertices++;
-                }
-            }
+            Vertex childVertex = generatedVertices0[childVertexIndex];
+            parentVertex.position += childVertex.position;
+            parentVertex.normal += childVertex.normal;
+            numberOfChildVertices++;
         }
     }
 
-    if (vertexIndex == NULL_VERTEX_INDEX)
+    if (numberOfChildVertices > 0)
+    {
+        parentVertexIndex = generatedVertices1.IncrementCounter();
+        parentVertex.position /= numberOfChildVertices;
+        parentVertex.normal = normalize(parentVertex.normal);
+        generatedVertices1[parentVertexIndex] = parentVertex;
+    }
+    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID, cellStride)] = parentVertexIndex;
+}
+
+[numthreads(4, 4, 4)]
+void GenerateOuterVertices(uint3 cellID : SV_DispatchThreadID)
+{
+    if (any(cellID > numberOfVoxels - 2) || !IsOuterVoxel(cellID))
     {
         return;
     }
 
-    vertex.position /= numberOfVertices;
-    vertex.normal = normalize(vertex.normal);
-    generatedVertices[vertexIndex] = vertex;
-    generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)] = vertexIndex;
+    uint vertexIndex = NULL_VERTEX_INDEX;
+
+    CalculatePositionsAndNormals(cellID);
+
+    if (numberOfIntersections > 0)
+    {
+        vertexIndex = generatedVertices0.IncrementCounter();
+        generatedVertices0[vertexIndex] = CalculateFeatureVertex(cellID);
+    }
+    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID)] = vertexIndex;
 }
 
 bool ArePairwiseDistinct(uint3 indices)
@@ -250,7 +264,7 @@ uint3 GetVertexIndices(uint3 coordinate, uint index)
     [unroll]
     for (uint iterator = 0; iterator < 3; iterator++)
     {
-        vertexIndices[iterator] = generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][iterator]])];
+        vertexIndices[iterator] = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][iterator]], cellStride)];
     }
 
     return vertexIndices;
@@ -263,20 +277,15 @@ CellEdge GetCellEdge(uint index)
     return cellEdges[edgeIndices[index]];
 }
 
-bool IsOutsideBoundsForTriangleGeneration(uint3 coordinate)
-{
-    return any(coordinate > numberOfVoxels - 3);
-}
-
 [numthreads(4, 4, 4)]
 void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
 {
-    if (IsOutsideBoundsForTriangleGeneration(cellID))
+    if (any(cellID > numberOfVoxels - 3))
     {
         return;
     }
 
-    uint vertexIndex = generatedVertexIndicesLookupTable[CalculateGeneratedVertexIndicesLookupTableIndex(cellID)];
+    uint vertexIndex = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID, cellStride)];
 
     for (uint index = 0; index < 3; index++)
     {
