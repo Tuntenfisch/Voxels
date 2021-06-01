@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels.Config
+namespace Tuntenfisch.Voxels.VoxelVolume
 {
     [CreateAssetMenu(fileName = "Voxel Volume Config", menuName = "Voxels/Voxel Volume Config", order = 1)]
     public class VoxelVolumeConfig : ScriptableObject
@@ -26,9 +26,9 @@ namespace Tuntenfisch.Voxels.Config
         private ComputeShader m_compute;
         [Range(67, 131)]
         [SerializeField]
-        private int m_numberOfVoxelsAlongAxis = 67;
+        private int m_numberOfVoxelsAlongAxis = 131;
         [SerializeField]
-        private float m_voxelSpacing = 0.5f;
+        private float m_voxelSpacing = 1.0f;
 
         private void OnValidate()
         {

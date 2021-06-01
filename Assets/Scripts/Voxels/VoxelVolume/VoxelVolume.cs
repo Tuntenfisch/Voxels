@@ -1,15 +1,16 @@
 ﻿using System;
 using Tuntenfisch.Extensions;
-using Tuntenfisch.Voxels.Config;
+using Tuntenfisch.Voxels.Noise;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels
+namespace Tuntenfisch.Voxels.VoxelVolume
 {
     [RequireComponent(typeof(VoxelConfigs))]
     public class VoxelVolume : MonoBehaviour
     {
         private VoxelConfigs m_voxelConfigs;
+        private ComputeBuffer m_noiseLayersBuffer;
 
         private void Awake()
         {
@@ -28,6 +29,7 @@ namespace Tuntenfisch.Voxels
             m_voxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
             m_voxelConfigs.NoiseConfig.OnDirtied -= ApplyNoiseConfig;
 #endif
+            ReleaseBuffers();
         }
 
         public void GenerateVoxelVolume(ComputeBuffer voxelVolumeBuffer, float3 worldPosition)
@@ -43,6 +45,29 @@ namespace Tuntenfisch.Voxels
             m_voxelConfigs.VoxelVolumeConfig.Compute.Dispatch(0, m_voxelConfigs.VoxelVolumeConfig.NumberOfVoxels);
         }
 
+        private void CreateBuffers()
+        {
+            if (m_noiseLayersBuffer?.count == m_voxelConfigs.NoiseConfig.NoiseLayers.Length)
+            {
+                return;
+            }
+
+            ReleaseBuffers();
+
+            m_noiseLayersBuffer = new ComputeBuffer(m_voxelConfigs.NoiseConfig.NoiseLayers.Length, NoiseParameters.SizeInBytes);
+        }
+
+        private void ReleaseBuffers()
+        {
+            if (m_noiseLayersBuffer == null)
+            {
+                return;
+            }
+
+            m_noiseLayersBuffer.Release();
+            m_noiseLayersBuffer = null;
+        }
+
         private void ApplyVoxelVolumeConfig()
         {
             int3 numberOfVoxels = m_voxelConfigs.VoxelVolumeConfig.NumberOfVoxels;
@@ -52,12 +77,11 @@ namespace Tuntenfisch.Voxels
 
         private void ApplyNoiseConfig()
         {
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.Seed, m_voxelConfigs.NoiseConfig.Seed);
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Wavelength, m_voxelConfigs.NoiseConfig.WaveLength);
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfOctaves, m_voxelConfigs.NoiseConfig.NumberOfOctaves);
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Persistence, m_voxelConfigs.NoiseConfig.Persistence);
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Lacunarity, m_voxelConfigs.NoiseConfig.Lacunarity);
-            m_voxelConfigs.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.Height, m_voxelConfigs.NoiseConfig.Height);
+            CreateBuffers();
+
+            m_noiseLayersBuffer.SetData(m_voxelConfigs.NoiseConfig.NoiseLayers);
+            m_voxelConfigs.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfNoiseLayers, m_voxelConfigs.NoiseConfig.NoiseLayers.Length);
+            m_voxelConfigs.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.NoiseLayers, m_noiseLayersBuffer);
         }
     }
 }

@@ -1,6 +1,10 @@
-﻿using UnityEngine;
+﻿using Tuntenfisch.Voxels.DualContouring;
+using Tuntenfisch.Voxels.Noise;
+using Tuntenfisch.Voxels.VoxelVolume;
+using UnityEngine;
+using UnityEngine.Assertions;
 
-namespace Tuntenfisch.Voxels.Config
+namespace Tuntenfisch.Voxels
 {
     public class VoxelConfigs : MonoBehaviour
     {
@@ -14,5 +18,12 @@ namespace Tuntenfisch.Voxels.Config
         private DualContouringConfig m_dualContouringConfig;
         [SerializeField]
         private NoiseConfig m_noiseConfig;
+
+        private void Awake()
+        {
+            Assert.IsNotNull(m_voxelVolumeConfig);
+            Assert.IsNotNull(m_dualContouringConfig);
+            Assert.IsNotNull(m_noiseConfig);
+        }
     }
 }

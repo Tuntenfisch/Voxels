@@ -3,6 +3,7 @@ using UnityEditor;
 
 namespace Tuntenfisch.World
 {
+    [CanEditMultipleObjects]
     [CustomEditor(typeof(World))]
     public class WorldEditor : Editor
     {
@@ -35,14 +36,14 @@ namespace Tuntenfisch.World
             {
 
                 EditorGUILayout.ObjectField(m_viewer);
-                m_updateInterval.floatValue = math.max(EditorGUILayout.FloatField("Update Interval", m_updateInterval.floatValue), 0.0f);
+                m_updateInterval.floatValue = math.max(EditorGUILayout.FloatField(ObjectNames.NicifyVariableName(nameof(m_updateInterval)), m_updateInterval.floatValue), 0.0f);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             if (s_showChunkOptions = EditorGUILayout.BeginFoldoutHeaderGroup(s_showChunkOptions, "Chunk"))
             {
                 EditorGUILayout.ObjectField(m_chunkPrefab);
-                m_maxNumberOfChunksProcessedEachFrame.intValue = EditorGUILayout.IntSlider("Max Number Of Chunks Processed Each Frame", m_maxNumberOfChunksProcessedEachFrame.intValue, 10, 100);
+                m_maxNumberOfChunksProcessedEachFrame.intValue = EditorGUILayout.IntSlider(ObjectNames.NicifyVariableName(nameof(m_maxNumberOfChunksProcessedEachFrame)), m_maxNumberOfChunksProcessedEachFrame.intValue, 10, 100);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 

@@ -1,28 +1,9 @@
 #pragma kernel GenerateVoxelVolume
+#pragma kernel ApplyConstructiveSolidGeometryOperations
 
-#include "Assets/Compute/Include/CSG.hlsl"
-#include "Assets/Compute/Include/Noise.hlsl"
-
+#include "Assets/Compute/Voxels/Include/Noise.hlsl"
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
-
-int seed;
-float wavelength;
-uint numberOfOctaves;
-float persistence;
-float lacunarity;
-float height;
-
-float4 GenerateHeight(float3 position)
-{
-    SimplexNoise2D noise;
-    float4 value_gradient = GenerateFBMNoise(seed, noise, position, numberOfOctaves, 1.0f / wavelength, persistence, lacunarity);
-    value_gradient *= -height;
-    value_gradient.x += position.y;
-    value_gradient.z += 1.0f;
-
-    return value_gradient;
-}
 
 [numthreads(4, 4, 4)]
 void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
@@ -33,11 +14,16 @@ void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
     }
 
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
-    float4 cube = SDFCube::Create(float3(0.5f, 2.5f, 0.5f), float3(15.0f, 3.0f, 20.0f)).Evaluate(worldPosition);
-    float4 sphere0 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 2.0f).Evaluate(worldPosition);
-    float4 sphere1 = SDFSphere::Create(float3(0.5f, 2.5f, 0.5f), 5.0f).Evaluate(worldPosition);
-    float4 height = GenerateHeight(worldPosition);
-    float4 value_gradient = Union(sphere0, Difference(SmoothUnion(height, cube, 2.0f), sphere1));
+    float4 value_gradient = GenerateLayeredFBMNoise(worldPosition);
 
     SetVoxel(voxelID, Voxel::Create(value_gradient.x, value_gradient.yzw));
+}
+
+[numthreads(4, 4, 4)]
+void ApplyConstructiveSolidGeometryOperations(uint3 voxelID : SV_DispatchThreadID)
+{
+    if (IsOutOfVoxelVolumeBounds(voxelID))
+    {
+        return;
+    }
 }
