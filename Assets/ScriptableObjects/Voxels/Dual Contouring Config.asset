@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6eb3fb665a526404f9a0e80b84a3131c, type: 3}
+  m_Script: {fileID: 11500000, guid: 21b3f243ae08e794184e64bf11ab828b, type: 3}
   m_Name: Dual Contouring Config
   m_EditorClassIdentifier: 
   m_compute: {fileID: 7200000, guid: 13eaeb027358e7c4da05988348d93c69, type: 3}

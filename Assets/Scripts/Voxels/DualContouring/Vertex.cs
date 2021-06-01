@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 
-namespace Tuntenfisch.Voxels
+namespace Tuntenfisch.Voxels.DualContouring
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex

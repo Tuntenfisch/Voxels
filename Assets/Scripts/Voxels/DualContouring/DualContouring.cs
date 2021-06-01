@@ -6,15 +6,12 @@ using Tuntenfisch.Extensions;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
-using Tuntenfisch.Voxels.Config;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels
+namespace Tuntenfisch.Voxels.DualContouring
 {
-    public delegate void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<Vertex> vertices, NativeArray<int> triangles);
-
     [RequireComponent(typeof(VoxelConfigs))]
     public class DualContouring : MonoBehaviour
     {

@@ -2,7 +2,7 @@
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
-using Tuntenfisch.Voxels;
+using Tuntenfisch.Voxels.DualContouring;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;

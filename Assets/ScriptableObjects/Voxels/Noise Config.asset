@@ -12,9 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6edbf8177061c64db5d8ab5cb53283b, type: 3}
   m_Name: Noise Config
   m_EditorClassIdentifier: 
-  m_seed: 3
-  m_height: 32
-  m_wavelength: 300
-  m_numberOfOctaves: 16
-  m_persistence: 0.5
-  m_lacunarity: 2
+  m_noiseLayers:
+  - m_seed: 0
+    m_noiseDimensionality: 0
+    m_noiseType: 0
+    m_numberOfOctaves: 12
+    m_initialAmplitude: 20
+    m_initialFrequency: 0.005
+    m_persistence: 0.5
+    m_lacunarity: 2
+    m_operatorIndex: 0
+    m_smoothing: 1
+  - m_seed: 0
+    m_noiseDimensionality: 0
+    m_noiseType: 2
+    m_numberOfOctaves: 6
+    m_initialAmplitude: 5
+    m_initialFrequency: 0.003
+    m_persistence: 0.5
+    m_lacunarity: 2
+    m_operatorIndex: 1
+    m_smoothing: 1
