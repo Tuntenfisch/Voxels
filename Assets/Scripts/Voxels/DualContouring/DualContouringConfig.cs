@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.DualContouring
 {
-    [CreateAssetMenu(fileName = "Dual Contouring Config", menuName = "Voxels/Dual Contouring Config", order = 2)]
+    [CreateAssetMenu(fileName = "Dual Contouring Config", menuName = "Voxels/Dual Contouring Config")]
     public class DualContouringConfig : ScriptableObject
     {
         public event Action OnDirtied;

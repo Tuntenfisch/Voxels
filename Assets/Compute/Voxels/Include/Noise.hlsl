@@ -8,8 +8,8 @@
 
 #include "Assets/Compute/Voxels/Include/ConstructiveSolidGeometry.hlsl"
 
-#define NOISE_2D 0
-#define NOISE_3D 1
+#define XZ 0
+#define XYZ 1
 
 #define NOISE_TYPE_DEFAULT 0
 #define NOISE_TYPE_BILLOW 1
@@ -19,7 +19,7 @@ struct NoiseParameters
 {
     // General Parameters.
     uint seed;
-    uint noiseDimensionality;
+    uint noiseAxes;
     uint noiseType;
 
     // FBM parameters.
@@ -43,11 +43,11 @@ float3 CalculateOctaveOffset(uint seed, uint octave)
     return GenerateHashedRandomFloat(uint2(seed, octave)) * 10000.0f;
 }
 
-float4 GenerateNoise(float3 position, uint noiseDimensionality)
+float4 GenerateNoise(float3 position, uint noiseAxes)
 {
-    switch(noiseDimensionality)
+    switch(noiseAxes)
     {
-        case NOISE_2D:
+        case XZ:
             float3 value_gradient = SimplexNoiseGrad(position.xz).zxy;
 
             return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.z));
@@ -68,7 +68,7 @@ float4 GenerateDefaultFBMNoise(float3 position, NoiseParameters parameters)
     {
         // We need to multiply the derivative by frequency because of the chain rule:
         // d / dp * n(f * p) = f * n'(f * p)
-        float4 value_gradient = GenerateNoise(frequency * (position + CalculateOctaveOffset(parameters.seed, octave)), parameters.noiseDimensionality);
+        float4 value_gradient = GenerateNoise(frequency * (position + CalculateOctaveOffset(parameters.seed, octave)), parameters.noiseAxes);
 
         value_gradient.yzw *= frequency;
         sumOfGradients += value_gradient.yzw;
@@ -132,7 +132,7 @@ float4 GenerateLayeredFBMNoise(float3 position)
         NoiseParameters parameters = noiseLayers[noiseLayerIndex];
         float4 value_gradient = GenerateFBMNoise(position, parameters);
 
-        if (parameters.noiseDimensionality == NOISE_2D)
+        if (parameters.noiseAxes == XZ)
         {
             value_gradient *= -1.0f;
             value_gradient.x += position.y;

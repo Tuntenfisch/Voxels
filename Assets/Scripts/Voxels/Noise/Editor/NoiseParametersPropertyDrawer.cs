@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using Tuntenfisch.Voxels.ConstructiveSolidGeometry;
 
-namespace Tuntenfisch.Voxels.Noise
+namespace Tuntenfisch.Voxels.Noise.Editor
 {
     [CanEditMultipleObjects]
     [CustomPropertyDrawer(typeof(NoiseParameters))]
@@ -11,7 +11,7 @@ namespace Tuntenfisch.Voxels.Noise
     {
         private SerializedProperty m_noiseParameters;
         private SerializedProperty m_seed;
-        private SerializedProperty m_noiseDimensionality;
+        private SerializedProperty m_noiseAxes;
         private SerializedProperty m_noiseType;
         private SerializedProperty m_numberOfOctaves;
         private SerializedProperty m_initialAmplitude;
@@ -38,7 +38,7 @@ namespace Tuntenfisch.Voxels.Noise
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             m_seed.intValue = EditorGUI.IntField(position, ObjectNames.NicifyVariableName(nameof(m_seed)), m_seed.intValue);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-            m_noiseDimensionality.intValue = Convert.ToInt32(EditorGUI.EnumPopup(position, ObjectNames.NicifyVariableName(nameof(m_noiseDimensionality)), (NoiseDimensionality)m_noiseDimensionality.intValue));
+            m_noiseAxes.intValue = Convert.ToInt32(EditorGUI.EnumPopup(position, ObjectNames.NicifyVariableName(nameof(m_noiseAxes)), (NoiseAxes)m_noiseAxes.intValue));
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             m_noiseType.intValue = Convert.ToInt32(EditorGUI.EnumPopup(position, ObjectNames.NicifyVariableName(nameof(m_noiseType)), (NoiseType)m_noiseType.intValue));
             
@@ -73,7 +73,7 @@ namespace Tuntenfisch.Voxels.Noise
         private void InitializeProperties()
         {
             m_seed = m_noiseParameters.FindPropertyRelative(nameof(m_seed));
-            m_noiseDimensionality = m_noiseParameters.FindPropertyRelative(nameof(m_noiseDimensionality));
+            m_noiseAxes = m_noiseParameters.FindPropertyRelative(nameof(m_noiseAxes));
             m_noiseType = m_noiseParameters.FindPropertyRelative(nameof(m_noiseType));
             m_numberOfOctaves = m_noiseParameters.FindPropertyRelative(nameof(m_numberOfOctaves));
             m_initialAmplitude = m_noiseParameters.FindPropertyRelative(nameof(m_initialAmplitude));

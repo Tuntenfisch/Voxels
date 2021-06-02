@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Noise
 {
-    [CreateAssetMenu(fileName = "Noise Config", menuName = "Voxels/Noise Config", order = 3)]
+    [CreateAssetMenu(fileName = "Noise Config", menuName = "Voxels/Noise Config")]
     public class NoiseConfig : ScriptableObject
     {
         public event Action OnDirtied;
@@ -13,6 +13,6 @@ namespace Tuntenfisch.Voxels.Noise
         [SerializeField]
         private NoiseParameters[] m_noiseLayers;
 
-        private void OnValidate() => OnDirtied?.Invoke();
+        public void MakeDirty() => OnDirtied?.Invoke();
     }
 }
