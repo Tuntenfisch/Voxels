@@ -41,6 +41,12 @@ namespace Tuntenfisch.World
 
         private void Awake() => InitializeMeshComponents();
 
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireCube(transform.position, World.VoxelConfigs.VoxelVolumeConfig.VoxelVolumeDimensions);
+        }
+
         public void CreateBuffers()
         {
             if (m_voxelVolumeBuffer?.count == World.VoxelConfigs.VoxelVolumeConfig.VoxelCount)

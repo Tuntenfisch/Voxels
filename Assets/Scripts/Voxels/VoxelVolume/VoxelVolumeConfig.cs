@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.VoxelVolume
 {
-    [CreateAssetMenu(fileName = "Voxel Volume Config", menuName = "Voxels/Voxel Volume Config", order = 1)]
+    [CreateAssetMenu(fileName = "Voxel Volume Config", menuName = "Voxels/Voxel Volume Config")]
     public class VoxelVolumeConfig : ScriptableObject
     {
         public event Action OnDirtied;

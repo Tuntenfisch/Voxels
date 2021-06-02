@@ -14,22 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_noiseLayers:
   - m_seed: 0
-    m_noiseDimensionality: 0
+    m_noiseAxes: 0
     m_noiseType: 0
     m_numberOfOctaves: 16
-    m_initialAmplitude: 20
-    m_initialFrequency: 0.003
+    m_initialAmplitude: 40
+    m_initialFrequency: 0.001
     m_persistence: 0.5
-    m_lacunarity: 2.1
+    m_lacunarity: 2
     m_operatorIndex: 0
     m_smoothing: 1
-  - m_seed: 0
-    m_noiseDimensionality: 0
+  - m_seed: 5
+    m_noiseAxes: 0
     m_noiseType: 2
-    m_numberOfOctaves: 16
-    m_initialAmplitude: 8
-    m_initialFrequency: 0.01
+    m_numberOfOctaves: 8
+    m_initialAmplitude: 5
+    m_initialFrequency: 0.005
     m_persistence: 0.5
-    m_lacunarity: 1.9
-    m_operatorIndex: 4
-    m_smoothing: 10
+    m_lacunarity: 2
+    m_operatorIndex: 1
+    m_smoothing: 1

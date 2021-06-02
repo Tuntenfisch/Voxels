@@ -16,7 +16,7 @@ namespace Tuntenfisch.Voxels.Noise
         [SerializeField]
         private int m_seed;
         [SerializeField]
-        private int m_noiseDimensionality;
+        private int m_noiseAxes;
         [SerializeField]
         private int m_noiseType;
 

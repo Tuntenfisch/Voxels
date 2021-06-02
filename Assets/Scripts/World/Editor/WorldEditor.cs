@@ -1,11 +1,11 @@
 using Unity.Mathematics;
 using UnityEditor;
 
-namespace Tuntenfisch.World
+namespace Tuntenfisch.World.Editor
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(World))]
-    public class WorldEditor : Editor
+    public class WorldEditor : UnityEditor.Editor
     {
         private static int MaxNumberOfLods => 5;
 
