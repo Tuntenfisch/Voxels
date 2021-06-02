@@ -41,7 +41,7 @@ namespace Tuntenfisch.Voxels.Noise
             m_noiseDimensionality.intValue = Convert.ToInt32(EditorGUI.EnumPopup(position, ObjectNames.NicifyVariableName(nameof(m_noiseDimensionality)), (NoiseDimensionality)m_noiseDimensionality.intValue));
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             m_noiseType.intValue = Convert.ToInt32(EditorGUI.EnumPopup(position, ObjectNames.NicifyVariableName(nameof(m_noiseType)), (NoiseType)m_noiseType.intValue));
-
+            
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             EditorGUI.LabelField(position, "Fractional Brownian Motion", EditorStyles.boldLabel);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
@@ -54,7 +54,7 @@ namespace Tuntenfisch.Voxels.Noise
             m_persistence.floatValue = EditorGUI.Slider(position, ObjectNames.NicifyVariableName(nameof(m_persistence)), m_persistence.floatValue, 0.0f, 2.0f);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             m_lacunarity.floatValue = EditorGUI.Slider(position, ObjectNames.NicifyVariableName(nameof(m_lacunarity)), m_lacunarity.floatValue, 1.0f, 4.0f);
-
+            
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             EditorGUI.LabelField(position, "Combine Operation", EditorStyles.boldLabel);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
@@ -65,7 +65,7 @@ namespace Tuntenfisch.Voxels.Noise
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            int lineCount = property.CountInProperty() + 3;
+            int lineCount = 14;
 
             return EditorGUIUtility.singleLineHeight * lineCount + EditorGUIUtility.standardVerticalSpacing * (lineCount - 1);
         }

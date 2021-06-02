@@ -91,6 +91,11 @@ float4 GenerateFBMBillowNoise(float3 position, NoiseParameters parameters)
     return value_gradient;
 }
 
+float3 DomainWarp(float3 position)
+{
+    // ToDo...
+}
+
 float4 GenerateFBMRidgeNoise(float3 position, NoiseParameters parameters)
 {
     float4 value_gradient = GenerateFBMBillowNoise(position, parameters);

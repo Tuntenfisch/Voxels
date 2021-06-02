@@ -27,6 +27,7 @@ namespace Tuntenfisch.Voxels.VoxelVolume
         [Range(67, 131)]
         [SerializeField]
         private int m_numberOfVoxelsAlongAxis = 131;
+        [Min(0.25f)]
         [SerializeField]
         private float m_voxelSpacing = 1.0f;
 
