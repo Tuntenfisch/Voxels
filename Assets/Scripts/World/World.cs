@@ -12,10 +12,10 @@ using UnityEngine.Assertions;
 
 namespace Tuntenfisch.World
 {
-    [RequireComponent(typeof(VoxelConfigs), typeof(VoxelVolume), typeof(DualContouring))]
+    [RequireComponent(typeof(VoxelConfig), typeof(VoxelVolume), typeof(DualContouring))]
     public class World : SingletonComponent<World>
     {
-        internal static VoxelConfigs VoxelConfigs => Instance.m_voxelConfigs;
+        internal static VoxelConfig VoxelConfig => Instance.m_voxelConfig;
         internal static VoxelVolume VoxelVolume => Instance.m_voxelVolume;
         internal static DualContouring DualContouring => Instance.m_dualContouring;
         internal static ObjectPool<Chunk> SharedChunkPool => Instance.m_sharedChunkPool;
@@ -33,7 +33,7 @@ namespace Tuntenfisch.World
         [SerializeField]
         private float[] m_lodDistances;
 
-        private VoxelConfigs m_voxelConfigs;
+        private VoxelConfig m_voxelConfig;
         private VoxelVolume m_voxelVolume;
         private DualContouring m_dualContouring;
         private ObjectPool<Chunk> m_sharedChunkPool;
@@ -56,11 +56,11 @@ namespace Tuntenfisch.World
         {
             Assert.IsFalse(m_chunkPrefab.activeSelf);
 
-            m_voxelConfigs = GetComponent<VoxelConfigs>();
+            m_voxelConfig = GetComponent<VoxelConfig>();
 #if UNITY_EDITOR
-            m_voxelConfigs.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
-            m_voxelConfigs.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
-            m_voxelConfigs.NoiseConfig.OnDirtied += ApplyNoiseConfig;
+            m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
+            m_voxelConfig.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
+            m_voxelConfig.NoiseGraph.OnDirtied += ApplyNoiseConfig;
 #endif
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
@@ -98,9 +98,9 @@ namespace Tuntenfisch.World
         private void OnDestroy()
         {
 #if UNITY_EDITOR
-            m_voxelConfigs.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-            m_voxelConfigs.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
-            m_voxelConfigs.NoiseConfig.OnDirtied -= ApplyNoiseConfig;
+            m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
+            m_voxelConfig.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
+            m_voxelConfig.NoiseGraph.OnDirtied -= ApplyNoiseConfig;
 #endif
             SharedChunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
         }
@@ -229,9 +229,9 @@ namespace Tuntenfisch.World
         private float3 CalculateChunkDimensions()
         {
             const int voxelOverlap = 1;
-            float inflationFactor = 1.0f + (float)voxelOverlap / (VoxelConfigs.VoxelVolumeConfig.NumberOfCellsAlongAxis - voxelOverlap);
+            float inflationFactor = 1.0f + (float)voxelOverlap / (VoxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - voxelOverlap);
 
-            return VoxelConfigs.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;
+            return VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;
         }
 
         private int3 CalculateViewerChunkCoordinate() => (int3)math.round(m_viewer.position / m_chunkDimensions);

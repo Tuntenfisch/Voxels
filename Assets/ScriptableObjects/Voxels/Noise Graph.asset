@@ -1,0 +1,550 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7690124112449072310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05d117446824b6743b41f259f9bdd14e, type: 3}
+  m_Name: CSG Primitive
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -8, y: -72}
+  ports:
+    keys:
+    - m_position
+    - m_valueAndGradient
+    values:
+    - _fieldName: m_position
+      _node: {fileID: -7690124112449072310}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: -1495324588506876095}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_valueAndGradient
+      _node: {fileID: -7690124112449072310}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_operandA
+        node: {fileID: 848095450156429134}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
+  m_valueAndGradient:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_csgPrimitive:
+    m_primitiveType: 0
+    m_payload0:
+      x: 0
+      y: 5
+      z: 0
+    m_payload1:
+      x: 10
+      y: 20
+      z: 30
+--- !u!114 &-5381561391388365510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 351a492a84cd24446adbe64d6f408eb2, type: 3}
+  m_Name: Noise
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -72, y: 120}
+  ports:
+    keys:
+    - m_position
+    - m_valueAndGradient
+    values:
+    - _fieldName: m_position
+      _node: {fileID: -5381561391388365510}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: 3088100318434229178}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_valueAndGradient
+      _node: {fileID: -5381561391388365510}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_operandA
+        node: {fileID: 5325121305426598883}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
+  m_valueAndGradient:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_noiseParameters:
+    m_seed: 0
+    m_noiseAxes: 0
+    m_noiseType: 0
+    m_numberOfOctaves: 16
+    m_initialAmplitude: 20
+    m_initialFrequency:
+      x: 0.001
+      y: 0.0025
+      z: 0.0025
+    m_persistence: 0.5
+    m_lacunarity:
+      x: 2
+      y: 2
+      z: 2
+--- !u!114 &-3096634761907454184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 351a492a84cd24446adbe64d6f408eb2, type: 3}
+  m_Name: Noise
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -72, y: 504}
+  ports:
+    keys:
+    - m_position
+    - m_valueAndGradient
+    values:
+    - _fieldName: m_position
+      _node: {fileID: -3096634761907454184}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: 7620365188831075206}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_valueAndGradient
+      _node: {fileID: -3096634761907454184}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_operandB
+        node: {fileID: 5325121305426598883}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
+  m_valueAndGradient:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_noiseParameters:
+    m_seed: 0
+    m_noiseAxes: 0
+    m_noiseType: 2
+    m_numberOfOctaves: 16
+    m_initialAmplitude: 5
+    m_initialFrequency:
+      x: 0.0025
+      y: 0.0025
+      z: 0.0025
+    m_persistence: 0.5
+    m_lacunarity:
+      x: 2
+      y: 2
+      z: 2
+--- !u!114 &-1495324588506876095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f0dc382bfffeae4186cc3591a479468, type: 3}
+  m_Name: Position
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -264, y: -72}
+  ports:
+    keys:
+    - m_position
+    values:
+    - _fieldName: m_position
+      _node: {fileID: -1495324588506876095}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: -7690124112449072310}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 987600d458a9fdb48b2e0fb8507659eb, type: 3}
+  m_Name: Noise Graph
+  m_EditorClassIdentifier: 
+  nodes:
+  - {fileID: -5381561391388365510}
+  - {fileID: 1792733210694844979}
+  - {fileID: 5325121305426598883}
+  - {fileID: 7620365188831075206}
+  - {fileID: -3096634761907454184}
+  - {fileID: -7690124112449072310}
+  - {fileID: 848095450156429134}
+  - {fileID: -1495324588506876095}
+  - {fileID: 3088100318434229178}
+  m_nodes: []
+  m_noiseParameters:
+  - m_seed: 0
+    m_noiseAxes: 0
+    m_noiseType: 0
+    m_numberOfOctaves: 16
+    m_initialAmplitude: 20
+    m_initialFrequency:
+      x: 0.001
+      y: 0.0025
+      z: 0.0025
+    m_persistence: 0.5
+    m_lacunarity:
+      x: 2
+      y: 2
+      z: 2
+  - m_seed: 0
+    m_noiseAxes: 0
+    m_noiseType: 2
+    m_numberOfOctaves: 16
+    m_initialAmplitude: 5
+    m_initialFrequency:
+      x: 0.0025
+      y: 0.0025
+      z: 0.0025
+    m_persistence: 0.5
+    m_lacunarity:
+      x: 2
+      y: 2
+      z: 2
+  m_csgOperators:
+  - m_operatorIndex: 1
+    m_smoothing: 0
+  - m_operatorIndex: 0
+    m_smoothing: 0
+  m_csgPrimitives:
+  - m_primitiveType: 0
+    m_payload0:
+      x: 0
+      y: 5
+      z: 0
+    m_payload1:
+      x: 10
+      y: 20
+      z: 30
+--- !u!114 &848095450156429134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 588d49c81e41f9747b34e07747357c8e, type: 3}
+  m_Name: CSG Operation
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: 568, y: 248}
+  ports:
+    keys:
+    - m_operandA
+    - m_operandB
+    - m_result
+    values:
+    - _fieldName: m_operandA
+      _node: {fileID: 848095450156429134}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: -7690124112449072310}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_operandB
+      _node: {fileID: 848095450156429134}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_result
+        node: {fileID: 5325121305426598883}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_result
+      _node: {fileID: 848095450156429134}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: 1792733210694844979}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_operandA:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_operandB:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_result:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_csgOperator:
+    m_operatorIndex: 0
+    m_smoothing: 0
+--- !u!114 &1792733210694844979
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83c0ef984b324a640ba426e41fe2b2de, type: 3}
+  m_Name: Output
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: 824, y: 248}
+  ports:
+    keys:
+    - m_valueAndGradient
+    values:
+    - _fieldName: m_valueAndGradient
+      _node: {fileID: 1792733210694844979}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_result
+        node: {fileID: 848095450156429134}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_valueAndGradient:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+--- !u!114 &3088100318434229178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f0dc382bfffeae4186cc3591a479468, type: 3}
+  m_Name: Position
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -328, y: 120}
+  ports:
+    keys:
+    - m_position
+    values:
+    - _fieldName: m_position
+      _node: {fileID: 3088100318434229178}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: -5381561391388365510}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
+--- !u!114 &5325121305426598883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 588d49c81e41f9747b34e07747357c8e, type: 3}
+  m_Name: CSG Operation
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: 312, y: 312}
+  ports:
+    keys:
+    - m_operandA
+    - m_operandB
+    - m_result
+    values:
+    - _fieldName: m_operandA
+      _node: {fileID: 5325121305426598883}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: -5381561391388365510}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_operandB
+      _node: {fileID: 5325121305426598883}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: -3096634761907454184}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_result
+      _node: {fileID: 5325121305426598883}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_operandB
+        node: {fileID: 848095450156429134}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_operandA:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_operandB:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_result:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_csgOperator:
+    m_operatorIndex: 1
+    m_smoothing: 0
+--- !u!114 &7620365188831075206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f0dc382bfffeae4186cc3591a479468, type: 3}
+  m_Name: Position
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: -328, y: 504}
+  ports:
+    keys:
+    - m_position
+    values:
+    - _fieldName: m_position
+      _node: {fileID: 7620365188831075206}
+      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_position
+        node: {fileID: -3096634761907454184}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_position:
+    x: 0
+    y: 0
+    z: 0
