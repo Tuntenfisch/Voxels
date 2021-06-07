@@ -635,7 +635,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1464136622}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 10, z: 0}
+  m_LocalPosition: {x: 0, y: 30, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 963194228}
@@ -691,7 +691,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_voxelVolumeConfig: {fileID: 11400000, guid: 6b78942a3bf4b06408b11d97c2450f5b, type: 2}
   m_dualContouringConfig: {fileID: 11400000, guid: 2cc13e5883318294281f7b4ae4f9ac46, type: 2}
-  m_noiseConfig: {fileID: 11400000, guid: cc31ddf977a6fb1439d10c0b892f3bbc, type: 2}
+  m_noiseGraph: {fileID: 11400000, guid: cc31ddf977a6fb1439d10c0b892f3bbc, type: 2}
 --- !u!114 &1594834161
 MonoBehaviour:
   m_ObjectHideFlags: 0

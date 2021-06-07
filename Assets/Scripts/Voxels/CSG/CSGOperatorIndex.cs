@@ -1,6 +1,6 @@
-﻿namespace Tuntenfisch.Voxels.ConstructiveSolidGeometry
+﻿namespace Tuntenfisch.Voxels.CSG
 {
-    public enum Operator
+    public enum CSGOperatorIndex
     {
         Union = 0,
         Intersection = 1,

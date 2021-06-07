@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Noise
 {
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct NoiseParameters
+    public struct GPUNoiseParameters
     {
         public static int SizeInBytes => s_sizeInBytes;
 
-        private static readonly int s_sizeInBytes = Marshal.SizeOf<NoiseParameters>();
+        private static readonly int s_sizeInBytes = Marshal.SizeOf<GPUNoiseParameters>();
 
         // General Parameters.
         [SerializeField]
         private int m_seed;
         [SerializeField]
-        private int m_noiseAxes;
+        private NoiseAxes m_noiseAxes;
         [SerializeField]
-        private int m_noiseType;
+        private NoiseType m_noiseType;
 
         // FBM parameters.
         [SerializeField]
@@ -26,16 +27,10 @@ namespace Tuntenfisch.Voxels.Noise
         [SerializeField]
         private float m_initialAmplitude;
         [SerializeField]
-        private float m_initialFrequency;
+        private float3 m_initialFrequency;
         [SerializeField]
         private float m_persistence;
         [SerializeField]
-        private float m_lacunarity;
-
-        // Combine parameters.
-        [SerializeField]
-        private int m_operatorIndex;
-        [SerializeField]
-        private float m_smoothing;
+        private float3 m_lacunarity;
     }
 }

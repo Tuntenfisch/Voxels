@@ -8,8 +8,6 @@
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
 
-#define NULL_VERTEX_INDEX -1
-
 uint cellStride;
 float cosOfSharpFeatureAngle;
 uint schmitzParticleIterations;
@@ -20,6 +18,7 @@ RWStructuredBuffer<Vertex> generatedVertices1;
 RWStructuredBuffer<uint> generatedVerticesIndexLookupTable;
 AppendStructuredBuffer<uint3> generatedTriangles;
 
+static const uint nullVertexIndex = -1;
 static const uint maxNumberOfIntersections = 6;
 
 // Theoretically we can declare below arrays locally and pass them around functions with the "out" or "inout" modifier but that will
@@ -175,7 +174,7 @@ void GenerateInnerVertices(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint vertexIndex = NULL_VERTEX_INDEX;
+    uint vertexIndex = nullVertexIndex;
 
     CalculatePositionsAndNormals(cellID);
 
@@ -198,7 +197,7 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
     }
 
     uint numberOfChildVertices = 0;
-    uint parentVertexIndex = NULL_VERTEX_INDEX;
+    uint parentVertexIndex = nullVertexIndex;
     Vertex parentVertex = Vertex::Create();
 
     for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
@@ -206,7 +205,7 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
         uint3 coordinate = cellID + cellStride / 2 * cellCorners[cornerIndex];
         uint childVertexIndex = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(coordinate, cellStride / 2)];
 
-        if (childVertexIndex != NULL_VERTEX_INDEX)
+        if (childVertexIndex != nullVertexIndex)
         {
             Vertex childVertex = generatedVertices0[childVertexIndex];
             parentVertex.position += childVertex.position;
@@ -233,7 +232,7 @@ void GenerateOuterVertices(uint3 cellID : SV_DispatchThreadID)
         return;
     }
 
-    uint vertexIndex = NULL_VERTEX_INDEX;
+    uint vertexIndex = nullVertexIndex;
 
     CalculatePositionsAndNormals(cellID);
 

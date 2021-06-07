@@ -44,30 +44,25 @@ namespace Tuntenfisch.World
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(transform.position, World.VoxelConfigs.VoxelVolumeConfig.VoxelVolumeDimensions);
+            Gizmos.DrawWireCube(transform.position, World.VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions);
         }
 
         public void CreateBuffers()
         {
-            if (m_voxelVolumeBuffer?.count == World.VoxelConfigs.VoxelVolumeConfig.VoxelCount)
+            if (m_voxelVolumeBuffer?.count != World.VoxelConfig.VoxelVolumeConfig.VoxelCount)
             {
-                return;
+                m_voxelVolumeBuffer?.Release();
+                m_voxelVolumeBuffer = new ComputeBuffer(World.VoxelConfig.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
             }
-
-            ReleaseBuffers();
-
-            m_voxelVolumeBuffer = new ComputeBuffer(World.VoxelConfigs.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
         }
 
         public void ReleaseBuffers()
         {
-            if (m_voxelVolumeBuffer == null)
+            if (m_voxelVolumeBuffer != null)
             {
-                return;
+                m_voxelVolumeBuffer.Release();
+                m_voxelVolumeBuffer = null;
             }
-
-            m_voxelVolumeBuffer.Release();
-            m_voxelVolumeBuffer = null;
         }
 
         public void Regenerate() => World.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
@@ -81,7 +76,7 @@ namespace Tuntenfisch.World
             m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
         }
 
-        private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<Vertex> vertices, NativeArray<int> triangles)
+        private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
         {
             m_requestHandle = null;
 
@@ -93,10 +88,14 @@ namespace Tuntenfisch.World
                 return;
             }
 
-            m_mesh.SetVertexBufferParams(vertexCount, Vertex.Attributes);
+            m_mesh.SetVertexBufferParams(vertexCount, GPUVertex.Attributes);
             m_mesh.SetVertexBufferData(vertices, 0, 0, vertexCount);
             m_mesh.SetIndexBufferParams(triangleCount, IndexFormat.UInt32);
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount);
+#if !UNITY_EDITOR
+            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices);
+#else
+            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, MeshUpdateFlags.DontRecalculateBounds);
+#endif
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds();
 
