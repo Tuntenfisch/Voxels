@@ -61,6 +61,7 @@ struct NoiseGraphStack
         return stack;
     }
 };
+
 float4 GenerateGraphFBMNoise(float3 position)
 {
     float4 finalValue_finalGradient = 0.0f;
