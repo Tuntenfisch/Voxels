@@ -11,6 +11,11 @@ namespace Tuntenfisch.Voxels.CSG
     {
         public static int SizeInBytes => s_sizeInBytes;
 
+        public CSGPrimitiveType PrimitiveType => m_primitiveType;
+        public float3 Center => m_payload0;
+        public float Radius => m_payload1.x;
+        public float3 Size => m_payload1;
+
         private readonly static int s_sizeInBytes = Marshal.SizeOf<GPUCSGPrimitive>();
 
         [SerializeField]

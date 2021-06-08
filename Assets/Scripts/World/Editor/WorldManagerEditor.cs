@@ -1,11 +1,12 @@
 using Unity.Mathematics;
 using UnityEditor;
+using Tuntenfisch.Editor;
 
 namespace Tuntenfisch.World.Editor
 {
     [CanEditMultipleObjects]
-    [CustomEditor(typeof(World))]
-    public class WorldEditor : UnityEditor.Editor
+    [CustomEditor(typeof(WorldManager))]
+    public class WorldManagerEditor : BaseEditor
     {
         private static int MaxNumberOfLods => 5;
 
@@ -31,6 +32,8 @@ namespace Tuntenfisch.World.Editor
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+
+            DisplayScriptHeader();
 
             if (s_showWorldOptions = EditorGUILayout.BeginFoldoutHeaderGroup(s_showWorldOptions, "World"))
             {

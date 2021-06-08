@@ -6,7 +6,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Tuntenfisch.Voxels.CSG;
 
-namespace Tuntenfisch.Voxels.VoxelVolume
+namespace Tuntenfisch.Voxels
 {
     [RequireComponent(typeof(VoxelConfig))]
     public class VoxelVolume : MonoBehaviour

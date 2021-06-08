@@ -8,7 +8,6 @@ namespace Tuntenfisch.Voxels.Noise.Editor
     [CustomPropertyDrawer(typeof(GPUNoiseParameters))]
     public class NoiseParametersPropertyDrawer : PropertyDrawer
     {
-
         private SerializedProperty m_noiseParameters;
         private SerializedProperty m_seed;
         private SerializedProperty m_noiseAxes;
@@ -54,11 +53,6 @@ namespace Tuntenfisch.Voxels.Noise.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            if (m_noiseParameters != property)
-            {
-                m_noiseParameters = property;
-                InitializeProperties();
-            }
             int lineCount = 14;
 
             return lineCount * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);

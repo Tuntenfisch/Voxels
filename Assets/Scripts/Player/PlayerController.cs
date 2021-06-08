@@ -1,3 +1,5 @@
+using Tuntenfisch.Voxels.CSG;
+using Tuntenfisch.World;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -88,6 +90,13 @@ namespace Tuntenfisch.Player
         {
             ApplyLook();
             ApplyMovement();
+
+            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
+            {
+                WorldManager.Instance.DrawCSGPrimitiveHologram(GPUCSGPrimitive.CreateSpherePrimitive(hit.point, 1.0f));
+            }
         }
     }
 }

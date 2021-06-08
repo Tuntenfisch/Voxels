@@ -10,7 +10,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels.DualContouring
+namespace Tuntenfisch.Voxels.DC
 {
     [RequireComponent(typeof(VoxelConfig))]
     public class DualContouring : MonoBehaviour

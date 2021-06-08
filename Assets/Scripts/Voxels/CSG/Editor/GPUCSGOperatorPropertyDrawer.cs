@@ -49,7 +49,7 @@ namespace Tuntenfisch.Voxels.CSG.Editor
                 InitializeProperties();
             }
 
-            int lineCount = IsSmoothOperator ? 2 : 1;    
+            int lineCount = IsSmoothOperator ? 2 : 1;
 
             return lineCount * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
         }
