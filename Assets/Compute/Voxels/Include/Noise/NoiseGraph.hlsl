@@ -4,10 +4,11 @@
 #include "Assets/Compute/Voxels/Include/Noise/Noise.hlsl"
 
 static const uint noiseGraphNodeTypePosition = 0;
-static const uint noiseGraphNodeTypeNoise = 1;
-static const uint noiseGraphNodeTypeCSGOperation = 2;
-static const uint noiseGraphNodeTypeCSGPrimitive = 3;
-static const uint noiseGraphNodeTypeOutput = 4;
+static const uint noiseGraphNodeTypeDomainWarp = 1;
+static const uint noiseGraphNodeTypeNoise = 2;
+static const uint noiseGraphNodeTypeCSGOperation = 3;
+static const uint noiseGraphNodeTypeCSGPrimitive = 4;
+static const uint noiseGraphNodeTypeOutput = 5;
 
 struct NoiseGraphNode
 {
@@ -24,11 +25,12 @@ uint numberOfNoiseGraphNoiseNodes;
 
 struct NoiseGraphStack
 {
-    float4x4 buffer;
+    float4 buffer[10];
     uint count;
 
     void Push(float4 value_gradient)
     {
+        [branch]
         switch(count++)
         {
             case 0:
@@ -43,10 +45,39 @@ struct NoiseGraphStack
                 buffer[2] = value_gradient;
                 break;
 
-            default:
+            case 3:
                 buffer[3] = value_gradient;
                 break;
+
+            case 4:
+                buffer[4] = value_gradient;
+                break;
+
+            case 5:
+                buffer[5] = value_gradient;
+                break;
+
+            case 6:
+                buffer[6] = value_gradient;
+                break;
+
+            case 7:
+                buffer[7] = value_gradient;
+                break;
+
+            case 8:
+                buffer[8] = value_gradient;
+                break;
+
+            default:
+                buffer[9] = value_gradient;
+                break;
         }
+    }
+
+    void Push(float3 position)
+    {
+        Push(float4(position, 0.0f));
     }
 
     float4 Pop()
@@ -67,30 +98,34 @@ float4 GenerateGraphFBMNoise(float3 position)
     float4 finalValue_finalGradient = 0.0f;
     
     NoiseGraphStack stack = NoiseGraphStack::Create();
-    
+
     for (uint nodeIndex = 0; nodeIndex < numberOfNoiseGraphNoiseNodes; nodeIndex++)
     {
         NoiseGraphNode node = noiseGraphNodes[nodeIndex];
-        
+
+        [branch]
         switch(node.nodeType)
         {
             case noiseGraphNodeTypePosition:
-                stack.Push(float4(position, 0.0f));
+                stack.Push(position);
                 break;
-            
+
+            case noiseGraphNodeTypeDomainWarp:
+                stack.Push(WarpDomain(stack.Pop().xyz, noiseGraphNoiseParameters[node.dataIndex]));
+                break;
+
             case noiseGraphNodeTypeNoise:
-                NoiseParameters noiseParameters = noiseGraphNoiseParameters[node.dataIndex];
-                stack.Push(GenerateFBMNoise(stack.Pop().xyz, noiseParameters));
+                stack.Push(GenerateFBMNoise(stack.Pop().xyz, noiseGraphNoiseParameters[node.dataIndex]));
                 break;
             
             case noiseGraphNodeTypeCSGOperation:
-                CSGOperator csgOperator = noiseGraphCSGOperators[node.dataIndex];
-                stack.Push(ApplyCSGOperator(stack.Pop(), stack.Pop(), csgOperator));
+                float4 rhs = stack.Pop();
+                float4 lhs = stack.Pop();
+                stack.Push(ApplyCSGOperator(lhs, rhs, noiseGraphCSGOperators[node.dataIndex]));
                 break;
             
             case noiseGraphNodeTypeCSGPrimitive:
-                CSGPrimitive csgPrimitive = noiseGraphCSGPrimitives[node.dataIndex];
-                stack.Push(EvaluateCSGPrimitive(csgPrimitive, stack.Pop().xyz));
+                stack.Push(EvaluateCSGPrimitive(stack.Pop().xyz, noiseGraphCSGPrimitives[node.dataIndex]));
                 break;
             
             case noiseGraphNodeTypeOutput:

@@ -56,6 +56,7 @@ struct CSGOperator
 
 float4 ApplyCSGOperator(float4 lhs, float4 rhs, CSGOperator csgOperator)
 {
+    [branch]
     switch(csgOperator.operatorIndex)
     {
         case csgOperatorIndexUnion:
@@ -84,7 +85,7 @@ struct CSGPrimitive
     float3 payload[csgPrimitivePayloadSize];
 };
 
-float4 EvaluateCSGSphere(float3 center, float radius, float3 position)
+float4 EvaluateCSGSphere(float3 position, float3 center, float radius)
 {
     position -= center;
 
@@ -96,7 +97,7 @@ float4 EvaluateCSGSphere(float3 center, float radius, float3 position)
     return value_gradient;
 }
 
-float4 EvaluateCSGCuboid(float3 center, float3 size, float3 position)
+float4 EvaluateCSGCuboid(float3 position, float3 center, float3 size)
 {
     position -= center;
 
@@ -112,15 +113,16 @@ float4 EvaluateCSGCuboid(float3 center, float3 size, float3 position)
     return value_gradient;
 }
 
-float4 EvaluateCSGPrimitive(CSGPrimitive primitive, float3 position)
+float4 EvaluateCSGPrimitive(float3 position, CSGPrimitive primitive)
 {
+    [branch]
     switch(primitive.primitiveType)
     {
         case csgPrimitiveTypeSphere:
-            return EvaluateCSGSphere(primitive.payload[0], primitive.payload[1].x, position);
+            return EvaluateCSGSphere(position, primitive.payload[0], primitive.payload[1].x);
 
         default:
-            return EvaluateCSGCuboid(primitive.payload[0], primitive.payload[1], position);
+            return EvaluateCSGCuboid(position, primitive.payload[0], primitive.payload[1]);
     }
 }
 

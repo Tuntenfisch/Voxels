@@ -51,25 +51,25 @@ namespace Tuntenfisch.Voxels.VoxelVolume
 
         private void CreateBuffers()
         {
-            if (m_noiseGraphNodesBuffer?.count != m_voxelConfig.NoiseGraph.Nodes.Count)
+            if (m_noiseGraphNodesBuffer == null || m_noiseGraphNodesBuffer.count < m_voxelConfig.NoiseGraph.Nodes.Count)
             {
                 m_noiseGraphNodesBuffer?.Release();
                 m_noiseGraphNodesBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.Nodes.Count, 1), GPUNoiseGraphNode.SizeInBytes);
             }
 
-            if (m_noiseGraphNoiseParametersBuffer?.count != m_voxelConfig.NoiseGraph.NoiseParameters.Count)
+            if (m_noiseGraphNoiseParametersBuffer == null || m_noiseGraphNoiseParametersBuffer.count < m_voxelConfig.NoiseGraph.NoiseParameters.Count)
             {
                 m_noiseGraphNoiseParametersBuffer?.Release();
                 m_noiseGraphNoiseParametersBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.NoiseParameters.Count, 1), GPUNoiseParameters.SizeInBytes);
             }
 
-            if (m_noiseGraphCSGOperatorsBuffer?.count != m_voxelConfig.NoiseGraph.CSGOperators.Count)
+            if (m_noiseGraphCSGOperatorsBuffer == null || m_noiseGraphCSGOperatorsBuffer.count < m_voxelConfig.NoiseGraph.CSGOperators.Count)
             {
                 m_noiseGraphCSGOperatorsBuffer?.Release();
                 m_noiseGraphCSGOperatorsBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.CSGOperators.Count, 1), GPUCSGOperator.SizeInBytes);
             }
 
-            if (m_noiseGraphCSGPrimitivesBuffer?.count != m_voxelConfig.NoiseGraph.CSGPrimitives.Count)
+            if (m_noiseGraphCSGPrimitivesBuffer == null || m_noiseGraphCSGPrimitivesBuffer.count < m_voxelConfig.NoiseGraph.CSGPrimitives.Count)
             {
                 m_noiseGraphCSGPrimitivesBuffer?.Release();
                 m_noiseGraphCSGPrimitivesBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.CSGPrimitives.Count, 1), GPUCSGPrimitive.SizeInBytes);

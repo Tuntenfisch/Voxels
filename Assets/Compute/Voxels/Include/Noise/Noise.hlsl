@@ -52,6 +52,7 @@ float3 CalculateOctaveOffset(uint seed, uint octave)
 
 float4 GenerateNoise(float3 position, uint noiseAxes)
 {
+    [branch]
     switch(noiseAxes)
     {
         case noiseXZ:
@@ -138,6 +139,22 @@ float4 GenerateFBMNoise(float3 position, NoiseParameters noiseParameters)
     }
 
     return value_gradient;
+}
+
+float3 WarpDomain(float3 position, NoiseParameters noiseParameters)
+{
+    float3 value = 0.0f;
+
+    // Add a random offset to the position so the values for x, y and z aren't all the same.
+    value.x = GenerateFBMNoise(position + float3(5.2f, 3.6f, -1.0f), noiseParameters).x;
+
+    if (noiseParameters.noiseAxes != noiseXZ)
+    {
+        value.y = GenerateFBMNoise(position - float3(-8.3f, 2.8f, 9.0f), noiseParameters).x;
+    }
+    value.z = GenerateFBMNoise(position, noiseParameters).x;
+
+    return position + value;
 }
 
 #endif

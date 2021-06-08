@@ -43,12 +43,18 @@ namespace Tuntenfisch.Voxels.Noise
             m_csgPrimitives ??= new List<GPUCSGPrimitive>();
             m_csgPrimitives.Clear();
 
-            foreach (NoiseGraphNode node in  IterateOverGraphInPreorder((NoiseGraphNode)nodes[outputNodeIndex]))
+            foreach (NoiseGraphNode node in IterateOverGraphInPreorder((NoiseGraphNode)nodes[outputNodeIndex]))
             {
                 int dataIndex = -1;
 
                 switch (node.GetNodeType())
                 {
+                    case NodeType.DomainWarp:
+                        DomainWarpNode domainWarpNode = (DomainWarpNode)node;
+                        m_noiseParameters.Add(domainWarpNode.NoiseParameters);
+                        dataIndex = m_noiseParameters.Count - 1;
+                        break;
+
                     case NodeType.Noise:
                         NoiseNode noiseNode = (NoiseNode)node;
                         m_noiseParameters.Add(noiseNode.NoiseParameters);
@@ -95,7 +101,7 @@ namespace Tuntenfisch.Voxels.Noise
                     rightNodes = IterateOverGraphInPreorder((NoiseGraphNode)inputs[1].Connection.node);
                 }
 
-                return Enumerable.Concat(Enumerable.Concat(leftNodes, rightNodes), new NoiseGraphNode[] { node });
+                return Enumerable.Concat(Enumerable.Concat(leftNodes, rightNodes), Enumerable.Repeat(node, 1));
             }
         }
 
