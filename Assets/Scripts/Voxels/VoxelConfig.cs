@@ -1,6 +1,5 @@
-﻿using Tuntenfisch.Voxels.DualContouring;
+﻿using Tuntenfisch.Voxels.DC;
 using Tuntenfisch.Voxels.Noise;
-using Tuntenfisch.Voxels.VoxelVolume;
 using UnityEngine;
 using UnityEngine.Assertions;
 

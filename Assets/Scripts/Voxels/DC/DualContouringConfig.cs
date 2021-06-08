@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels.DualContouring
+namespace Tuntenfisch.Voxels.DC
 {
     [CreateAssetMenu(fileName = "Dual Contouring Config", menuName = "Voxels/Dual Contouring Config")]
     public class DualContouringConfig : ScriptableObject

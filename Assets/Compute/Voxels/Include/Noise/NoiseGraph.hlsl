@@ -25,7 +25,7 @@ uint numberOfNoiseGraphNoiseNodes;
 
 struct NoiseGraphStack
 {
-    float4 buffer[10];
+    float4 buffer[2];
     uint count;
 
     void Push(float4 value_gradient)
@@ -37,40 +37,8 @@ struct NoiseGraphStack
                 buffer[0] = value_gradient;
                 break;
 
-            case 1:
-                buffer[1] = value_gradient;
-                break;
-
-            case 2:
-                buffer[2] = value_gradient;
-                break;
-
-            case 3:
-                buffer[3] = value_gradient;
-                break;
-
-            case 4:
-                buffer[4] = value_gradient;
-                break;
-
-            case 5:
-                buffer[5] = value_gradient;
-                break;
-
-            case 6:
-                buffer[6] = value_gradient;
-                break;
-
-            case 7:
-                buffer[7] = value_gradient;
-                break;
-
-            case 8:
-                buffer[8] = value_gradient;
-                break;
-
             default:
-                buffer[9] = value_gradient;
+                buffer[1] = value_gradient;
                 break;
         }
     }

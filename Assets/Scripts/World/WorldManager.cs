@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Voxels;
-using Tuntenfisch.Voxels.DualContouring;
-using Tuntenfisch.Voxels.VoxelVolume;
+using Tuntenfisch.Voxels.CSG;
+using Tuntenfisch.Voxels.DC;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -13,7 +13,8 @@ using UnityEngine.Assertions;
 namespace Tuntenfisch.World
 {
     [RequireComponent(typeof(VoxelConfig), typeof(VoxelVolume), typeof(DualContouring))]
-    public class World : SingletonComponent<World>
+    [RequireComponent(typeof(CSGUtility))]
+    public class WorldManager : SingletonComponent<WorldManager>
     {
         internal static VoxelConfig VoxelConfig => Instance.m_voxelConfig;
         internal static VoxelVolume VoxelVolume => Instance.m_voxelVolume;
@@ -36,6 +37,7 @@ namespace Tuntenfisch.World
         private VoxelConfig m_voxelConfig;
         private VoxelVolume m_voxelVolume;
         private DualContouring m_dualContouring;
+        private CSGUtility m_csgUtility;
         private ObjectPool<Chunk> m_sharedChunkPool;
         private Dictionary<int3, Chunk> m_chunks;
         private HashSet<int3> m_oldChunkCoordinates;
@@ -64,6 +66,8 @@ namespace Tuntenfisch.World
 #endif
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
+            m_csgUtility = GetComponent<CSGUtility>();
+
             m_sharedChunkPool = new ObjectPool<Chunk>(() => { return Instantiate(Instance.m_chunkPrefab, Instance.transform).GetComponent<Chunk>(); });
             m_chunks = new Dictionary<int3, Chunk>();
             m_oldChunkCoordinates = new HashSet<int3>();
@@ -106,6 +110,8 @@ namespace Tuntenfisch.World
         }
 
         private void OnValidate() => ApplySettings();
+
+        public void DrawCSGPrimitiveHologram(GPUCSGPrimitive csgPrimitive) => m_csgUtility.DrawCSGPrimitiveHologram(csgPrimitive);
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
         {

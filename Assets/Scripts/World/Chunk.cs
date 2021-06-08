@@ -2,7 +2,7 @@
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
-using Tuntenfisch.Voxels.DualContouring;
+using Tuntenfisch.Voxels.DC;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -44,15 +44,15 @@ namespace Tuntenfisch.World
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(transform.position, World.VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions);
+            Gizmos.DrawWireCube(transform.position, WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions);
         }
 
         public void CreateBuffers()
         {
-            if (m_voxelVolumeBuffer?.count != World.VoxelConfig.VoxelVolumeConfig.VoxelCount)
+            if (m_voxelVolumeBuffer?.count != WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount)
             {
                 m_voxelVolumeBuffer?.Release();
-                m_voxelVolumeBuffer = new ComputeBuffer(World.VoxelConfig.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
+                m_voxelVolumeBuffer = new ComputeBuffer(WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
             }
         }
 
@@ -65,7 +65,7 @@ namespace Tuntenfisch.World
             }
         }
 
-        public void Regenerate() => World.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
+        public void Regenerate() => WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
 
         public void Remeshify()
         {
@@ -73,7 +73,7 @@ namespace Tuntenfisch.World
             {
                 CancelPendingRequest();
             }
-            m_requestHandle = World.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
+            m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
         }
 
         private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)

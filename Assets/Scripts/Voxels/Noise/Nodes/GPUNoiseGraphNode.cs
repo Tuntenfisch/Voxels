@@ -10,11 +10,15 @@ namespace Tuntenfisch.Voxels.Noise.Nodes
     {
         public static int SizeInBytes => s_sizeInBytes;
 
+        public NodeType NodeType => m_nodeType;
+        public int DataIndex => m_dataIndex;
+
         private readonly static int s_sizeInBytes = Marshal.SizeOf<GPUNoiseGraphNode>();
 
         [SerializeField]
-        private readonly NodeType m_nodeType;
-        private readonly int m_dataIndex;
+        private NodeType m_nodeType;
+        [SerializeField]
+        private int m_dataIndex;
 
         public GPUNoiseGraphNode(NodeType nodeType, int dataIndex)
         {

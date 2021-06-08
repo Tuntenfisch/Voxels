@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f71168504926ad48b08895868c08b88, type: 3}
+  m_Script: {fileID: 11500000, guid: bc62c4fa9efeb644fb4e3e2a3ac4bbf6, type: 3}
   m_Name: Voxel Volume Config
   m_EditorClassIdentifier: 
   m_compute: {fileID: 7200000, guid: 945078b799b71cc45808878451165ddd, type: 3}
