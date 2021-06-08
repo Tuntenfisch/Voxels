@@ -467,14 +467,16 @@ MonoBehaviour:
     m_dataIndex: 0
   - m_nodeType: 0
     m_dataIndex: -1
-  - m_nodeType: 2
+  - m_nodeType: 1
     m_dataIndex: 1
+  - m_nodeType: 2
+    m_dataIndex: 2
   - m_nodeType: 3
     m_dataIndex: 0
   - m_nodeType: 0
     m_dataIndex: -1
   - m_nodeType: 1
-    m_dataIndex: 2
+    m_dataIndex: 3
   - m_nodeType: 4
     m_dataIndex: 0
   - m_nodeType: 3
@@ -496,6 +498,20 @@ MonoBehaviour:
       x: 1.8
       y: 1.8
       z: 1.8
+  - m_seed: 338
+    m_noiseAxes: 0
+    m_noiseType: 0
+    m_numberOfOctaves: 2
+    m_initialAmplitude: 100
+    m_initialFrequency:
+      x: 0.002
+      y: 0.002
+      z: 0.002
+    m_persistence: 1.08
+    m_lacunarity:
+      x: 1.5
+      y: 2
+      z: 1.5
   - m_seed: 5
     m_noiseAxes: 0
     m_noiseType: 2
