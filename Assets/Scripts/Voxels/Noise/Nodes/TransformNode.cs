@@ -7,7 +7,7 @@ namespace Tuntenfisch.Voxels.Noise.Nodes
     [NodeTint(c_internalNodeColor)]
     public class TransformNode : NoiseGraphNode
     {
-        public Matrix4x4 Matrix
+        public Matrix4x4 TransformMatrix
         {
             get
             {
