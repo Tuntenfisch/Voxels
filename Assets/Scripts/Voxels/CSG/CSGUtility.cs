@@ -19,10 +19,10 @@ namespace Tuntenfisch.Voxels.CSG
             };
         }
 
-        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, Matrix4x4 matrix)
+        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, Matrix4x4 objectToWorldMatrix)
         {
             Mesh mesh = m_csgPrimitiveMeshes[primitiveType];
-            Graphics.DrawMesh(mesh, matrix, m_hologramMaterial, 0, null, 0, null, false);
+            Graphics.DrawMesh(mesh, objectToWorldMatrix, m_hologramMaterial, 0, null, 0, null, false);
         }
     }
 }

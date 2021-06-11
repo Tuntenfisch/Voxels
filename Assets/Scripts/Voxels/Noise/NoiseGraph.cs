@@ -56,7 +56,7 @@ namespace Tuntenfisch.Voxels.Noise
                 {
                     case NodeType.Transform:
                         TransformNode transformNode = (TransformNode)node;
-                        m_transformMatrices.Add(transformNode.Matrix);
+                        m_transformMatrices.Add(transformNode.TransformMatrix);
                         dataIndex = m_transformMatrices.Count - 1;
                         break;
 
