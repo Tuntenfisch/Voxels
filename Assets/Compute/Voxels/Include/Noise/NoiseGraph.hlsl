@@ -4,11 +4,12 @@
 #include "Assets/Compute/Voxels/Include/Noise/Noise.hlsl"
 
 static const uint noiseGraphNodeTypePosition = 0;
-static const uint noiseGraphNodeTypeDomainWarp = 1;
-static const uint noiseGraphNodeTypeNoise = 2;
-static const uint noiseGraphNodeTypeCSGOperation = 3;
-static const uint noiseGraphNodeTypeCSGPrimitive = 4;
-static const uint noiseGraphNodeTypeOutput = 5;
+static const uint noiseGraphNodeTypeTransform = 1;
+static const uint noiseGraphNodeTypeDomainWarp = 2;
+static const uint noiseGraphNodeTypeNoise = 3;
+static const uint noiseGraphNodeTypeCSGOperation = 4;
+static const uint noiseGraphNodeTypeCSGPrimitive = 5;
+static const uint noiseGraphNodeTypeOutput = 6;
 
 struct NoiseGraphNode
 {
@@ -17,6 +18,7 @@ struct NoiseGraphNode
 };
 
 StructuredBuffer<NoiseGraphNode> noiseGraphNodes;
+StructuredBuffer<float4x4> noiseGraphTransformMatrices;
 StructuredBuffer<NoiseParameters> noiseGraphNoiseParameters;
 StructuredBuffer<CSGOperator> noiseGraphCSGOperators;
 StructuredBuffer<CSGPrimitive> noiseGraphCSGPrimitives;
@@ -45,7 +47,7 @@ struct NoiseGraphStack
 
     void Push(float3 position)
     {
-        Push(float4(position, 0.0f));
+        Push(float4(position, 1.0f));
     }
 
     float4 Pop()
@@ -77,6 +79,10 @@ float4 GenerateGraphFBMNoise(float3 position)
         {
             case noiseGraphNodeTypePosition:
                 stack.Push(position);
+                break;
+
+            case noiseGraphNodeTypeTransform:
+                stack.Push(mul(noiseGraphTransformMatrices[node.dataIndex], stack.Pop()));
                 break;
 
             case noiseGraphNodeTypeDomainWarp:

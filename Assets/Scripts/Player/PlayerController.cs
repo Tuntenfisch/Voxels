@@ -10,6 +10,8 @@ namespace Tuntenfisch.Player
     {
         private float Gravity => Physics.gravity.y;
 
+        private const float c_minDownwardVelocity = -2.0f;
+
         [Header("Movement")]
         [Range(1.0f, 10.0f)]
         [SerializeField]
@@ -28,19 +30,9 @@ namespace Tuntenfisch.Player
         private CharacterController m_controller;
 
         private float2 m_moveDelta;
-        private float2 m_lookDelta;
         private bool m_wantsToJump;
         private float2 m_rotation;
-        private float m_velocityY;
-
-        public void OnMove(InputAction.CallbackContext context) => m_moveDelta = context.ReadValue<Vector2>();
-
-        public void OnJump(InputAction.CallbackContext context) => m_wantsToJump = context.ReadValueAsButton();
-
-        // OnLook(...) can be called multiple times per frame and the (mouse) delta is framerate independent.
-        // Every time OnLook(...) is called we add the received delta to an accumulator. Once Update(...) is
-        // called we apply the accumulated delta once and reset it.
-        public void OnLook(InputAction.CallbackContext context) => m_lookDelta += (float2)context.ReadValue<Vector2>();
+        private float3 m_velocity;
 
         private void Start()
         {
@@ -48,55 +40,72 @@ namespace Tuntenfisch.Player
             Cursor.lockState = CursorLockMode.Locked;
         }
 
-        private void ApplyLook()
+        public void OnMove(InputValue value) => m_moveDelta = value.Get<Vector2>();
+
+        public void OnJump() => m_wantsToJump = m_controller.isGrounded;
+
+        public void OnLook(InputValue value)
         {
-            m_rotation.y += m_lookDelta.x * m_lookSensitivity;
-            m_rotation.x -= m_lookDelta.y * m_lookSensitivity;
+            float2 lookDelta = value.Get<Vector2>();
+
+            m_rotation.y += lookDelta.x * m_lookSensitivity;
+            m_rotation.x -= lookDelta.y * m_lookSensitivity;
             m_rotation.x = math.clamp(m_rotation.x, -90.0f, 90.0f);
 
             m_camera.transform.localRotation = Quaternion.Euler(m_rotation.x, 0.0f, 0.0f);
             transform.localRotation = Quaternion.Euler(0.0f, m_rotation.y, 0.0f);
-
-            // Reset the accumulated delta.
-            m_lookDelta = float2.zero;
         }
 
-        private void Jump()
+        public void OnPrimary()
         {
-            m_velocityY = math.sqrt(-2.0f * Gravity * m_jumpHeight);
+            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
+            {
+                // ToDo...
+            }
+        }
+
+        public void OnSecondary()
+        {
+            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
+            {
+                // ToDo...
+            }
         }
 
         private void ApplyMovement()
         {
-            if (m_wantsToJump && m_controller.isGrounded)
-            {
-                Jump();
-            }
-
-            m_velocityY += Gravity * Time.deltaTime;
-
-            float3 horizontalVelocity = (transform.right * m_moveDelta.x + transform.forward * m_moveDelta.y) * m_movementSpeed;
-            float3 verticalVelocity = new float3(0.0f, 1.0f, 0.0f) * m_velocityY;
-
-            m_controller.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
-
             if (m_controller.isGrounded)
             {
-                m_velocityY = 0.0f;
+                m_velocity.y = m_wantsToJump ? math.sqrt(-2.0f * Gravity * m_jumpHeight) : c_minDownwardVelocity;
+                m_wantsToJump = false;
+            }
+            else
+            {
+                m_velocity.y += Gravity * Time.deltaTime;
+            }
+
+            m_velocity.xz = (((float3)transform.right).xz * m_moveDelta.x + ((float3)transform.forward).xz * m_moveDelta.y) * m_movementSpeed;
+            m_controller.Move(m_velocity * Time.deltaTime);
+        }
+
+        private void HandleWorldInteraction()
+        {
+            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
+            {
+                WorldManager.Instance.DrawCSGPrimitiveHologram(CSGPrimitiveType.Sphere, Matrix4x4.Translate(hit.point));
             }
         }
 
         private void Update()
         {
-            ApplyLook();
             ApplyMovement();
-
-            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
-            {
-                WorldManager.Instance.DrawCSGPrimitiveHologram(GPUCSGPrimitive.CreateSpherePrimitive(hit.point, 1.0f));
-            }
+            HandleWorldInteraction();
         }
     }
 }

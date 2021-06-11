@@ -10,7 +10,6 @@ static const uint csgOPeratorIndexSmoothUnion = 3;
 static const uint csgOPeratorIndexSmoothIntersection = 4;
 static const uint csgOperatorIndexSmoothDifference = 5;
 
-static const uint csgPrimitivePayloadSize = 2;
 static const uint csgPrimitiveTypeSphere = 0;
 static const uint csgPrimitiveTypeCuboid = 1;
 
@@ -82,28 +81,23 @@ float4 ApplyCSGOperator(float4 lhs, float4 rhs, CSGOperator csgOperator)
 struct CSGPrimitive
 {
     uint primitiveType;
-    float3 payload[csgPrimitivePayloadSize];
 };
 
-float4 EvaluateCSGSphere(float3 position, float3 center, float radius)
+float4 EvaluateCSGSphere(float3 position)
 {
-    position -= center;
-
     float4 value_gradient = 0.0f;
     
-    value_gradient.x = length(position) - radius;
+    value_gradient.x = length(position) - 0.5f;
     value_gradient.yzw = normalize(position);
 
     return value_gradient;
 }
 
-float4 EvaluateCSGCuboid(float3 position, float3 center, float3 size)
+float4 EvaluateCSGCuboid(float3 position)
 {
-    position -= center;
-
     float4 value_gradient = 0.0f;
     
-    float3 d = abs(position) - 0.5f * size;
+    float3 d = abs(position) - 0.5f;
     float3 smoothing = sign(position);
     float g = max(d.x, max(d.y, d.z));
     
@@ -119,10 +113,10 @@ float4 EvaluateCSGPrimitive(float3 position, CSGPrimitive primitive)
     switch(primitive.primitiveType)
     {
         case csgPrimitiveTypeSphere:
-            return EvaluateCSGSphere(position, primitive.payload[0], primitive.payload[1].x);
+            return EvaluateCSGSphere(position);
 
         default:
-            return EvaluateCSGCuboid(position, primitive.payload[0], primitive.payload[1]);
+            return EvaluateCSGCuboid(position);
     }
 }
 

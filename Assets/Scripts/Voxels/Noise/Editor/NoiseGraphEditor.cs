@@ -43,8 +43,8 @@ namespace Tuntenfisch.Voxels.Noise.Editor
 
             EditorGUILayout.PropertyField(m_nodes);
             EditorGUILayout.PropertyField(m_noiseParameters);
-            EditorGUILayout.PropertyField(m_csgOperators);
-            EditorGUILayout.PropertyField(m_csgPrimitives);
+            EditorGUILayout.PropertyField(m_csgOperators, new GUIContent("CSG Operators"));
+            EditorGUILayout.PropertyField(m_csgPrimitives, new GUIContent("CSG Primitives"));
 
             serializedObject.ApplyModifiedProperties();
         }

@@ -37,7 +37,7 @@ namespace Tuntenfisch.Voxels.Noise.Nodes.Editor
             }
             int lineCount = 2;
 
-            return lineCount * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+            return lineCount * EditorGUIUtility.singleLineHeight + (lineCount - 1) * EditorGUIUtility.standardVerticalSpacing;
         }
         private void InitializeProperties()
         {

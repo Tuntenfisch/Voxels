@@ -51,7 +51,7 @@ namespace Tuntenfisch.Voxels.CSG.Editor
 
             int lineCount = IsSmoothOperator ? 2 : 1;
 
-            return lineCount * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+            return lineCount * EditorGUIUtility.singleLineHeight + (lineCount - 1) * EditorGUIUtility.standardVerticalSpacing;
         }
         private void InitializeProperties()
         {

@@ -146,13 +146,13 @@ float3 WarpDomain(float3 position, NoiseParameters noiseParameters)
     float3 value = 0.0f;
 
     // Add a random offset to the position so the values for x, y and z aren't all the same.
-    value.x = GenerateFBMNoise(position + float3(5.2f, 3.6f, -1.0f), noiseParameters).x;
+    value.x = GenerateFBMNoise(position + float3(500.0f, 1000.0f, 1500.0f), noiseParameters).x;
 
     if (noiseParameters.noiseAxes != noiseXZ)
     {
-        value.y = GenerateFBMNoise(position - float3(-8.3f, 2.8f, 9.0f), noiseParameters).x;
+        value.y = GenerateFBMNoise(position, noiseParameters).x;
     }
-    value.z = GenerateFBMNoise(position, noiseParameters).x;
+    value.z = GenerateFBMNoise(position - float3(500.0f, 1000.0f, 1500.0f), noiseParameters).x;
 
     return position + value;
 }

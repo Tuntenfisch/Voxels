@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Noise.Nodes
 {
-    [CreateNodeMenu("Noise Graph Nodes/Position")]
+    [CreateNodeMenu("Noise Graph Nodes/Position", order = (int)NodeType.Position)]
     [NodeTint(c_leafNodeColor)]
     public class PositionNode : NoiseGraphNode
     {

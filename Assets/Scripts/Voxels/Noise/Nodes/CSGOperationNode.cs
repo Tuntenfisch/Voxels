@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Noise.Nodes
 {
-    [CreateNodeMenu("Noise Graph Nodes/CSG Operation")]
+    [CreateNodeMenu("Noise Graph Nodes/CSG Operation", order = (int)NodeType.CSGOperation)]
     [NodeTint(c_internalNodeColor)]
     public class CSGOperationNode : NoiseGraphNode
     {

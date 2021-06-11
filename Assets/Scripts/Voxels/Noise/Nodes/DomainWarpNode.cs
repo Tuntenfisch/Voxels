@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Noise.Nodes
 {
-    [CreateNodeMenu("Noise Graph Nodes/Domain Warp")]
+    [CreateNodeMenu("Noise Graph Nodes/Domain Warp", order = (int)NodeType.DomainWarp)]
     [NodeWidth(272)]
     [NodeTint(c_internalNodeColor)]
     public class DomainWarpNode : NoiseGraphNode

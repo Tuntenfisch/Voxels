@@ -546,7 +546,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Actions: {fileID: -944628639613478452, guid: 0497617b17a19dc45a79839f1f01eb43, type: 3}
-  m_NotificationBehavior: 2
+  m_NotificationBehavior: 0
   m_UIInputModule: {fileID: 0}
   m_DeviceLostEvent:
     m_PersistentCalls:
@@ -593,8 +593,8 @@ MonoBehaviour:
   - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1464136625}
-        m_TargetAssemblyTypeName: Player.PlayerController, Assembly-CSharp
-        m_MethodName: OnLook
+        m_TargetAssemblyTypeName: Tuntenfisch.Player.PlayerController, Assembly-CSharp
+        m_MethodName: OnPrimary
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -606,6 +606,26 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: dc65307a-5748-47c9-9f27-3b8bd0b40bd4
     m_ActionName: Player/Look[/Mouse/delta]
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1464136625}
+        m_TargetAssemblyTypeName: Tuntenfisch.Player.PlayerController, Assembly-CSharp
+        m_MethodName: OnSecondary
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: e5248aa1-bf62-4b39-971f-cd136602fa3c
+    m_ActionName: Player/Primary Action[/Mouse/leftButton]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 23f8d66f-013a-4b54-92fa-d761817c3909
+    m_ActionName: Player/Secondary Action[/Mouse/rightButton]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: Keyboard and Mouse
   m_DefaultActionMap: Player
@@ -618,7 +638,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1464136622}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a07c5025eaba447aec54813a2c41e0, type: 3}
   m_Name: 
@@ -627,6 +647,10 @@ MonoBehaviour:
   m_jumpHeight: 1.5
   m_lookSensitivity: 0.05
   m_camera: {fileID: 963194227}
+  a:
+    x: 0
+    y: 0
+    z: 0
 --- !u!4 &1464136626
 Transform:
   m_ObjectHideFlags: 0

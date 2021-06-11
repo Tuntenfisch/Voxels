@@ -4,10 +4,11 @@
     public enum NodeType
     {
         Position = 0,
-        DomainWarp = 1,
-        Noise = 2,
-        CSGOperation = 3,
-        CSGPrimitive = 4,
-        Output = 5
+        Transform = 1,
+        DomainWarp = 2,
+        Noise = 3,
+        CSGOperation = 4,
+        CSGPrimitive = 5,
+        Output = 6
     }
 }
