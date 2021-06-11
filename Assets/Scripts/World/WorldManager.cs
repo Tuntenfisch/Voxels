@@ -111,7 +111,7 @@ namespace Tuntenfisch.World
 
         private void OnValidate() => ApplySettings();
 
-        public void DrawCSGPrimitiveHologram(GPUCSGPrimitive csgPrimitive) => m_csgUtility.DrawCSGPrimitiveHologram(csgPrimitive);
+        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, Matrix4x4 matrix) => m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, matrix);
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
         {

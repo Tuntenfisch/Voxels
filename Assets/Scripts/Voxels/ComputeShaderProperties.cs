@@ -14,6 +14,7 @@ namespace Tuntenfisch.Voxels
         public static readonly int NoiseGraphNoiseParameters = Shader.PropertyToID("noiseGraphNoiseParameters");
         public static readonly int NoiseGraphCSGOperators = Shader.PropertyToID("noiseGraphCSGOperators");
         public static readonly int NoiseGraphCSGPrimitives = Shader.PropertyToID("noiseGraphCSGPrimitives");
+        public static readonly int NoiseGraphTransformMatrices = Shader.PropertyToID("noiseGraphTransformMatrices");
         public static readonly int NumberOfNoiseGraphNoiseNodes = Shader.PropertyToID("numberOfNoiseGraphNoiseNodes");
         public static readonly int NumberOfVoxels = Shader.PropertyToID("numberOfVoxels");
         public static readonly int SchmitzParticleIterations = Shader.PropertyToID("schmitzParticleIterations");

@@ -15,12 +15,15 @@ namespace Tuntenfisch.Voxels.Noise
         public event Action OnDirtied;
 
         public List<GPUNoiseGraphNode> Nodes => m_nodes;
+        public List<Matrix4x4> TransformMatrices => m_transformMatrices;
         public List<GPUNoiseParameters> NoiseParameters => m_noiseParameters;
         public List<GPUCSGOperator> CSGOperators => m_csgOperators;
         public List<GPUCSGPrimitive> CSGPrimitives => m_csgPrimitives;
 
         [SerializeField]
         private List<GPUNoiseGraphNode> m_nodes;
+        [SerializeField]
+        private List<Matrix4x4> m_transformMatrices;
         [SerializeField]
         private List<GPUNoiseParameters> m_noiseParameters;
         [SerializeField]
@@ -36,6 +39,8 @@ namespace Tuntenfisch.Voxels.Noise
 
             m_nodes ??= new List<GPUNoiseGraphNode>();
             m_nodes.Clear();
+            m_transformMatrices ??= new List<Matrix4x4>();
+            m_transformMatrices.Clear();
             m_noiseParameters ??= new List<GPUNoiseParameters>();
             m_noiseParameters.Clear();
             m_csgOperators ??= new List<GPUCSGOperator>();
@@ -49,6 +54,12 @@ namespace Tuntenfisch.Voxels.Noise
 
                 switch (node.GetNodeType())
                 {
+                    case NodeType.Transform:
+                        TransformNode transformNode = (TransformNode)node;
+                        m_transformMatrices.Add(transformNode.Matrix);
+                        dataIndex = m_transformMatrices.Count - 1;
+                        break;
+
                     case NodeType.DomainWarp:
                         DomainWarpNode domainWarpNode = (DomainWarpNode)node;
                         m_noiseParameters.Add(domainWarpNode.NoiseParameters);
