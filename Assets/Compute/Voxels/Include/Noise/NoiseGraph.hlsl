@@ -14,14 +14,14 @@ static const uint noiseGraphNodeTypeOutput = 6;
 struct NoiseGraphNode
 {
     uint nodeType;
-    uint dataIndex;
+    // Below data is populated depending on the type of node.
+    float4x4 transformMatrix;
+    NoiseParameters noiseParameters;
+    CSGOperator csgOperator;
+    CSGPrimitive csgPrimitive;
 };
 
 StructuredBuffer<NoiseGraphNode> noiseGraphNodes;
-StructuredBuffer<float4x4> noiseGraphTransformMatrices;
-StructuredBuffer<NoiseParameters> noiseGraphNoiseParameters;
-StructuredBuffer<CSGOperator> noiseGraphCSGOperators;
-StructuredBuffer<CSGPrimitive> noiseGraphCSGPrimitives;
 
 uint numberOfNoiseGraphNoiseNodes;
 
@@ -30,17 +30,17 @@ struct NoiseGraphStack
     float4 buffer[2];
     uint count;
 
-    void Push(float4 value_gradient)
+    void Push(float4 valueAndGradient)
     {
         [branch]
         switch(count++)
         {
             case 0:
-                buffer[0] = value_gradient;
+                buffer[0] = valueAndGradient;
                 break;
 
             default:
-                buffer[1] = value_gradient;
+                buffer[1] = valueAndGradient;
                 break;
         }
     }
@@ -66,7 +66,7 @@ struct NoiseGraphStack
 
 float4 GenerateGraphFBMNoise(float3 position)
 {
-    float4 finalValue_finalGradient = 0.0f;
+    float4 finalValueAndFinalGradient = 0.0f;
     
     NoiseGraphStack stack = NoiseGraphStack::Create();
 
@@ -82,34 +82,34 @@ float4 GenerateGraphFBMNoise(float3 position)
                 break;
 
             case noiseGraphNodeTypeTransform:
-                stack.Push(mul(noiseGraphTransformMatrices[node.dataIndex], stack.Pop()));
+                stack.Push(mul(node.transformMatrix, stack.Pop()));
                 break;
 
             case noiseGraphNodeTypeDomainWarp:
-                stack.Push(WarpDomain(stack.Pop().xyz, noiseGraphNoiseParameters[node.dataIndex]));
+                stack.Push(WarpDomain(stack.Pop().xyz, node.noiseParameters));
                 break;
 
             case noiseGraphNodeTypeNoise:
-                stack.Push(GenerateFBMNoise(stack.Pop().xyz, noiseGraphNoiseParameters[node.dataIndex]));
+                stack.Push(GenerateFBMNoise(stack.Pop().xyz, node.noiseParameters));
                 break;
             
             case noiseGraphNodeTypeCSGOperation:
                 float4 rhs = stack.Pop();
                 float4 lhs = stack.Pop();
-                stack.Push(ApplyCSGOperator(lhs, rhs, noiseGraphCSGOperators[node.dataIndex]));
+                stack.Push(ApplyCSGOperator(lhs, rhs, node.csgOperator));
                 break;
             
             case noiseGraphNodeTypeCSGPrimitive:
-                stack.Push(EvaluateCSGPrimitive(stack.Pop().xyz, noiseGraphCSGPrimitives[node.dataIndex]));
+                stack.Push(EvaluateCSGPrimitive(stack.Pop().xyz, node.csgPrimitive));
                 break;
             
             case noiseGraphNodeTypeOutput:
-                finalValue_finalGradient = stack.Pop();
+                finalValueAndFinalGradient = stack.Pop();
                 break;
         }
     }
 
-    return finalValue_finalGradient;
+    return finalValueAndFinalGradient;
 }
 
 #endif
