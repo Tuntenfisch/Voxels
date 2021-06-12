@@ -1,8 +1,20 @@
 #pragma kernel GenerateVoxelVolume
+#pragma kernel ApplyVoxelVolumeCSGOperations
 
 #include "Assets/Compute/Voxels/Include/Noise/NoiseGraph.hlsl"
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
+
+struct VoxelVolumeCSGOperation
+{
+    float4x4 transformMatrix;
+    CSGOperator csgOperator;
+    CSGPrimitive csgPrimitive;
+};
+
+StructuredBuffer<VoxelVolumeCSGOperation> voxelVolumeCSGOperations;
+
+uint numberOfVoxelVolumeCSGOperations;
 
 [numthreads(4, 4, 4)]
 void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
@@ -13,7 +25,29 @@ void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
     }
 
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
-    float4 value_gradient = GenerateGraphFBMNoise(worldPosition);
+    float4 valueAndGradient = GenerateGraphFBMNoise(worldPosition);
 
-    SetVoxel(voxelID, Voxel::Create(value_gradient.x, value_gradient.yzw));
+    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw));
+}
+
+[numthreads(4, 4, 4)]
+void ApplyVoxelVolumeCSGOperations(uint3 voxelID : SV_DispatchThreadID)
+{
+    if (IsOutOfVoxelVolumeBounds(voxelID))
+    {
+        return;
+    }
+
+    float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
+    float4 valueAndGradient = GetVoxel(voxelID).GetValueAndGradient();
+
+    for (uint index = 0; index < numberOfVoxelVolumeCSGOperations; index++)
+    {
+        VoxelVolumeCSGOperation voxelVolumeCSGOperation = voxelVolumeCSGOperations[index];
+        float3 position = mul(voxelVolumeCSGOperation.transformMatrix, float4(worldPosition, 1.0f)).xyz;
+        float4 evaluatedPrimitive = EvaluateCSGPrimitive(position, voxelVolumeCSGOperation.csgPrimitive);
+        valueAndGradient = ApplyCSGOperator(valueAndGradient, evaluatedPrimitive, voxelVolumeCSGOperation.csgOperator);
+    }
+
+    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw));
 }

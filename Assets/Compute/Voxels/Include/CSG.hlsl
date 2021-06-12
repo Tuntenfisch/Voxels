@@ -85,26 +85,26 @@ struct CSGPrimitive
 
 float4 EvaluateCSGSphere(float3 position)
 {
-    float4 value_gradient = 0.0f;
+    float4 valueAndGradient = 0.0f;
     
-    value_gradient.x = length(position) - 0.5f;
-    value_gradient.yzw = normalize(position);
+    valueAndGradient.x = length(position) - 0.5f;
+    valueAndGradient.yzw = normalize(position);
 
-    return value_gradient;
+    return valueAndGradient;
 }
 
 float4 EvaluateCSGCuboid(float3 position)
 {
-    float4 value_gradient = 0.0f;
+    float4 valueAndGradient = 0.0f;
     
     float3 d = abs(position) - 0.5f;
     float3 smoothing = sign(position);
     float g = max(d.x, max(d.y, d.z));
     
-    value_gradient.x = length(max(d, 0.0f)) + min(max(d.x, max(d.y, d.z)), 0.0f);
-    value_gradient.yzw = smoothing * (g > 0.0f ? normalize(max(d, 0.0f)) : step(d.yzx, d.xyz) * step(d.zxy, d.xyz));
+    valueAndGradient.x = length(max(d, 0.0f)) + min(max(d.x, max(d.y, d.z)), 0.0f);
+    valueAndGradient.yzw = smoothing * (g > 0.0f ? normalize(max(d, 0.0f)) : step(d.yzx, d.xyz) * step(d.zxy, d.xyz));
     
-    return value_gradient;
+    return valueAndGradient;
 }
 
 float4 EvaluateCSGPrimitive(float3 position, CSGPrimitive primitive)

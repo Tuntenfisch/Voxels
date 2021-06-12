@@ -18,6 +18,11 @@ struct Voxel
         return UnpackNormalOctQuadEncode(UnpackFloats(packedGradient));
     }
 
+    float4 GetValueAndGradient()
+    {
+        return float4(GetValue(), GetGradient());
+    }
+
     static Voxel Create(float value, float3 gradient)
     {
         Voxel voxel;

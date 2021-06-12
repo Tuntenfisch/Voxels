@@ -15,21 +15,9 @@ namespace Tuntenfisch.Voxels.Noise
         public event Action OnDirtied;
 
         public List<GPUNoiseGraphNode> Nodes => m_nodes;
-        public List<Matrix4x4> TransformMatrices => m_transformMatrices;
-        public List<GPUNoiseParameters> NoiseParameters => m_noiseParameters;
-        public List<GPUCSGOperator> CSGOperators => m_csgOperators;
-        public List<GPUCSGPrimitive> CSGPrimitives => m_csgPrimitives;
 
         [SerializeField]
         private List<GPUNoiseGraphNode> m_nodes;
-        [SerializeField]
-        private List<Matrix4x4> m_transformMatrices;
-        [SerializeField]
-        private List<GPUNoiseParameters> m_noiseParameters;
-        [SerializeField]
-        private List<GPUCSGOperator> m_csgOperators;
-        [SerializeField]
-        private List<GPUCSGPrimitive> m_csgPrimitives;
 
         public void Rebuild()
         {
@@ -39,52 +27,42 @@ namespace Tuntenfisch.Voxels.Noise
 
             m_nodes ??= new List<GPUNoiseGraphNode>();
             m_nodes.Clear();
-            m_transformMatrices ??= new List<Matrix4x4>();
-            m_transformMatrices.Clear();
-            m_noiseParameters ??= new List<GPUNoiseParameters>();
-            m_noiseParameters.Clear();
-            m_csgOperators ??= new List<GPUCSGOperator>();
-            m_csgOperators.Clear();
-            m_csgPrimitives ??= new List<GPUCSGPrimitive>();
-            m_csgPrimitives.Clear();
 
             foreach (NoiseGraphNode node in IterateOverGraphInPreorder((NoiseGraphNode)nodes[outputNodeIndex]))
             {
-                int dataIndex = -1;
+                Matrix4x4 transformMatrix = Matrix4x4.identity;
+                GPUNoiseParameters noiseParameters = new GPUNoiseParameters();
+                GPUCSGOperator csgOperator = new GPUCSGOperator();
+                GPUCSGPrimitive csgPrimitive = new GPUCSGPrimitive();
 
                 switch (node.GetNodeType())
                 {
                     case NodeType.Transform:
                         TransformNode transformNode = (TransformNode)node;
-                        m_transformMatrices.Add(transformNode.TransformMatrix);
-                        dataIndex = m_transformMatrices.Count - 1;
+                        transformMatrix = transformNode.TransformMatrix;
                         break;
 
                     case NodeType.DomainWarp:
                         DomainWarpNode domainWarpNode = (DomainWarpNode)node;
-                        m_noiseParameters.Add(domainWarpNode.NoiseParameters);
-                        dataIndex = m_noiseParameters.Count - 1;
+                        noiseParameters = domainWarpNode.NoiseParameters;
                         break;
 
                     case NodeType.Noise:
                         NoiseNode noiseNode = (NoiseNode)node;
-                        m_noiseParameters.Add(noiseNode.NoiseParameters);
-                        dataIndex = m_noiseParameters.Count - 1;
+                        noiseParameters = noiseNode.NoiseParameters;
                         break;
 
                     case NodeType.CSGOperation:
                         CSGOperationNode csgOperationNode = (CSGOperationNode)node;
-                        m_csgOperators.Add(csgOperationNode.CSGOperator);
-                        dataIndex = m_csgOperators.Count - 1;
+                        csgOperator = csgOperationNode.CSGOperator;
                         break;
 
                     case NodeType.CSGPrimitive:
                         CSGPrimitiveNode csgPrimitiveNode = (CSGPrimitiveNode)node;
-                        m_csgPrimitives.Add(csgPrimitiveNode.CSGPrimitive);
-                        dataIndex = m_csgPrimitives.Count - 1;
+                        csgPrimitive = csgPrimitiveNode.CSGPrimitive;
                         break;
                 }
-                m_nodes.Add(new GPUNoiseGraphNode(node.GetNodeType(), dataIndex));
+                m_nodes.Add(new GPUNoiseGraphNode(node.GetNodeType(), transformMatrix, noiseParameters, csgOperator, csgPrimitive));
             }
             OnDirtied?.Invoke();
         }

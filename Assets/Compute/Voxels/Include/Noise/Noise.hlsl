@@ -56,9 +56,9 @@ float4 GenerateNoise(float3 position, uint noiseAxes)
     switch(noiseAxes)
     {
         case noiseXZ:
-            float3 value_gradient = SimplexNoiseGrad(position.xz).zxy;
+            float3 valueAndGradient = SimplexNoiseGrad(position.xz).zxy;
 
-            return float4(value_gradient.x, float3(value_gradient.y, 0.0f, value_gradient.z));
+            return float4(valueAndGradient.x, float3(valueAndGradient.y, 0.0f, valueAndGradient.z));
         default:
             return SimplexNoiseGrad(position).wxyz;
     }
@@ -67,7 +67,7 @@ float4 GenerateNoise(float3 position, uint noiseAxes)
 // Based on https://www.iquilezles.org/www/articles/morenoise/morenoise.htm.
 float4 GenerateDefaultFBMNoise(float3 position, NoiseParameters noiseParameters)
 {
-    float4 fbmValue_fbmGradient = 0.0f;
+    float4 fbmValueAndFBMGradient = 0.0f;
     float3 sumOfGradients = 0.0f;
     float amplitude = noiseParameters.initialAmplitude;
     float3 frequency = noiseParameters.initialFrequency;
@@ -76,69 +76,69 @@ float4 GenerateDefaultFBMNoise(float3 position, NoiseParameters noiseParameters)
     {
         // We need to multiply the derivative by frequency because of the chain rule:
         // d / dp * n(f * p) = f * n'(f * p)
-        float4 value_gradient = GenerateNoise(frequency * (position + CalculateOctaveOffset(noiseParameters.seed, octave)), noiseParameters.noiseAxes);
+        float4 valueAndGradient = GenerateNoise(frequency * (position + CalculateOctaveOffset(noiseParameters.seed, octave)), noiseParameters.noiseAxes);
 
-        value_gradient.yzw *= frequency;
-        sumOfGradients += value_gradient.yzw;
-        value_gradient *= amplitude / (1.0f + dot(sumOfGradients, sumOfGradients));
-        fbmValue_fbmGradient += value_gradient;
+        valueAndGradient.yzw *= frequency;
+        sumOfGradients += valueAndGradient.yzw;
+        valueAndGradient *= amplitude / (1.0f + dot(sumOfGradients, sumOfGradients));
+        fbmValueAndFBMGradient += valueAndGradient;
 
         amplitude *= noiseParameters.persistence;
         frequency *= noiseParameters.lacunarity;
     }
 
-    return fbmValue_fbmGradient;
+    return fbmValueAndFBMGradient;
 }
 
 float4 GenerateFBMBillowNoise(float3 position, NoiseParameters noiseParameters)
 {
-    float4 value_gradient = GenerateDefaultFBMNoise(position, noiseParameters);
-    value_gradient.yzw = value_gradient.x * value_gradient.yzw / abs(value_gradient.x);
-    value_gradient.x = abs(value_gradient.x) - 0.25f;
+    float4 valueAndGradient = GenerateDefaultFBMNoise(position, noiseParameters);
+    valueAndGradient.yzw = valueAndGradient.x * valueAndGradient.yzw / abs(valueAndGradient.x);
+    valueAndGradient.x = abs(valueAndGradient.x) - 0.25f;
 
-    return value_gradient;
+    return valueAndGradient;
 }
 
 float4 GenerateFBMRidgeNoise(float3 position, NoiseParameters noiseParameters)
 {
-    float4 value_gradient = GenerateFBMBillowNoise(position, noiseParameters);
-    value_gradient *= -1.0f;
+    float4 valueAndGradient = GenerateFBMBillowNoise(position, noiseParameters);
+    valueAndGradient *= -1.0f;
 
     // Square ridge noise for more pronounced ridges.
-    value_gradient.yzw = 2.0f * value_gradient.x * value_gradient.yzw;
-    value_gradient.x = value_gradient.x * value_gradient.x - 0.0625f;
+    valueAndGradient.yzw = 2.0f * valueAndGradient.x * valueAndGradient.yzw;
+    valueAndGradient.x = valueAndGradient.x * valueAndGradient.x - 0.0625f;
 
-    return value_gradient;
+    return valueAndGradient;
 }
 
 float4 GenerateFBMNoise(float3 position, NoiseParameters noiseParameters)
 {
-    float4 value_gradient = 0.0f;
+    float4 valueAndGradient = 0.0f;
 
     [branch]
     switch(noiseParameters.noiseType)
     {
         case noiseTypeRidge:
-            value_gradient = GenerateFBMRidgeNoise(position, noiseParameters);
+            valueAndGradient = GenerateFBMRidgeNoise(position, noiseParameters);
             break;
 
         case noiseTypeBillow:
-            value_gradient = GenerateFBMBillowNoise(position, noiseParameters);
+            valueAndGradient = GenerateFBMBillowNoise(position, noiseParameters);
             break;
 
         default:
-            value_gradient = GenerateDefaultFBMNoise(position, noiseParameters);
+            valueAndGradient = GenerateDefaultFBMNoise(position, noiseParameters);
             break;
     }
 
     if (noiseParameters.noiseAxes == noiseXZ)
     {
-        value_gradient *= -1.0f;
-        value_gradient.x += position.y;
-        value_gradient.z += 1.0f;
+        valueAndGradient *= -1.0f;
+        valueAndGradient.x += position.y;
+        valueAndGradient.z += 1.0f;
     }
 
-    return value_gradient;
+    return valueAndGradient;
 }
 
 float3 WarpDomain(float3 position, NoiseParameters noiseParameters)
