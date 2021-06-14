@@ -1,16 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using Tuntenfisch.Extensions;
 using Tuntenfisch.Voxels.Noise.Nodes;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels
+namespace Tuntenfisch.Voxels.Volume
 {
     [RequireComponent(typeof(VoxelConfig))]
     public class VoxelVolume : MonoBehaviour
     {
         private VoxelConfig m_voxelConfig;
         private ComputeBuffer m_noiseGraphNodesBuffer;
+        private ComputeBuffer m_voxelVolumeCSGOperationsBuffer;
 
         private void Awake()
         {
@@ -44,12 +46,48 @@ namespace Tuntenfisch.Voxels
             m_voxelConfig.VoxelVolumeConfig.Compute.Dispatch(0, m_voxelConfig.VoxelVolumeConfig.NumberOfVoxels);
         }
 
+        public void ApplyVoxelVolumeCSGOperations(ComputeBuffer voxelVolumeBuffer, float3 worldPosition, List<GPUVoxelVolumeCSGOperation> voxelVolumeCSGOperations)
+        {
+            if (voxelVolumeBuffer == null)
+            {
+                throw new ArgumentNullException(nameof(voxelVolumeBuffer));
+            }
+
+            if (voxelVolumeCSGOperations == null)
+            {
+                throw new ArgumentNullException(nameof(voxelVolumeCSGOperations));
+            }
+
+            m_voxelConfig.VoxelVolumeConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)worldPosition);
+            m_voxelConfig.VoxelVolumeConfig.Compute.SetBuffer(1, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+
+            for (int index = 0; index < voxelVolumeCSGOperations.Count;)
+            {
+                int stride = math.min(m_voxelVolumeCSGOperationsBuffer.count, voxelVolumeCSGOperations.Count - index);
+
+                m_voxelVolumeCSGOperationsBuffer.SetData(voxelVolumeCSGOperations, index, 0, stride);
+                m_voxelConfig.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfVoxelVolumeCSGOperations, stride);
+                m_voxelConfig.VoxelVolumeConfig.Compute.SetBuffer(1, ComputeShaderProperties.VoxelVolumeCSGOperations, m_voxelVolumeCSGOperationsBuffer);
+                m_voxelConfig.VoxelVolumeConfig.Compute.Dispatch(1, m_voxelConfig.VoxelVolumeConfig.NumberOfVoxels);
+
+                index += stride; 
+            }
+        }
+
         private void CreateBuffers()
         {
             if (m_noiseGraphNodesBuffer == null || m_noiseGraphNodesBuffer.count < m_voxelConfig.NoiseGraph.Nodes.Count)
             {
                 m_noiseGraphNodesBuffer?.Release();
                 m_noiseGraphNodesBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.Nodes.Count, 1), GPUNoiseGraphNode.SizeInBytes);
+            }
+
+            const int voxelVolumeCSGOperationsBufferCount = 10;
+
+            if (m_voxelVolumeCSGOperationsBuffer == null)
+            {
+                m_voxelVolumeCSGOperationsBuffer?.Release();
+                m_voxelVolumeCSGOperationsBuffer = new ComputeBuffer(voxelVolumeCSGOperationsBufferCount, GPUVoxelVolumeCSGOperation.SizeInBytes);
             }
         }
 
@@ -59,6 +97,12 @@ namespace Tuntenfisch.Voxels
             {
                 m_noiseGraphNodesBuffer.Release();
                 m_noiseGraphNodesBuffer = null;
+            }
+
+            if (m_voxelVolumeCSGOperationsBuffer != null)
+            {
+                m_voxelVolumeCSGOperationsBuffer.Release();
+                m_voxelVolumeCSGOperationsBuffer = null;
             }
         }
 

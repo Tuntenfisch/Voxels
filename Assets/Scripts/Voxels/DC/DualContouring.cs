@@ -79,22 +79,15 @@ namespace Tuntenfisch.Voxels.DC
 
         public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, int lod, float3 worldPosition, OnMeshGenerated callback)
         {
-            if (voxelVolumeBuffer == null)
-            {
-                throw new ArgumentNullException(nameof(voxelVolumeBuffer));
-            }
-
             if (callback == null)
             {
                 throw new ArgumentNullException(nameof(callback));
             }
 
-            Request request = m_requestPool.Acquire((payload) =>
-            {
-                payload.VoxelVolumeBuffer = voxelVolumeBuffer;
-                payload.Lod = lod;
-                payload.VoxelVolumeToWorldSpaceOffset = worldPosition;
-            });
+            Request request = m_requestPool.Acquire();
+            request.VoxelVolumeBuffer = voxelVolumeBuffer ?? throw new ArgumentNullException(nameof(voxelVolumeBuffer));
+            request.Lod = lod;
+            request.VoxelVolumeToWorldSpaceOffset = worldPosition;
             m_requests.Enqueue((request, callback));
 
             return new RequestHandle(request);
@@ -414,7 +407,7 @@ namespace Tuntenfisch.Voxels.DC
             }
         }
 
-        public class Request : IPoolable, IRequest
+        private class Request : IPoolable, IRequest
         {
             public bool Canceled => m_canceled;
             public ComputeBuffer VoxelVolumeBuffer { get; set; }

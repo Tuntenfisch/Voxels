@@ -11,7 +11,6 @@
   "dependencies": {
     "com.github.siccity.xnode": "https://github.com/siccity/xNode.git",
     "com.unity.burst": "1.5.4",
-    "com.unity.coding": "0.1.0-preview.20",
     "com.unity.collab-proxy": "1.5.7",
     "com.unity.ide.visualstudio": "2.0.9",
     "com.unity.inputsystem": "1.0.2",

@@ -39,7 +39,7 @@ namespace Tuntenfisch.World
             gameObject.SetActive(false);
         }
 
-        private void Awake() => InitializeMeshComponents();
+        private void Awake()  => InitializeMeshComponents();
 
         private void OnDrawGizmosSelected()
         {

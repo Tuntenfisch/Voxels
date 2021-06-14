@@ -6,6 +6,7 @@ using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Voxels;
 using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
+using Tuntenfisch.Voxels.Volume;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -41,7 +42,7 @@ namespace Tuntenfisch.World
         private ObjectPool<Chunk> m_sharedChunkPool;
         private Dictionary<int3, Chunk> m_chunks;
         private HashSet<int3> m_oldChunkCoordinates;
-        private Queue<(int3, float3, float, int)> m_chunksToProcess;
+        private Queue<(int3, float3, int)> m_chunksToProcess;
         private HashSet<int3> m_processedChunkCoordinates;
         private float3 m_chunkDimensions;
 
@@ -71,7 +72,7 @@ namespace Tuntenfisch.World
             m_sharedChunkPool = new ObjectPool<Chunk>(() => { return Instantiate(Instance.m_chunkPrefab, Instance.transform).GetComponent<Chunk>(); });
             m_chunks = new Dictionary<int3, Chunk>();
             m_oldChunkCoordinates = new HashSet<int3>();
-            m_chunksToProcess = new Queue<(int3, float3, float, int)>();
+            m_chunksToProcess = new Queue<(int3, float3, int)>();
             m_processedChunkCoordinates = new HashSet<int3>();
             m_chunkDimensions = CalculateChunkDimensions();
 
@@ -174,11 +175,11 @@ namespace Tuntenfisch.World
 
             m_processedChunkCoordinates.Clear();
             m_chunksToProcess.Clear();
-            m_chunksToProcess.Enqueue((chunkCoordinate, chunkPosition, viewerToChunkDistanceSquared, lod));
+            m_chunksToProcess.Enqueue((chunkCoordinate, chunkPosition, lod));
 
             while (m_chunksToProcess.Count > 0)
             {
-                (chunkCoordinate, chunkPosition, viewerToChunkDistanceSquared, lod) = m_chunksToProcess.Dequeue();
+                (chunkCoordinate, chunkPosition, lod) = m_chunksToProcess.Dequeue();
 
                 if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk))
                 {
@@ -191,16 +192,13 @@ namespace Tuntenfisch.World
                 else
                 {
                     // Create new chunk.
-                    chunk = SharedChunkPool.Acquire((chunk) =>
-                    {
-                        chunk.gameObject.name = $"Chunk ({chunkCoordinate.x}, {chunkCoordinate.y}, {chunkCoordinate.z})";
-                        chunk.transform.position = chunkPosition;
-                        chunk.Lod = lod;
-                        chunk.CreateBuffers();
-                    });
+                    chunk = SharedChunkPool.Acquire();
+                    chunk.gameObject.name = $"{nameof(Chunk)} ({chunkCoordinate.x}, {chunkCoordinate.y}, {chunkCoordinate.z})";
+                    chunk.transform.position = chunkPosition;
+                    chunk.Lod = lod;
+                    chunk.CreateBuffers();
                     chunk.Regenerate();
                     chunk.Remeshify();
-
                     m_chunks[chunkCoordinate] = chunk;
                 }
                 m_processedChunkCoordinates.Add(chunkCoordinate);
@@ -227,7 +225,7 @@ namespace Tuntenfisch.World
 
                 if (viewerToNeighbourChunkDistanceSquared <= ViewDistanceSquared)
                 {
-                    m_chunksToProcess.Enqueue((neighbourChunkCoordinate, neighbourChunkPosition, viewerToNeighbourChunkDistanceSquared, CalculateChunkLod(viewerToNeighbourChunkDistanceSquared)));
+                    m_chunksToProcess.Enqueue((neighbourChunkCoordinate, neighbourChunkPosition, CalculateChunkLod(viewerToNeighbourChunkDistanceSquared)));
                 }
             }
         }
