@@ -1,11 +1,4 @@
 ###########################################################################################
-# Blender .gitignore
-*.pyc
-*.blend[1-9]
-__pycache__
-/dist/
-
-###########################################################################################
 # Unity .gitignore
 /[Ll]ibrary/
 /[Tt]emp/
@@ -74,8 +67,3 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
-
-###########################################################################################
-# Project .gitignore
-/[Aa]ssets/ShaderlabVS/
-/[Aa]ssets/ShaderlabVS.meta

@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using UnityEngine.Assertions;
+﻿using System;
+using UnityEngine;
 
 namespace Tuntenfisch.Generics
 {
@@ -12,7 +12,11 @@ namespace Tuntenfisch.Generics
                 if (s_instance == null)
                 {
                     s_instance = FindObjectOfType<T>();
-                    Assert.IsNotNull(s_instance, $"Scene is missing an instance of {typeof(T)}.");
+
+                    if (s_instance == null)
+                    {
+                        throw new ArgumentNullException(nameof(s_instance));
+                    }
                 }
 
                 return s_instance;

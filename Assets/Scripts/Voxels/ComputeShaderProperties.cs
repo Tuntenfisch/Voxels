@@ -13,11 +13,13 @@ namespace Tuntenfisch.Voxels
         public static readonly int NoiseGraphNodes = Shader.PropertyToID("noiseGraphNodes");
         public static readonly int NumberOfNoiseGraphNoiseNodes = Shader.PropertyToID("numberOfNoiseGraphNoiseNodes");
         public static readonly int NumberOfVoxels = Shader.PropertyToID("numberOfVoxels");
+        public static readonly int NumberOfVoxelVolumeCSGOperations = Shader.PropertyToID("numberOfVoxelVolumeCSGOperations");
         public static readonly int SchmitzParticleIterations = Shader.PropertyToID("schmitzParticleIterations");
         public static readonly int SchmitzParticleStepSize = Shader.PropertyToID("schmitzParticleStepSize");
         public static readonly int SubSampledCellVolumeFaces = Shader.PropertyToID("subSampledCellVolumeFaces");
         public static readonly int VoxelSpacing = Shader.PropertyToID("voxelSpacing");
         public static readonly int VoxelVolume = Shader.PropertyToID("voxelVolume");
+        public static readonly int VoxelVolumeCSGOperations = Shader.PropertyToID("voxelVolumeCSGOperations");
         public static readonly int VoxelVolumeToWorldSpaceOffset = Shader.PropertyToID("voxelVolumeToWorldSpaceOffset");
     }
 }
