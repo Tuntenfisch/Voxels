@@ -35,7 +35,7 @@
                     "id": "e5248aa1-bf62-4b39-971f-cd136602fa3c",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": ""
+                    "interactions": "Press(behavior=2)"
                 },
                 {
                     "name": "Secondary",
@@ -43,7 +43,7 @@
                     "id": "23f8d66f-013a-4b54-92fa-d761817c3909",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": ""
+                    "interactions": "Press(behavior=2)"
                 }
             ],
             "bindings": [

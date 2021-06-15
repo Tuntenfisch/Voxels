@@ -31,8 +31,11 @@ namespace Tuntenfisch.Player
 
         private float2 m_moveDelta;
         private bool m_wantsToJump;
+        private float2 m_lookDelta;
         private float2 m_rotation;
         private float3 m_velocity;
+        private bool m_primaryDown;
+        private bool m_secondaryDown;
 
         private void Start()
         {
@@ -40,41 +43,22 @@ namespace Tuntenfisch.Player
             Cursor.lockState = CursorLockMode.Locked;
         }
 
+        private void Update()
+        {
+            ApplyMovement();
+            ApplyLook();
+            HandleWorldInteraction();
+        }
+
         public void OnMove(InputValue value) => m_moveDelta = value.Get<Vector2>();
 
         public void OnJump() => m_wantsToJump = m_controller.isGrounded;
 
-        public void OnLook(InputValue value)
-        {
-            float2 lookDelta = value.Get<Vector2>();
+        public void OnLook(InputValue value) => m_lookDelta += (float2)value.Get<Vector2>();
 
-            m_rotation.y += lookDelta.x * m_lookSensitivity;
-            m_rotation.x -= lookDelta.y * m_lookSensitivity;
-            m_rotation.x = math.clamp(m_rotation.x, -90.0f, 90.0f);
+        public void OnPrimary(InputValue value) => m_primaryDown = value.isPressed;
 
-            m_camera.transform.localRotation = Quaternion.Euler(m_rotation.x, 0.0f, 0.0f);
-            transform.localRotation = Quaternion.Euler(0.0f, m_rotation.y, 0.0f);
-        }
-
-        public void OnPrimary()
-        {
-            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
-            {
-                // ToDo...
-            }
-        }
-
-        public void OnSecondary()
-        {
-            Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
-            {
-                // ToDo...
-            }
-        }
+        public void OnSecondary(InputValue value) => m_secondaryDown = value.isPressed;
 
         private void ApplyMovement()
         {
@@ -92,20 +76,38 @@ namespace Tuntenfisch.Player
             m_controller.Move(m_velocity * Time.deltaTime);
         }
 
+        private void ApplyLook()
+        {
+            m_rotation.y += m_lookDelta.x * m_lookSensitivity;
+            m_rotation.x -= m_lookDelta.y * m_lookSensitivity;
+            m_rotation.x = math.clamp(m_rotation.x, -90.0f, 90.0f);
+
+            m_camera.transform.localRotation = Quaternion.Euler(m_rotation.x, 0.0f, 0.0f);
+            transform.localRotation = Quaternion.Euler(0.0f, m_rotation.y, 0.0f);
+
+            m_lookDelta = 0.0f;
+        }
+
         private void HandleWorldInteraction()
         {
             Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
 
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
-                WorldManager.Instance.DrawCSGPrimitiveHologram(CSGPrimitiveType.Sphere, Matrix4x4.Translate(hit.point));
-            }
-        }
+                CSGPrimitiveType primitiveType = CSGPrimitiveType.Sphere;
 
-        private void Update()
-        {
-            ApplyMovement();
-            HandleWorldInteraction();
+                WorldManager.Instance.DrawCSGPrimitiveHologram(primitiveType, hit.point, 2.0f);
+
+                if (m_primaryDown)
+                {
+                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Union, primitiveType, hit.point, 2.0f);
+                }
+
+                if (m_secondaryDown)
+                {
+                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Difference, primitiveType, hit.point, 2.0f);
+                }
+            }
         }
     }
 }

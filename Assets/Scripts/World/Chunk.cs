@@ -1,17 +1,20 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
 using Tuntenfisch.Voxels.DC;
+using Tuntenfisch.Voxels.Volume;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Tuntenfisch.Voxels.CSG;
 
 namespace Tuntenfisch.World
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-    internal class Chunk : MonoBehaviour, IPoolable
+    public class Chunk : MonoBehaviour, IPoolable
     {
         public int Lod { get; set; }
 
@@ -24,22 +27,19 @@ namespace Tuntenfisch.World
         private ComputeBuffer m_voxelVolumeBuffer;
         private RequestHandle m_requestHandle;
         private JobHandle m_bakeJobHandle;
+        private List<GPUVoxelVolumeCSGOperation> m_voxelVolumeCSGOperations;
 
-        void IPoolable.OnAcquire() => gameObject.SetActive(true);
 
-        void IPoolable.OnRelease()
+        private void Awake()
         {
-            if (HasPendingRequest)
-            {
-                CancelPendingRequest();
-            }
-            m_meshFilter.sharedMesh = null;
-            m_meshCollider.sharedMesh = null;
-            m_requestHandle = null;
-            gameObject.SetActive(false);
+            InitializeMeshComponents();
+            m_voxelVolumeCSGOperations = new List<GPUVoxelVolumeCSGOperation>();
         }
 
-        private void Awake()  => InitializeMeshComponents();
+        private void OnDestroy()
+        {
+            ReleaseBuffers();
+        }
 
         private void OnDrawGizmosSelected()
         {
@@ -47,7 +47,33 @@ namespace Tuntenfisch.World
             Gizmos.DrawWireCube(transform.position, WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions);
         }
 
-        public void CreateBuffers()
+        private void LateUpdate()
+        {
+            if (m_voxelVolumeCSGOperations.Count > 0 && !HasPendingRequest)
+            {
+                WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
+                m_voxelVolumeCSGOperations.Clear();
+                Remeshify();
+            }
+        }
+
+        public void OnAcquire() => gameObject.SetActive(true);
+
+        public void OnRelease()
+        {
+            if (HasPendingRequest)
+            {
+                m_requestHandle.Cancel();
+                m_requestHandle = null;
+            }
+            m_meshFilter.sharedMesh = null;
+            m_meshCollider.sharedMesh = null;
+            m_requestHandle = null;
+            m_voxelVolumeCSGOperations.Clear();
+            gameObject.SetActive(false);
+        }
+
+        private void CreateBuffers()
         {
             if (m_voxelVolumeBuffer?.count != WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount)
             {
@@ -56,7 +82,7 @@ namespace Tuntenfisch.World
             }
         }
 
-        public void ReleaseBuffers()
+        private void ReleaseBuffers()
         {
             if (m_voxelVolumeBuffer != null)
             {
@@ -65,15 +91,29 @@ namespace Tuntenfisch.World
             }
         }
 
-        public void Regenerate() => WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
+        public void Regenerate()
+        {
+            CreateBuffers();
+
+            WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
+        }
 
         public void Remeshify()
         {
             if (HasPendingRequest)
             {
-                CancelPendingRequest();
+                m_requestHandle.Cancel();
+                m_requestHandle = null;
             }
+
+            CreateBuffers();
+
             m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
+        }
+
+        public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, Matrix4x4 worldToObjectMatrix)
+        {
+            m_voxelVolumeCSGOperations.Add(new GPUVoxelVolumeCSGOperation(csgOperator, csgPrimitive, worldToObjectMatrix));
         }
 
         private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
@@ -99,6 +139,11 @@ namespace Tuntenfisch.World
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds();
 
+            // Assign the mesh, in case it is null.
+            if (m_meshFilter.sharedMesh == null)
+            {
+                m_meshFilter.sharedMesh = m_mesh;
+            }
             StartCoroutine(BakeMeshCoroutine());
         }
 
@@ -111,14 +156,7 @@ namespace Tuntenfisch.World
                 yield return null;
             }
 
-            m_meshFilter.sharedMesh = m_mesh;
             m_meshCollider.sharedMesh = m_mesh;
-        }
-
-        private void CancelPendingRequest()
-        {
-            m_requestHandle.Cancel();
-            m_requestHandle = null;
         }
 
         private void InitializeMeshComponents()

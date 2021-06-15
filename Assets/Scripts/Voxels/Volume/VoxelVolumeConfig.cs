@@ -8,6 +8,7 @@ namespace Tuntenfisch.Voxels.Volume
     public class VoxelVolumeConfig : ScriptableObject
     {
         public event Action OnDirtied;
+        public event Action OnLateDirtied;
 
         // Voxel volume properties.
         public ComputeShader Compute => m_compute;
@@ -35,6 +36,7 @@ namespace Tuntenfisch.Voxels.Volume
         {
             m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis) + 3;
             OnDirtied?.Invoke();
+            OnLateDirtied?.Invoke();
         }
     }
 }

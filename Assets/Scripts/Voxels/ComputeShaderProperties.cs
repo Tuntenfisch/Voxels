@@ -2,7 +2,7 @@
 
 namespace Tuntenfisch.Voxels
 {
-    internal static class ComputeShaderProperties
+    public static class ComputeShaderProperties
     {
         public static readonly int CellStride = Shader.PropertyToID("cellStride");
         public static readonly int CosOfSharpFeatureAngle = Shader.PropertyToID("cosOfSharpFeatureAngle");

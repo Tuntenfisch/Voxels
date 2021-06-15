@@ -22,7 +22,7 @@ namespace Tuntenfisch.Generics.Pool
             Populate(initialCount);
         }
 
-        public T Acquire()
+        public T Acquire(Action<T> initializer)
         {
             T obj;
 
@@ -35,6 +35,7 @@ namespace Tuntenfisch.Generics.Pool
                 obj = m_available.Pop();
             }
             m_inUse.Add(obj);
+            initializer(obj);
             obj.OnAcquire();
 
             return obj;

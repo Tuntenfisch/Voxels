@@ -7,6 +7,7 @@ namespace Tuntenfisch.Voxels.DC
     public class DualContouringConfig : ScriptableObject
     {
         public event Action OnDirtied;
+        public event Action OnLateDirtied;
 
         // Dual contouring properties.
         public ComputeShader Compute => m_compute;
@@ -26,6 +27,10 @@ namespace Tuntenfisch.Voxels.DC
         [SerializeField]
         private float m_sharpFeatureAngle = 50.0f;
 
-        private void OnValidate() => OnDirtied?.Invoke();
+        private void OnValidate() 
+        {
+            OnDirtied?.Invoke();
+            OnLateDirtied?.Invoke();
+        }
     }
 }

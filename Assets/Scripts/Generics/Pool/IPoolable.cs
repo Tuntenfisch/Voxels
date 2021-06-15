@@ -2,8 +2,8 @@
 {
     public interface IPoolable
     {
-        internal void OnAcquire();
+        public void OnAcquire();
 
-        internal void OnRelease();
+        public void OnRelease();
     }
 }

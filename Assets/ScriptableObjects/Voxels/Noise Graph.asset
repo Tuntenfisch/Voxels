@@ -197,7 +197,7 @@ MonoBehaviour:
     m_noiseAxes: 0
     m_noiseType: 0
     m_numberOfOctaves: 2
-    m_initialAmplitude: 100
+    m_initialAmplitude: 50
     m_initialFrequency:
       x: 0.002
       y: 0.002
@@ -361,7 +361,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_csgPrimitive:
-    m_primitiveType: 0
+    m_primitiveType: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,7 +409,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -417,9 +417,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -485,7 +485,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -493,9 +493,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -524,7 +524,7 @@ MonoBehaviour:
       m_noiseAxes: 0
       m_noiseType: 0
       m_numberOfOctaves: 2
-      m_initialAmplitude: 100
+      m_initialAmplitude: 50
       m_initialFrequency:
         x: 0.002
         y: 0.002
@@ -599,7 +599,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -607,9 +607,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 1
       m_smoothing: 20
@@ -637,7 +637,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -645,9 +645,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -675,7 +675,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -683,9 +683,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -713,7 +713,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -721,14 +721,14 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
-      m_primitiveType: 0
+      m_primitiveType: 1
   - m_nodeType: 4
     m_transformMatrix:
       e00: 1
@@ -751,7 +751,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -759,9 +759,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 2
@@ -789,7 +789,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -797,9 +797,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
