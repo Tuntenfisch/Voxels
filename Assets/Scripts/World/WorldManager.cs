@@ -17,10 +17,9 @@ namespace Tuntenfisch.World
     [RequireComponent(typeof(CSGUtility))]
     public class WorldManager : SingletonComponent<WorldManager>
     {
-        internal static VoxelConfig VoxelConfig => Instance.m_voxelConfig;
-        internal static VoxelVolume VoxelVolume => Instance.m_voxelVolume;
-        internal static DualContouring DualContouring => Instance.m_dualContouring;
-        internal static ObjectPool<Chunk> SharedChunkPool => Instance.m_sharedChunkPool;
+        public static VoxelConfig VoxelConfig => Instance.m_voxelConfig;
+        public static VoxelVolume VoxelVolume => Instance.m_voxelVolume;
+        public static DualContouring DualContouring => Instance.m_dualContouring;
 
         private float ViewDistanceSquared => m_lodDistancesSquared[m_lodDistancesSquared.Length - 1];
 
@@ -46,8 +45,7 @@ namespace Tuntenfisch.World
         private HashSet<int3> m_processedChunkCoordinates;
         private float3 m_chunkDimensions;
 
-        // We don't want to update the visible world every frame.
-        // Sample applies to the level of details of the chunks.
+        // We don't want to update the world every frame.
         private float3 m_lastViewerPosition;
         private float m_updateIntervalSquared;
         private float[] m_lodDistancesSquared;
@@ -61,9 +59,9 @@ namespace Tuntenfisch.World
 
             m_voxelConfig = GetComponent<VoxelConfig>();
 #if UNITY_EDITOR
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
-            m_voxelConfig.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
-            m_voxelConfig.NoiseGraph.OnDirtied += ApplyNoiseConfig;
+            m_voxelConfig.VoxelVolumeConfig.OnLateDirtied += ApplyVoxelVolumeConfig;
+            m_voxelConfig.DualContouringConfig.OnLateDirtied += ApplyDualContouringConfig;
+            m_voxelConfig.NoiseGraph.OnLateDirtied += ApplyNoiseGraph;
 #endif
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
@@ -103,16 +101,41 @@ namespace Tuntenfisch.World
         private void OnDestroy()
         {
 #if UNITY_EDITOR
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-            m_voxelConfig.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
-            m_voxelConfig.NoiseGraph.OnDirtied -= ApplyNoiseConfig;
+            m_voxelConfig.VoxelVolumeConfig.OnLateDirtied -= ApplyVoxelVolumeConfig;
+            m_voxelConfig.DualContouringConfig.OnLateDirtied -= ApplyDualContouringConfig;
+            m_voxelConfig.NoiseGraph.OnLateDirtied -= ApplyNoiseGraph;
 #endif
-            SharedChunkPool.Apply((chunk, inUse) => { chunk.ReleaseBuffers(); });
         }
 
         private void OnValidate() => ApplySettings();
 
-        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, Matrix4x4 objectToWorldMatrix) => m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, objectToWorldMatrix);
+        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, float3 position, float3 scale)
+        {
+            m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, Matrix4x4.TRS(position, quaternion.identity, scale));
+        }
+
+        public void ApplyCSGOperation(CSGOperatorIndex operatorIndex, CSGPrimitiveType csgPrimitiveType, float3 position, float3 scale)
+        {
+            Matrix4x4 objectToWorldMatrix = Matrix4x4.TRS(position, quaternion.identity, scale);
+            Bounds bounds = new Bounds(position, scale);
+
+            int3 minChunkCoordinate = CalculateChunkCoordinate(bounds.min);
+            int3 maxChunkCoordinate = CalculateChunkCoordinate(bounds.max);
+
+            for (int3 chunkCoordinate = minChunkCoordinate; chunkCoordinate.z <= maxChunkCoordinate.z; chunkCoordinate.z++)
+            {
+                for (chunkCoordinate.y = minChunkCoordinate.y; chunkCoordinate.y <= maxChunkCoordinate.y; chunkCoordinate.y++)
+                {
+                    for (chunkCoordinate.x = minChunkCoordinate.x; chunkCoordinate.x <= maxChunkCoordinate.x; chunkCoordinate.x++)
+                    {
+                        if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk))
+                        {
+                            chunk.ApplyCSGPrimitiveOperation(new GPUCSGOperator(operatorIndex, 0.0f), new GPUCSGPrimitive(csgPrimitiveType), objectToWorldMatrix.inverse);
+                        }
+                    }
+                }
+            }
+        }
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
         {
@@ -158,7 +181,7 @@ namespace Tuntenfisch.World
 
             foreach (int3 chunkCoordinate in m_oldChunkCoordinates)
             {
-                SharedChunkPool.Release(m_chunks[chunkCoordinate]);
+                m_sharedChunkPool.Release(m_chunks[chunkCoordinate]);
                 m_chunks.Remove(chunkCoordinate);
             }
             m_oldChunkCoordinates.Clear();
@@ -168,7 +191,7 @@ namespace Tuntenfisch.World
         {
             int numberOfChunksProcessed = 0;
 
-            int3 chunkCoordinate = CalculateViewerChunkCoordinate();
+            int3 chunkCoordinate = CalculateChunkCoordinate(viewerPosition);
             float3 chunkPosition = chunkCoordinate * m_chunkDimensions;
             float viewerToChunkDistanceSquared = math.lengthsq(chunkPosition - viewerPosition);
             int lod = CalculateChunkLod(viewerToChunkDistanceSquared);
@@ -192,13 +215,13 @@ namespace Tuntenfisch.World
                 else
                 {
                     // Create new chunk.
-                    chunk = SharedChunkPool.Acquire();
-                    chunk.gameObject.name = $"{nameof(Chunk)} ({chunkCoordinate.x}, {chunkCoordinate.y}, {chunkCoordinate.z})";
-                    chunk.transform.position = chunkPosition;
-                    chunk.Lod = lod;
-                    chunk.CreateBuffers();
-                    chunk.Regenerate();
-                    chunk.Remeshify();
+                    chunk = m_sharedChunkPool.Acquire((chunk) =>
+                    {
+                        chunk.transform.position = chunkPosition;
+                        chunk.Lod = lod;
+                        chunk.Regenerate();
+                        chunk.Remeshify();
+                    });
                     m_chunks[chunkCoordinate] = chunk;
                 }
                 m_processedChunkCoordinates.Add(chunkCoordinate);
@@ -238,7 +261,7 @@ namespace Tuntenfisch.World
             return VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;
         }
 
-        private int3 CalculateViewerChunkCoordinate() => (int3)math.round(m_viewer.position / m_chunkDimensions);
+        private int3 CalculateChunkCoordinate(float3 position) => (int3)math.round(position / m_chunkDimensions);
 
         private float[] CalculateLodDistancesSquared()
         {
@@ -291,7 +314,7 @@ namespace Tuntenfisch.World
 
             foreach (Chunk chunk in m_chunks.Values)
             {
-                SharedChunkPool.Release(chunk);
+                m_sharedChunkPool.Release(chunk);
             }
             m_chunks.Clear();
 
@@ -301,8 +324,21 @@ namespace Tuntenfisch.World
 
         private void ApplyVoxelVolumeConfig() => ApplySettings();
 
-        private void ApplyDualContouringConfig() => ApplySettings();
+        private void ApplyDualContouringConfig()
+        {
+            foreach (Chunk chunk in m_chunks.Values)
+            {
+                chunk.Remeshify();
+            }
+        }
 
-        private void ApplyNoiseConfig() => ApplySettings();
+        private void ApplyNoiseGraph()
+        {
+            foreach (Chunk chunk in m_chunks.Values)
+            {
+                chunk.Regenerate();
+                chunk.Remeshify();
+            }
+        }
     }
 }

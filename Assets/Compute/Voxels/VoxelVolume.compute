@@ -7,9 +7,9 @@
 
 struct VoxelVolumeCSGOperation
 {
-    float4x4 transformMatrix;
     CSGOperator csgOperator;
     CSGPrimitive csgPrimitive;
+    float4x4 transformMatrix;
 };
 
 StructuredBuffer<VoxelVolumeCSGOperation> voxelVolumeCSGOperations;

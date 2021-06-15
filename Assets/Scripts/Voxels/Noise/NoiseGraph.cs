@@ -13,6 +13,7 @@ namespace Tuntenfisch.Voxels.Noise
     public class NoiseGraph : NodeGraph
     {
         public event Action OnDirtied;
+        public event Action OnLateDirtied;
 
         public List<GPUNoiseGraphNode> Nodes => m_nodes;
 
@@ -65,6 +66,7 @@ namespace Tuntenfisch.Voxels.Noise
                 m_nodes.Add(new GPUNoiseGraphNode(node.GetNodeType(), transformMatrix, noiseParameters, csgOperator, csgPrimitive));
             }
             OnDirtied?.Invoke();
+            OnLateDirtied?.Invoke();
         }
 
         private IEnumerable<NoiseGraphNode> IterateOverGraphInPreorder(NoiseGraphNode node)
