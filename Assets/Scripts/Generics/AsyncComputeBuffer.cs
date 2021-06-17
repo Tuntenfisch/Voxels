@@ -8,7 +8,9 @@ namespace Tuntenfisch.Generics
     public class AsyncComputeBuffer
     {
         public static implicit operator ComputeBuffer(AsyncComputeBuffer buffer) => buffer.m_buffer;
+
         public int Count => m_buffer.count;
+        public int Stride => m_buffer.stride;
         public bool HasError => m_request.hasError;
         public bool ReadbackInProgress => m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress);
 

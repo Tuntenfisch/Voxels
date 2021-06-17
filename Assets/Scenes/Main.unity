@@ -676,7 +676,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcad6ccf5f6a2ba4eaf6ccc5866cb16d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfWorkers: 8
+  m_numberOfWorkers: 4
 --- !u!114 &1594834163
 MonoBehaviour:
   m_ObjectHideFlags: 0

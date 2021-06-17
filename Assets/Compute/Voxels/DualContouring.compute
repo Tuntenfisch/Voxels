@@ -21,11 +21,26 @@ AppendStructuredBuffer<uint3> generatedTriangles;
 static const uint nullVertexIndex = -1;
 static const uint maxNumberOfIntersections = 6;
 
+struct Intersection
+{
+    float3 position;
+    float3 normal;
+
+    static Intersection Create(float3 position = 0.0f, float3 normal = 0.0f)
+    {
+        Intersection intersection;
+        intersection.position = position;
+        intersection.normal = normal;
+
+        return intersection;
+    }
+};
+
 // Theoretically we can declare below arrays locally and pass them around functions with the "out" or "inout" modifier but that will
 // result in more temporary registers being used by the compiler for some reason. See the following link for more information:
 // https://gamedev.stackexchange.com/questions/190131/splitting-up-hlsl-code-into-separate-functions-causes-the-number-of-needed-tempo.
 static uint numberOfIntersections;
-static Vertex intersections[maxNumberOfIntersections];
+static Intersection intersections[maxNumberOfIntersections];
 static float3 forces[numberOfCellCorners];
 
 bool IsOuterVoxel(uint3 coordinate)
@@ -83,12 +98,12 @@ bool HasSharpFeature()
     [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndexA = 0; intersectionIndexA < numberOfIntersections; intersectionIndexA++)
     {
-        Vertex intersectionA = intersections[intersectionIndexA];
+        Intersection intersectionA = intersections[intersectionIndexA];
 
         [unroll(maxNumberOfIntersections)]
         for (uint intersectionIndexB = 0; intersectionIndexB < numberOfIntersections; intersectionIndexB++)
         {
-            Vertex intersectionB = intersections[intersectionIndexB];
+            Intersection intersectionB = intersections[intersectionIndexB];
             float newCosOfAngle = dot(intersectionA.normal, intersectionB.normal);
             cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
         }
@@ -104,12 +119,11 @@ Vertex CalculateCenterVertex()
     [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
     {
-        vertex.position += intersections[intersectionIndex].position;
-        vertex.normal += intersections[intersectionIndex].normal;
+        vertex.SetPosition(vertex.GetPosition() + intersections[intersectionIndex].position);
+        vertex.SetNormal(vertex.GetNormal() + intersections[intersectionIndex].normal);
     }
-
-    vertex.position /= numberOfIntersections;
-    vertex.normal = normalize(vertex.normal);
+    vertex.SetPosition(vertex.GetPosition() / numberOfIntersections);
+    vertex.SetNormal(normalize(vertex.GetNormal()));
 
     return vertex;
 }
@@ -127,10 +141,10 @@ Vertex CalculateFeatureVertex(uint3 coordinate)
 
         for (uint schmitzParticleIteration = 0; schmitzParticleIteration < schmitzParticleIterations; schmitzParticleIteration++)
         {
-            vertex.position = vertex.position + schmitzParticleStepSize * CalculateCombinedForce(vertex.position);
+            vertex.SetPosition(vertex.GetPosition() + schmitzParticleStepSize * CalculateCombinedForce(vertex.GetPosition()));
         }
     }
-    vertex.position = VoxelToVoxelVolumeSpace(coordinate, ClampToCell(vertex.position));
+    vertex.SetPosition(VoxelToVoxelVolumeSpace(coordinate, vertex.GetPosition()));
 
     return vertex;
 }
@@ -156,7 +170,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
 
         float interpolant = -sampleA.GetValue() / (sampleB.GetValue() - sampleA.GetValue());
 
-        intersections[numberOfIntersections++] = Vertex::Create
+        intersections[numberOfIntersections++] = Intersection::Create
         (
             lerp(cellCornerA, cellCornerB, interpolant),
             normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
@@ -208,8 +222,8 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
         if (childVertexIndex != nullVertexIndex)
         {
             Vertex childVertex = generatedVertices0[childVertexIndex];
-            parentVertex.position += childVertex.position;
-            parentVertex.normal += childVertex.normal;
+            parentVertex.SetPosition(parentVertex.GetPosition() + childVertex.GetPosition());
+            parentVertex.SetNormal(parentVertex.GetNormal() + childVertex.GetNormal());
             numberOfChildVertices++;
         }
     }
@@ -217,8 +231,8 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
     if (numberOfChildVertices > 0)
     {
         parentVertexIndex = generatedVertices1.IncrementCounter();
-        parentVertex.position /= numberOfChildVertices;
-        parentVertex.normal = normalize(parentVertex.normal);
+        parentVertex.SetPosition(parentVertex.GetPosition() / numberOfChildVertices);
+        parentVertex.SetNormal(normalize(parentVertex.GetNormal()));
         generatedVertices1[parentVertexIndex] = parentVertex;
     }
     generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID, cellStride)] = parentVertexIndex;
