@@ -9,6 +9,7 @@ using Tuntenfisch.Generics.Request;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Tuntenfisch.Voxels.DC
 {
@@ -237,6 +238,10 @@ namespace Tuntenfisch.Voxels.DC
 
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)voxelVolumeToWorldOffset);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.CellStride, 1);
+
+                // For some reason this assertions fails from time to time...
+                // ToDo: Investigate why voxelVolumeBuffer is null occasionally.
+                Assert.IsNotNull(voxelVolumeBuffer);
 
                 // First we generate the inner cell vertices, i.e. all vertices which's cells do not reside on the surface of the voxel volume of this chunk.
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);

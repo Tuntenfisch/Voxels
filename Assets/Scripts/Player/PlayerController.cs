@@ -95,17 +95,18 @@ namespace Tuntenfisch.Player
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
                 CSGPrimitiveType primitiveType = CSGPrimitiveType.Sphere;
+                float3 scale = 4.0f;
 
-                WorldManager.Instance.DrawCSGPrimitiveHologram(primitiveType, hit.point, 2.0f);
+                WorldManager.Instance.DrawCSGPrimitiveHologram(primitiveType, hit.point, scale);
 
                 if (m_primaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Union, primitiveType, hit.point, 2.0f);
+                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Union, primitiveType, hit.point, scale);
                 }
 
                 if (m_secondaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Difference, primitiveType, hit.point, 2.0f);
+                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Difference, primitiveType, hit.point, scale);
                 }
             }
         }
