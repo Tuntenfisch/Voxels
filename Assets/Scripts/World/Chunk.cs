@@ -1,15 +1,16 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
+using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
 using Tuntenfisch.Voxels.Volume;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Tuntenfisch.Voxels.CSG;
 
 namespace Tuntenfisch.World
 {
@@ -28,7 +29,8 @@ namespace Tuntenfisch.World
         private RequestHandle m_requestHandle;
         private JobHandle m_bakeJobHandle;
         private List<GPUVoxelVolumeCSGOperation> m_voxelVolumeCSGOperations;
-
+        private Coroutine m_processChunkFlagsCoroutine;
+        private ChunkFlags m_flags;
 
         private void Awake()
         {
@@ -47,17 +49,11 @@ namespace Tuntenfisch.World
             Gizmos.DrawWireCube(transform.position, WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions);
         }
 
-        private void LateUpdate()
+        public void OnAcquire()
         {
-            if (m_voxelVolumeCSGOperations.Count > 0 && !HasPendingRequest)
-            {
-                WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
-                m_voxelVolumeCSGOperations.Clear();
-                Remeshify();
-            }
+            CreateBuffers();
+            gameObject.SetActive(true);
         }
-
-        public void OnAcquire() => gameObject.SetActive(true);
 
         public void OnRelease()
         {
@@ -65,6 +61,11 @@ namespace Tuntenfisch.World
             {
                 m_requestHandle.Cancel();
                 m_requestHandle = null;
+            }
+
+            if (m_processChunkFlagsCoroutine != null)
+            {
+                StopCoroutine(m_processChunkFlagsCoroutine);
             }
             m_meshFilter.sharedMesh = null;
             m_meshCollider.sharedMesh = null;
@@ -91,29 +92,71 @@ namespace Tuntenfisch.World
             }
         }
 
-        public void Regenerate()
-        {
-            CreateBuffers();
+        public void RegenerateVoxelVolume() => ProcessChunkFlags(ChunkFlags.VoxelVolumeRegenerationRequested);
 
-            WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
-        }
-
-        public void Remeshify()
-        {
-            if (HasPendingRequest)
-            {
-                m_requestHandle.Cancel();
-                m_requestHandle = null;
-            }
-
-            CreateBuffers();
-
-            m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
-        }
+        public void RegenerateMesh() => ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
 
         public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, Matrix4x4 worldToObjectMatrix)
         {
             m_voxelVolumeCSGOperations.Add(new GPUVoxelVolumeCSGOperation(csgOperator, csgPrimitive, worldToObjectMatrix));
+            ProcessChunkFlags(ChunkFlags.CSGOperationPerformed | ChunkFlags.MeshRegenerationRequested);
+        }
+
+        private void ProcessChunkFlags(ChunkFlags flags)
+        {
+            m_flags |= flags;
+
+            if (m_processChunkFlagsCoroutine == null)
+            {
+                m_processChunkFlagsCoroutine = StartCoroutine(ProcessChunkFlagsCoroutine());
+            }
+        }
+
+        private IEnumerator ProcessChunkFlagsCoroutine()
+        {
+            while (m_flags != 0)
+            {
+                if (m_flags.HasFlag(ChunkFlags.VoxelVolumeRegenerationRequested))
+                {
+                    m_flags &= ~ChunkFlags.VoxelVolumeRegenerationRequested;
+                    WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
+                }
+
+                if (m_flags.HasFlag(ChunkFlags.CSGOperationPerformed))
+                {
+                    m_flags &= ~ChunkFlags.CSGOperationPerformed;
+                    WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
+                    m_voxelVolumeCSGOperations.Clear();
+                }
+
+                if
+                (
+                    m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) &&
+                    !m_flags.HasFlag(ChunkFlags.MeshBakingRequested) &&
+                    !m_flags.HasFlag(ChunkFlags.IsBakingMesh) &&
+                    !HasPendingRequest
+                )
+                {
+                    m_flags &= ~ChunkFlags.MeshRegenerationRequested;
+                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
+                }
+
+                if (m_flags.HasFlag(ChunkFlags.MeshBakingRequested))
+                {
+                    m_flags &= ~ChunkFlags.MeshBakingRequested;
+                    m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
+                    ProcessChunkFlags(ChunkFlags.IsBakingMesh);
+                }
+
+                if (m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_bakeJobHandle.IsCompleted)
+                {
+                    m_flags &= ~ChunkFlags.IsBakingMesh;
+                    m_meshCollider.sharedMesh = m_mesh;
+                }
+
+                yield return null;
+            }
+            m_processChunkFlagsCoroutine = null;
         }
 
         private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
@@ -138,25 +181,8 @@ namespace Tuntenfisch.World
 #endif
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds();
-
-            // Assign the mesh, in case it is null.
-            if (m_meshFilter.sharedMesh == null)
-            {
-                m_meshFilter.sharedMesh = m_mesh;
-            }
-            StartCoroutine(BakeMeshCoroutine());
-        }
-
-        private IEnumerator BakeMeshCoroutine()
-        {
-            m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
-
-            while (!m_bakeJobHandle.IsCompleted)
-            {
-                yield return null;
-            }
-
-            m_meshCollider.sharedMesh = m_mesh;
+            m_meshFilter.sharedMesh = m_mesh;
+            ProcessChunkFlags(ChunkFlags.MeshBakingRequested);
         }
 
         private void InitializeMeshComponents()
@@ -165,6 +191,16 @@ namespace Tuntenfisch.World
             m_mesh.MarkDynamic();
             m_meshFilter = GetComponent<MeshFilter>();
             m_meshCollider = GetComponent<MeshCollider>();
+        }
+
+        [Flags]
+        private enum ChunkFlags
+        {
+            VoxelVolumeRegenerationRequested = 1,
+            CSGOperationPerformed = 2,
+            MeshRegenerationRequested = 4,
+            MeshBakingRequested = 8,
+            IsBakingMesh = 16
         }
     }
 }

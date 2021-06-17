@@ -109,16 +109,29 @@ namespace Tuntenfisch.World
 
         private void OnValidate() => ApplySettings();
 
-        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, float3 position, float3 scale)
+        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, float3 position, float3 scale, bool snapToGrid = false)
         {
+            if (snapToGrid)
+            {
+                position = SnapToGrid(position);
+                scale = SnapToGrid(scale);
+            }
             m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, Matrix4x4.TRS(position, quaternion.identity, scale));
         }
 
-        public void ApplyCSGOperation(CSGOperatorIndex operatorIndex, CSGPrimitiveType csgPrimitiveType, float3 position, float3 scale)
+        public void ApplyCSGOperation(CSGOperatorIndex operatorIndex, CSGPrimitiveType csgPrimitiveType, float3 position, float3 scale, bool snapToGrid = false)
         {
-            Matrix4x4 objectToWorldMatrix = Matrix4x4.TRS(position, quaternion.identity, scale);
-            Bounds bounds = new Bounds(position, scale);
+            if (snapToGrid)
+            {
+                position = SnapToGrid(position);
+                scale = SnapToGrid(scale);
+            }
+            GPUCSGOperator csgOperator = new GPUCSGOperator(operatorIndex, 0.0f);
+            GPUCSGPrimitive csgPrimitive = new GPUCSGPrimitive(csgPrimitiveType);
+            Matrix4x4 worldToObjectMatrix = Matrix4x4.TRS(position, quaternion.identity, scale).inverse;
 
+            // Inflate the bounds a bit to ensure CSG operations near the boundary of chunks are processed by all nearby chunks.
+            Bounds bounds = new Bounds(position, 2.0f * scale);
             int3 minChunkCoordinate = CalculateChunkCoordinate(bounds.min);
             int3 maxChunkCoordinate = CalculateChunkCoordinate(bounds.max);
 
@@ -130,11 +143,19 @@ namespace Tuntenfisch.World
                     {
                         if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk))
                         {
-                            chunk.ApplyCSGPrimitiveOperation(new GPUCSGOperator(operatorIndex, 0.0f), new GPUCSGPrimitive(csgPrimitiveType), objectToWorldMatrix.inverse);
+                            chunk.ApplyCSGPrimitiveOperation(csgOperator, csgPrimitive, worldToObjectMatrix);
                         }
                     }
                 }
             }
+        }
+
+        private float3 SnapToGrid(float3 number)
+        {
+            float voxelSpacing = m_voxelConfig.VoxelVolumeConfig.VoxelSpacing;
+            number = math.round(number / voxelSpacing) * voxelSpacing;
+
+            return number;
         }
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
@@ -160,7 +181,6 @@ namespace Tuntenfisch.World
         private IEnumerator DestroyChunksOutsideViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
         {
             int numberOfChunksProcessed = 0;
-
             m_oldChunkCoordinates.UnionWith(m_chunks.Keys);
 
             foreach (KeyValuePair<int3, Chunk> pair in m_chunks)
@@ -190,7 +210,6 @@ namespace Tuntenfisch.World
         private IEnumerator CreateChunksWithinViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
         {
             int numberOfChunksProcessed = 0;
-
             int3 chunkCoordinate = CalculateChunkCoordinate(viewerPosition);
             float3 chunkPosition = chunkCoordinate * m_chunkDimensions;
             float viewerToChunkDistanceSquared = math.lengthsq(chunkPosition - viewerPosition);
@@ -209,7 +228,7 @@ namespace Tuntenfisch.World
                     if (chunk.Lod != lod)
                     {
                         chunk.Lod = lod;
-                        chunk.Remeshify();
+                        chunk.RegenerateMesh();
                     }
                 }
                 else
@@ -219,8 +238,8 @@ namespace Tuntenfisch.World
                     {
                         chunk.transform.position = chunkPosition;
                         chunk.Lod = lod;
-                        chunk.Regenerate();
-                        chunk.Remeshify();
+                        chunk.RegenerateVoxelVolume();
+                        chunk.RegenerateMesh();
                     });
                     m_chunks[chunkCoordinate] = chunk;
                 }
@@ -328,7 +347,7 @@ namespace Tuntenfisch.World
         {
             foreach (Chunk chunk in m_chunks.Values)
             {
-                chunk.Remeshify();
+                chunk.RegenerateMesh();
             }
         }
 
@@ -336,8 +355,8 @@ namespace Tuntenfisch.World
         {
             foreach (Chunk chunk in m_chunks.Values)
             {
-                chunk.Regenerate();
-                chunk.Remeshify();
+                chunk.RegenerateVoxelVolume();
+                chunk.RegenerateMesh();
             }
         }
     }
