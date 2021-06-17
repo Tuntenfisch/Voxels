@@ -318,13 +318,13 @@ namespace Tuntenfisch.Voxels.DC
                 }
 
                 // Create GPU buffers.
-                if (m_generatedVerticesBuffer0?.Count != m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfVertices)
+                if (m_generatedVerticesBuffer0?.Count != m_generatedVertices.Length)
                 {
                     m_generatedVerticesBuffer0?.Release();
                     m_generatedVerticesBuffer0 = new AsyncComputeBuffer(m_generatedVertices.Length, GPUVertex.SizeInBytes, ComputeBufferType.Counter);
                 }
 
-                if (m_generatedVerticesBuffer1?.Count != m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfVertices)
+                if (m_generatedVerticesBuffer1?.Count != m_generatedVertices.Length)
                 {
                     m_generatedVerticesBuffer1?.Release();
                     m_generatedVerticesBuffer1 = new AsyncComputeBuffer(m_generatedVertices.Length, GPUVertex.SizeInBytes, ComputeBufferType.Counter);
