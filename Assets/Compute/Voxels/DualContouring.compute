@@ -1,6 +1,6 @@
-#pragma kernel GenerateInnerVertices
+#pragma kernel GenerateInnerCellVertices
 #pragma kernel ApplyLevelOfDetail
-#pragma kernel GenerateOuterVertices
+#pragma kernel GenerateOuterCellVertices
 #pragma kernel GenerateTriangles
 
 #include "Assets/Compute/Voxels/Include/Cell.hlsl"
@@ -8,18 +8,21 @@
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
 
-uint cellStride;
-float cosOfSharpFeatureAngle;
-uint schmitzParticleIterations;
-float schmitzParticleStepSize;
-
-RWStructuredBuffer<Vertex> generatedVertices0;
-RWStructuredBuffer<Vertex> generatedVertices1;
-RWStructuredBuffer<uint> generatedVerticesIndexLookupTable;
-AppendStructuredBuffer<uint3> generatedTriangles;
-
 static const uint nullVertexIndex = -1;
 static const uint maxNumberOfIntersections = 6;
+
+struct CellVertexInfo
+{
+    uint index;
+
+    static CellVertexInfo Create()
+    {
+        CellVertexInfo cellVertexInfo;
+        cellVertexInfo.index = nullVertexIndex;
+
+        return cellVertexInfo;
+    }
+};
 
 struct Intersection
 {
@@ -36,23 +39,42 @@ struct Intersection
     }
 };
 
+uint cellStride;
+float cosOfHalfSharpFeatureAngle;
+uint schmitzParticleIterations;
+float schmitzParticleStepSize;
+
+RWStructuredBuffer<CellVertexInfo> cellVertexInfoLookupTable;
+RWStructuredBuffer<Vertex> generatedVertices0;
+RWStructuredBuffer<Vertex> generatedVertices1;
+AppendStructuredBuffer<uint3> generatedTriangles;
+
 // Theoretically we can declare below arrays locally and pass them around functions with the "out" or "inout" modifier but that will
 // result in more temporary registers being used by the compiler for some reason. See the following link for more information:
 // https://gamedev.stackexchange.com/questions/190131/splitting-up-hlsl-code-into-separate-functions-causes-the-number-of-needed-tempo.
 static uint numberOfIntersections;
 static Intersection intersections[maxNumberOfIntersections];
 static float3 forces[numberOfCellCorners];
+static CellVertexInfo neighbourCellVertexInfos[3];
 
 bool IsOuterVoxel(uint3 coordinate)
 {
     return any(coordinate == 0 || coordinate == numberOfVoxels - 2);
 }
 
-uint CalculateGeneratedVerticesIndexLookupTableIndex(uint3 coordinate, uint stride = 1)
+uint CalculateCellVertexInfoLookupTableIndex(uint3 coordinate, uint stride = 1)
 {
     coordinate = IsOuterVoxel(coordinate) ? coordinate : (coordinate - 1) / stride * stride + 1;
 
     return dot(coordinate, uint3(1, numberOfVoxels.x - 1, (numberOfVoxels.x - 1) * (numberOfVoxels.y - 1)));
+}
+
+uint ClampGeneratedVerticesIndex(RWStructuredBuffer<Vertex> generatedVertices, uint index)
+{
+    uint2 countAndStride;
+    generatedVertices.GetDimensions(countAndStride.x, countAndStride.y);
+    
+    return min(index, countAndStride.x - 1);
 }
 
 float3 CalculateCombinedForce(float3 center)
@@ -91,27 +113,6 @@ float3 CalculateForce(float3 corner)
     return force;
 }
 
-bool HasSharpFeature()
-{
-    float cosOfAngle = 1.0f;
-
-    [unroll(maxNumberOfIntersections)]
-    for (uint intersectionIndexA = 0; intersectionIndexA < numberOfIntersections; intersectionIndexA++)
-    {
-        Intersection intersectionA = intersections[intersectionIndexA];
-
-        [unroll(maxNumberOfIntersections)]
-        for (uint intersectionIndexB = 0; intersectionIndexB < numberOfIntersections; intersectionIndexB++)
-        {
-            Intersection intersectionB = intersections[intersectionIndexB];
-            float newCosOfAngle = dot(intersectionA.normal, intersectionB.normal);
-            cosOfAngle = newCosOfAngle < cosOfAngle ? newCosOfAngle : cosOfAngle;
-        }
-    }
-
-    return cosOfAngle <= cosOfSharpFeatureAngle;
-}
-
 Vertex CalculateCenterVertex()
 {
     Vertex vertex = Vertex::Create();
@@ -132,17 +133,14 @@ Vertex CalculateFeatureVertex(uint3 coordinate)
 {
     Vertex vertex = CalculateCenterVertex();
 
-    if (HasSharpFeature())
+    for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
     {
-        for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
-        {
-            forces[cornerIndex] = CalculateForce(cellCorners[cornerIndex]);
-        }
+        forces[cornerIndex] = CalculateForce(cellCorners[cornerIndex]);
+    }
 
-        for (uint schmitzParticleIteration = 0; schmitzParticleIteration < schmitzParticleIterations; schmitzParticleIteration++)
-        {
-            vertex.SetPosition(vertex.GetPosition() + schmitzParticleStepSize * CalculateCombinedForce(vertex.GetPosition()));
-        }
+    for (uint schmitzParticleIteration = 0; schmitzParticleIteration < schmitzParticleIterations; schmitzParticleIteration++)
+    {
+        vertex.SetPosition(vertex.GetPosition() + schmitzParticleStepSize * CalculateCombinedForce(vertex.GetPosition()));
     }
     vertex.SetPosition(VoxelToVoxelVolumeSpace(coordinate, vertex.GetPosition()));
 
@@ -179,7 +177,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
 }
 
 [numthreads(4, 4, 4)]
-void GenerateInnerVertices(uint3 id : SV_DispatchThreadID)
+void GenerateInnerCellVertices(uint3 id : SV_DispatchThreadID)
 {
     uint3 cellID = id + 1;
 
@@ -188,16 +186,16 @@ void GenerateInnerVertices(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint vertexIndex = nullVertexIndex;
+    CellVertexInfo cellVertexInfo = CellVertexInfo::Create();
 
     CalculatePositionsAndNormals(cellID);
 
     if (numberOfIntersections > 0)
     {
-        vertexIndex = generatedVertices0.IncrementCounter();
-        generatedVertices0[vertexIndex] = CalculateFeatureVertex(cellID);
+        cellVertexInfo.index = generatedVertices0.IncrementCounter();
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateFeatureVertex(cellID);
     }
-    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID)] = vertexIndex;
+    cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
 
 [numthreads(4, 4, 4)]
@@ -210,52 +208,52 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint numberOfChildVertices = 0;
-    uint parentVertexIndex = nullVertexIndex;
-    Vertex parentVertex = Vertex::Create();
+    uint numberOfChildCellVertices = 0;
+    CellVertexInfo parentCellVertexInfo = CellVertexInfo::Create();
+    Vertex parentCellVertex = Vertex::Create();
 
     for (uint cornerIndex = 0; cornerIndex < numberOfCellCorners; cornerIndex++)
     {
         uint3 coordinate = cellID + cellStride / 2 * cellCorners[cornerIndex];
-        uint childVertexIndex = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(coordinate, cellStride / 2)];
+        CellVertexInfo childCellVertexInfo = cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(coordinate, cellStride / 2)];
 
-        if (childVertexIndex != nullVertexIndex)
+        if (childCellVertexInfo.index != nullVertexIndex)
         {
-            Vertex childVertex = generatedVertices0[childVertexIndex];
-            parentVertex.SetPosition(parentVertex.GetPosition() + childVertex.GetPosition());
-            parentVertex.SetNormal(parentVertex.GetNormal() + childVertex.GetNormal());
-            numberOfChildVertices++;
+            Vertex childCellVertex = generatedVertices0[childCellVertexInfo.index];
+            parentCellVertex.SetPosition(parentCellVertex.GetPosition() + childCellVertex.GetPosition());
+            parentCellVertex.SetNormal(parentCellVertex.GetNormal() + childCellVertex.GetNormal());
+            numberOfChildCellVertices++;
         }
     }
 
-    if (numberOfChildVertices > 0)
+    if (numberOfChildCellVertices > 0)
     {
-        parentVertexIndex = generatedVertices1.IncrementCounter();
-        parentVertex.SetPosition(parentVertex.GetPosition() / numberOfChildVertices);
-        parentVertex.SetNormal(normalize(parentVertex.GetNormal()));
-        generatedVertices1[parentVertexIndex] = parentVertex;
+        parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
+        parentCellVertex.SetPosition(parentCellVertex.GetPosition() / numberOfChildCellVertices);
+        parentCellVertex.SetNormal(normalize(parentCellVertex.GetNormal()));
+        generatedVertices1[ClampGeneratedVerticesIndex(generatedVertices1, parentCellVertexInfo.index)] = parentCellVertex;
     }
-    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID, cellStride)] = parentVertexIndex;
+    cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID, cellStride)] = parentCellVertexInfo;
 }
 
 [numthreads(4, 4, 4)]
-void GenerateOuterVertices(uint3 cellID : SV_DispatchThreadID)
+void GenerateOuterCellVertices(uint3 cellID : SV_DispatchThreadID)
 {
     if (any(cellID > numberOfVoxels - 2) || !IsOuterVoxel(cellID))
     {
         return;
     }
 
-    uint vertexIndex = nullVertexIndex;
+    CellVertexInfo cellVertexInfo = CellVertexInfo::Create();
 
     CalculatePositionsAndNormals(cellID);
 
     if (numberOfIntersections > 0)
     {
-        vertexIndex = generatedVertices0.IncrementCounter();
-        generatedVertices0[vertexIndex] = CalculateFeatureVertex(cellID);
+        cellVertexInfo.index = generatedVertices0.IncrementCounter();
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateFeatureVertex(cellID);
     }
-    generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID)] = vertexIndex;
+    cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
 
 bool ArePairwiseDistinct(uint3 indices)
@@ -263,7 +261,45 @@ bool ArePairwiseDistinct(uint3 indices)
     return indices.x != indices.y && indices.x != indices.z && indices.y != indices.z;
 }
 
-uint3 GetVertexIndices(uint3 coordinate, uint index)
+void GenerateTriangle(CellVertexInfo cellVertexInfo, CellVertexInfo firstNeighbourCellVertexInfo, CellVertexInfo secondNeighbourCellVertexInfo)
+{
+    uint3 indices = uint3(cellVertexInfo.index, firstNeighbourCellVertexInfo.index, secondNeighbourCellVertexInfo.index);
+
+    if (!ArePairwiseDistinct(indices))
+    {
+        return;
+    }
+
+    Vertex cellVertex = generatedVertices0[cellVertexInfo.index];
+    Vertex firstNeighbourCellVertex = generatedVertices0[firstNeighbourCellVertexInfo.index];
+    Vertex secondNeighbourCellVertex = generatedVertices0[secondNeighbourCellVertexInfo.index];
+
+    float3 faceNormal = normalize(cross(firstNeighbourCellVertex.GetPosition() - cellVertex.GetPosition(), secondNeighbourCellVertex.GetPosition() - cellVertex.GetPosition()));
+
+    if (dot(cellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
+    {
+        indices.x = generatedVertices0.IncrementCounter();
+        cellVertex.SetNormal(faceNormal);
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.x)] = cellVertex;
+    }
+
+    if (dot(firstNeighbourCellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
+    {
+        indices.y = generatedVertices0.IncrementCounter();
+        firstNeighbourCellVertex.SetNormal(faceNormal);
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.y)] = firstNeighbourCellVertex;
+    }
+
+    if (dot(secondNeighbourCellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
+    {
+        indices.z = generatedVertices0.IncrementCounter();
+        secondNeighbourCellVertex.SetNormal(faceNormal);
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.z)] = secondNeighbourCellVertex;
+    }
+    generatedTriangles.Append(indices);
+}
+
+void GetNeighbourCellsVertexInfos(uint3 coordinate, uint index)
 {
     const uint3 cellCornerIndices[3] =
     {
@@ -277,10 +313,8 @@ uint3 GetVertexIndices(uint3 coordinate, uint index)
     [unroll]
     for (uint iterator = 0; iterator < 3; iterator++)
     {
-        vertexIndices[iterator] = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][iterator]], cellStride)];
+        neighbourCellVertexInfos[iterator] = cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(coordinate + cellCorners[cellCornerIndices[index][iterator]], cellStride)];
     }
-
-    return vertexIndices;
 }
 
 CellEdge GetCellEdge(uint index)
@@ -298,41 +332,27 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
         return;
     }
 
-    uint vertexIndex = generatedVerticesIndexLookupTable[CalculateGeneratedVerticesIndexLookupTableIndex(cellID, cellStride)];
+    CellVertexInfo cellVertexInfo = cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID, cellStride)];
 
     for (uint index = 0; index < 3; index++)
     {
         CellEdge cellEdge = GetCellEdge(index);
 
-        uint3 cellCornerA = cellCorners[cellEdge.GetCornerStartIndex()];
-        uint3 cellCornerB = cellCorners[cellEdge.GetCornerEndIndex()];
-
-        Voxel sampleA = GetVoxel(cellID + cellCornerA);
-        Voxel sampleB = GetVoxel(cellID + cellCornerB);
+        Voxel sampleA = GetVoxel(cellID + cellCorners[cellEdge.GetCornerStartIndex()]);
+        Voxel sampleB = GetVoxel(cellID + cellCorners[cellEdge.GetCornerEndIndex()]);
 
         if (sampleA.GetValue() >= 0.0f == sampleB.GetValue() >= 0.0f)
         {
             continue;
         }
 
-        uint3 vertexIndices = GetVertexIndices(cellID, index);
-        uint3 triangle0 = uint3(vertexIndex, vertexIndices.yx);
-        uint3 triangle1 = uint3(vertexIndex, vertexIndices.zy);
+        GetNeighbourCellsVertexInfos(cellID, index);
 
-        if (sampleB.GetValue() < 0.0f)
+        for (uint triangleIndex = 0; triangleIndex < 2; triangleIndex++)
         {
-            triangle0 = triangle0.xzy;
-            triangle1 = triangle1.xzy;
-        }
-
-        if (ArePairwiseDistinct(triangle0))
-        {
-            generatedTriangles.Append(triangle0);
-        }
-
-        if (ArePairwiseDistinct(triangle1))
-        {
-            generatedTriangles.Append(triangle1);
+            CellVertexInfo firstNeighbourCellVertexInfo = neighbourCellVertexInfos[sampleB.GetValue() < 0.0f ? triangleIndex : triangleIndex + 1];
+            CellVertexInfo secondNeighbourCellVertexInfo = neighbourCellVertexInfos[sampleB.GetValue() < 0.0f ? triangleIndex + 1 : triangleIndex];
+            GenerateTriangle(cellVertexInfo, firstNeighbourCellVertexInfo, secondNeighbourCellVertexInfo);
         }
     }
 }
