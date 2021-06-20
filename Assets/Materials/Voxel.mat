@@ -185,7 +185,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - Flat_Shaded: 1
+    - Flat_Shaded: 0
     - Smoothing: 0.402
     - Vector1_0081677dee9a46009d11b94f8c885383: 1
     - Vector1_4c0b756fa00549bcbc357ecff5959fdb: 7.5

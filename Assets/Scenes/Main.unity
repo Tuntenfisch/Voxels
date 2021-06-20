@@ -556,7 +556,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1464136622}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a07c5025eaba447aec54813a2c41e0, type: 3}
   m_Name: 
@@ -676,7 +676,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcad6ccf5f6a2ba4eaf6ccc5866cb16d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_numberOfWorkers: 4
+  m_numberOfWorkers: 8
 --- !u!114 &1594834163
 MonoBehaviour:
   m_ObjectHideFlags: 0

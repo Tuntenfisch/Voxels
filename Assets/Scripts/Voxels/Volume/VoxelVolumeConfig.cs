@@ -25,9 +25,9 @@ namespace Tuntenfisch.Voxels.Volume
 
         [SerializeField]
         private ComputeShader m_compute;
-        [Range(67, 131)]
+        [Range(35, 131)]
         [SerializeField]
-        private int m_numberOfVoxelsAlongAxis = 131;
+        private int m_numberOfVoxelsAlongAxis = 67;
         [Min(0.25f)]
         [SerializeField]
         private float m_voxelSpacing = 1.0f;

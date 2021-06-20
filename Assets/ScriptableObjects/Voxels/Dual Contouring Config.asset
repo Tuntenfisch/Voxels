@@ -15,4 +15,4 @@ MonoBehaviour:
   m_compute: {fileID: 7200000, guid: 13eaeb027358e7c4da05988348d93c69, type: 3}
   m_schmitzParticleIterations: 15
   m_schmitzParticleStepSize: 0.2
-  m_sharpFeatureAngle: 30
+  m_sharpFeatureAngle: 25
