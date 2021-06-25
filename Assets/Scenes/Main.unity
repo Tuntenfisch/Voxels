@@ -690,3 +690,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a4f2ef2d60953f409ae7f424ec9c49b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_voxelVolumeCSGOperationsBufferCapacity: 10

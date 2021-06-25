@@ -102,12 +102,12 @@ namespace Tuntenfisch.Player
 
                 if (m_primaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Union), new GPUCSGPrimitive(primitiveType), hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Union), new GPUCSGPrimitive(MaterialIndex.Dirt, primitiveType), hit.point, scale);
                 }
 
                 if (m_secondaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), new GPUCSGPrimitive(primitiveType), hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), new GPUCSGPrimitive(MaterialIndex.Dirt, primitiveType), hit.point, scale);
                 }
             }
         }

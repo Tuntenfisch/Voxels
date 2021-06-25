@@ -53,6 +53,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_noiseParameters:
+    m_materialIndex: 1
     m_seed: -1406
     m_noiseAxes: 0
     m_noiseType: 0
@@ -218,6 +219,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_noiseParameters:
+    m_materialIndex: 1
     m_seed: 5
     m_noiseAxes: 0
     m_noiseType: 2
@@ -285,6 +287,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_csgPrimitive:
+    m_materialIndex: 2
     m_primitiveType: 0
 --- !u!114 &11400000
 MonoBehaviour:
@@ -329,6 +332,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
@@ -347,6 +351,7 @@ MonoBehaviour:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
   - m_nodeType: 3
     m_transformMatrix:
@@ -367,6 +372,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: -1406
       m_noiseAxes: 0
       m_noiseType: 0
@@ -385,6 +391,7 @@ MonoBehaviour:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
   - m_nodeType: 0
     m_transformMatrix:
@@ -405,6 +412,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
@@ -423,6 +431,7 @@ MonoBehaviour:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
   - m_nodeType: 3
     m_transformMatrix:
@@ -443,6 +452,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: 5
       m_noiseAxes: 0
       m_noiseType: 2
@@ -461,6 +471,7 @@ MonoBehaviour:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
   - m_nodeType: 4
     m_transformMatrix:
@@ -481,6 +492,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
@@ -499,6 +511,167 @@ MonoBehaviour:
       m_operatorIndex: 1
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
+      m_primitiveType: 0
+  - m_nodeType: 0
+    m_transformMatrix:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_noiseParameters:
+      m_materialIndex: 0
+      m_seed: 0
+      m_noiseAxes: 0
+      m_noiseType: 0
+      m_numberOfOctaves: 1
+      m_initialAmplitude: 0
+      m_initialFrequency:
+        x: 0
+        y: 0
+        z: 0
+      m_persistence: 0
+      m_lacunarity:
+        x: 0.25
+        y: 0.25
+        z: 0.25
+    m_csgOperator:
+      m_operatorIndex: 0
+      m_smoothing: 0
+    m_csgPrimitive:
+      m_materialIndex: 0
+      m_primitiveType: 0
+  - m_nodeType: 1
+    m_transformMatrix:
+      e00: 0.1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 0.1
+      e12: 0
+      e13: -2
+      e20: 0
+      e21: 0
+      e22: 0.1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_noiseParameters:
+      m_materialIndex: 0
+      m_seed: 0
+      m_noiseAxes: 0
+      m_noiseType: 0
+      m_numberOfOctaves: 1
+      m_initialAmplitude: 0
+      m_initialFrequency:
+        x: 0
+        y: 0
+        z: 0
+      m_persistence: 0
+      m_lacunarity:
+        x: 0.25
+        y: 0.25
+        z: 0.25
+    m_csgOperator:
+      m_operatorIndex: 0
+      m_smoothing: 0
+    m_csgPrimitive:
+      m_materialIndex: 0
+      m_primitiveType: 0
+  - m_nodeType: 5
+    m_transformMatrix:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_noiseParameters:
+      m_materialIndex: 0
+      m_seed: 0
+      m_noiseAxes: 0
+      m_noiseType: 0
+      m_numberOfOctaves: 1
+      m_initialAmplitude: 0
+      m_initialFrequency:
+        x: 0
+        y: 0
+        z: 0
+      m_persistence: 0
+      m_lacunarity:
+        x: 0.25
+        y: 0.25
+        z: 0.25
+    m_csgOperator:
+      m_operatorIndex: 0
+      m_smoothing: 0
+    m_csgPrimitive:
+      m_materialIndex: 0
+      m_primitiveType: 0
+  - m_nodeType: 4
+    m_transformMatrix:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_noiseParameters:
+      m_materialIndex: 0
+      m_seed: 0
+      m_noiseAxes: 0
+      m_noiseType: 0
+      m_numberOfOctaves: 1
+      m_initialAmplitude: 0
+      m_initialFrequency:
+        x: 0
+        y: 0
+        z: 0
+      m_persistence: 0
+      m_lacunarity:
+        x: 0.25
+        y: 0.25
+        z: 0.25
+    m_csgOperator:
+      m_operatorIndex: 0
+      m_smoothing: 0
+    m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
   - m_nodeType: 6
     m_transformMatrix:
@@ -519,6 +692,7 @@ MonoBehaviour:
       e32: 0
       e33: 1
     m_noiseParameters:
+      m_materialIndex: 0
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
@@ -537,6 +711,7 @@ MonoBehaviour:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
+      m_materialIndex: 0
       m_primitiveType: 0
 --- !u!114 &1538321332424707336
 MonoBehaviour:

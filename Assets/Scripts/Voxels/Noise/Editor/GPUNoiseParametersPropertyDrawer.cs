@@ -9,6 +9,7 @@ namespace Tuntenfisch.Voxels.Noise.Editor
     public class NoiseParametersPropertyDrawer : PropertyDrawer
     {
         private SerializedProperty m_noiseParameters;
+        private SerializedProperty m_materialIndex;
         private SerializedProperty m_seed;
         private SerializedProperty m_noiseAxes;
         private SerializedProperty m_noiseType;
@@ -29,6 +30,8 @@ namespace Tuntenfisch.Voxels.Noise.Editor
             }
 
             EditorGUI.LabelField(position, "General", EditorStyles.boldLabel);
+            position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+            EditorGUI.PropertyField(position, m_materialIndex);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             m_seed.intValue = EditorGUI.IntField(position, ObjectNames.NicifyVariableName(nameof(m_seed)), m_seed.intValue);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
@@ -53,12 +56,13 @@ namespace Tuntenfisch.Voxels.Noise.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            int lineCount = 14;
+            int lineCount = 15;
 
             return lineCount * EditorGUIUtility.singleLineHeight + (lineCount - 1) * EditorGUIUtility.standardVerticalSpacing;
         }
         private void InitializeProperties()
         {
+            m_materialIndex = m_noiseParameters.FindPropertyRelative(nameof(m_materialIndex));
             m_seed = m_noiseParameters.FindPropertyRelative(nameof(m_seed));
             m_noiseAxes = m_noiseParameters.FindPropertyRelative(nameof(m_noiseAxes));
             m_noiseType = m_noiseParameters.FindPropertyRelative(nameof(m_noiseType));

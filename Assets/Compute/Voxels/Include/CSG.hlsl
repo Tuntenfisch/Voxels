@@ -80,6 +80,7 @@ float4 ApplyCSGOperator(float4 lhs, float4 rhs, CSGOperator csgOperator)
 
 struct CSGPrimitive
 {
+    uint materialIndex;
     uint primitiveType;
 };
 

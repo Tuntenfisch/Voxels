@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Tuntenfisch.Voxels.Materials;
+using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -15,10 +16,13 @@ namespace Tuntenfisch.Voxels.CSG
         private readonly static int s_sizeInBytes = Marshal.SizeOf<GPUCSGPrimitive>();
 
         [SerializeField]
+        private MaterialIndex m_materialIndex;
+        [SerializeField]
         private CSGPrimitiveType m_primitiveType;
 
-        public GPUCSGPrimitive(CSGPrimitiveType primitiveType)
+        public GPUCSGPrimitive(MaterialIndex materialIndex, CSGPrimitiveType primitiveType)
         {
+            m_materialIndex = materialIndex;
             m_primitiveType = primitiveType;
         }
     }

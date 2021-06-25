@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Tuntenfisch.Voxels.Materials;
+using System;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
@@ -14,6 +15,8 @@ namespace Tuntenfisch.Voxels.Noise
         private static readonly int s_sizeInBytes = Marshal.SizeOf<GPUNoiseParameters>();
 
         // General Parameters.
+        [SerializeField]
+        private MaterialIndex m_materialIndex;
         [SerializeField]
         private int m_seed;
         [SerializeField]
