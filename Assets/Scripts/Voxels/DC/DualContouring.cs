@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Linq;
 using Tuntenfisch.Extensions;
 using Tuntenfisch.Generics;
@@ -30,10 +29,8 @@ namespace Tuntenfisch.Voxels.DC
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-#if UNITY_EDITOR
             m_voxelConfig.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
             m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
-#endif
             m_requests = new Queue<(Request, OnMeshGenerated)>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_requestPool = new ObjectPool<Request>(() => { return new Request(); });
@@ -57,10 +54,8 @@ namespace Tuntenfisch.Voxels.DC
 
         private void OnDestroy()
         {
-#if UNITY_EDITOR
             m_voxelConfig.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
             m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-#endif
             OnDestroyed?.Invoke();
         }
 
@@ -181,9 +176,7 @@ namespace Tuntenfisch.Voxels.DC
             public Worker(DualContouring parent)
             {
                 m_parent = parent;
-#if UNITY_EDITOR
                 m_parent.m_voxelConfig.VoxelVolumeConfig.OnDirtied += CreateBuffers;
-#endif
                 m_parent.OnDestroyed += Dispose;
                 CreateBuffers();
             }
@@ -191,9 +184,7 @@ namespace Tuntenfisch.Voxels.DC
             public void Dispose()
             {
                 ReleaseBuffers();
-#if UNITY_EDITOR
                 m_parent.m_voxelConfig.VoxelVolumeConfig.OnDirtied -= CreateBuffers;
-#endif
                 m_parent.OnDestroyed -= Dispose;
                 m_parent = null;
             }
@@ -216,9 +207,11 @@ namespace Tuntenfisch.Voxels.DC
 
                     if (VertexCount > m_generatedVerticesBuffer0.Count)
                     {
-                        // The mesh is larger than the buffer currently allocated. Enlarge the buffer and try again.
+                        // The mesh is larger than the buffer currently allocated. Enlarge buffers and try again.
                         int count = (int)math.round(1.5f * VertexCount);
 
+                        m_generatedVertices.Dispose();
+                        m_generatedVertices = new NativeArray<GPUVertex>(count, Allocator.Persistent);
                         m_generatedVerticesBuffer0.Release();
                         m_generatedVerticesBuffer0 = new AsyncComputeBuffer(count, GPUVertex.SizeInBytes, ComputeBufferType.Counter);
                         m_generatedVerticesBuffer1.Release();
@@ -303,22 +296,27 @@ namespace Tuntenfisch.Voxels.DC
             private void CreateBuffers()
             {
                 // Create CPU buffers.
-                if (!m_generatedVertices.IsCreated || m_generatedVertices.Length != m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfVertices)
+                int generatedVertexCapacity = m_parent.m_voxelConfig.VoxelVolumeConfig.CellCount;
+
+                if (!m_generatedVertices.IsCreated || m_generatedVertices.Length != generatedVertexCapacity)
                 {
                     if (m_generatedVertices.IsCreated)
                     {
                         m_generatedVertices.Dispose();
                     }
-                    m_generatedVertices = new NativeArray<GPUVertex>(m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfVertices, Allocator.Persistent);
+                    m_generatedVertices = new NativeArray<GPUVertex>(generatedVertexCapacity, Allocator.Persistent);
                 }
 
-                if (!m_generatedTriangles.IsCreated || m_generatedTriangles.Length != m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfTriangles)
+                int generatedTriangleCapacity = 3 * 6 * (int)math.round(math.pow(m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - 1, 3));
+
+                if (!m_generatedTriangles.IsCreated || m_generatedTriangles.Length != generatedTriangleCapacity)
                 {
                     if (m_generatedTriangles.IsCreated)
                     {
                         m_generatedTriangles.Dispose();
                     }
-                    m_generatedTriangles = new NativeArray<int>(m_parent.m_voxelConfig.VoxelVolumeConfig.MaxNumberOfTriangles, Allocator.Persistent);
+
+                    m_generatedTriangles = new NativeArray<int>(generatedTriangleCapacity, Allocator.Persistent);
                 }
 
                 if (!m_counts.IsCreated || m_counts.Length != 2)
@@ -352,7 +350,7 @@ namespace Tuntenfisch.Voxels.DC
                 if (m_generatedTrianglesBuffer?.Count != m_generatedTriangles.Length)
                 {
                     m_generatedTrianglesBuffer?.Release();
-                    m_generatedTrianglesBuffer = new AsyncComputeBuffer(m_generatedTriangles.Length, Marshal.SizeOf<uint3>(), ComputeBufferType.Append);
+                    m_generatedTrianglesBuffer = new AsyncComputeBuffer(m_generatedTriangles.Length, sizeof(uint), ComputeBufferType.Append);
                 }
 
                 if (m_countBuffer?.Count != m_counts.Length)

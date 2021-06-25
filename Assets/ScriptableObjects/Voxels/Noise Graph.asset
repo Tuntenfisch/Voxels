@@ -1,79 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-9197198718405590149
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588d49c81e41f9747b34e07747357c8e, type: 3}
-  m_Name: CSG Operation
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: 248, y: 440}
-  ports:
-    keys:
-    - m_operandA
-    - m_operandB
-    - m_result
-    values:
-    - _fieldName: m_operandA
-      _node: {fileID: -9197198718405590149}
-      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_valueAndGradient
-        node: {fileID: -5381561391388365510}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_operandB
-      _node: {fileID: -9197198718405590149}
-      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_valueAndGradient
-        node: {fileID: -706027504667900310}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_result
-      _node: {fileID: -9197198718405590149}
-      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_operandA
-        node: {fileID: -4155774722027668316}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_operandA:
-    x: 0
-    y: 0
-    z: 0
-    w: 0
-  m_operandB:
-    x: 0
-    y: 0
-    z: 0
-    w: 0
-  m_result:
-    x: 0
-    y: 0
-    z: 0
-    w: 0
-  m_csgOperator:
-    m_operatorIndex: 1
-    m_smoothing: 20
 --- !u!114 &-5381561391388365510
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111,7 +37,7 @@ MonoBehaviour:
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_operandA
-        node: {fileID: -9197198718405590149}
+        node: {fileID: 8925085202776628099}
         reroutePoints: []
       _direction: 1
       _connectionType: 1
@@ -141,7 +67,7 @@ MonoBehaviour:
       x: 1.8
       y: 1.8
       z: 1.8
---- !u!114 &-4155774722027668316
+--- !u!114 &-3150162396236068285
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -162,19 +88,19 @@ MonoBehaviour:
     - m_result
     values:
     - _fieldName: m_operandA
-      _node: {fileID: -4155774722027668316}
+      _node: {fileID: -3150162396236068285}
       _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_result
-        node: {fileID: -9197198718405590149}
+        node: {fileID: 8925085202776628099}
         reroutePoints: []
       _direction: 0
       _connectionType: 1
       _typeConstraint: 2
       _dynamic: 0
     - _fieldName: m_operandB
-      _node: {fileID: -4155774722027668316}
+      _node: {fileID: -3150162396236068285}
       _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
         Culture=neutral, PublicKeyToken=null
       connections:
@@ -186,7 +112,7 @@ MonoBehaviour:
       _typeConstraint: 2
       _dynamic: 0
     - _fieldName: m_result
-      _node: {fileID: -4155774722027668316}
+      _node: {fileID: -3150162396236068285}
       _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
         Culture=neutral, PublicKeyToken=null
       connections:
@@ -213,7 +139,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_csgOperator:
-    m_operatorIndex: 0
+    m_operatorIndex: 2
     m_smoothing: 0
 --- !u!114 &-2864690678418071032
 MonoBehaviour:
@@ -350,7 +276,7 @@ MonoBehaviour:
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_operandB
-        node: {fileID: -9197198718405590149}
+        node: {fileID: 8925085202776628099}
         reroutePoints: []
       _direction: 1
       _connectionType: 1
@@ -417,7 +343,7 @@ MonoBehaviour:
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_operandB
-        node: {fileID: -4155774722027668316}
+        node: {fileID: -3150162396236068285}
         reroutePoints: []
       _direction: 1
       _connectionType: 1
@@ -433,7 +359,7 @@ MonoBehaviour:
     z: 0
     w: 0
   m_csgPrimitive:
-    m_primitiveType: 1
+    m_primitiveType: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -451,12 +377,12 @@ MonoBehaviour:
   - {fileID: 1792733210694844979}
   - {fileID: 7620365188831075206}
   - {fileID: -706027504667900310}
-  - {fileID: -9197198718405590149}
   - {fileID: -2864690678418071032}
   - {fileID: 1538321332424707336}
-  - {fileID: -4155774722027668316}
   - {fileID: -381131175957219154}
   - {fileID: -970753200946964068}
+  - {fileID: 8925085202776628099}
+  - {fileID: -3150162396236068285}
   m_nodes:
   - m_nodeType: 0
     m_transformMatrix:
@@ -480,7 +406,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -488,9 +414,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -556,7 +482,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -564,9 +490,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -632,7 +558,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -640,12 +566,12 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 1
-      m_smoothing: 20
+      m_smoothing: 0
     m_csgPrimitive:
       m_primitiveType: 0
   - m_nodeType: 0
@@ -670,7 +596,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -678,9 +604,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -708,7 +634,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -716,9 +642,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -746,7 +672,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -754,14 +680,14 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
     m_csgPrimitive:
-      m_primitiveType: 1
+      m_primitiveType: 0
   - m_nodeType: 4
     m_transformMatrix:
       e00: 1
@@ -784,7 +710,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -792,11 +718,11 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
-      m_operatorIndex: 0
+      m_operatorIndex: 2
       m_smoothing: 0
     m_csgPrimitive:
       m_primitiveType: 0
@@ -822,7 +748,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 0
+      m_numberOfOctaves: 1
       m_initialAmplitude: 0
       m_initialFrequency:
         x: 0
@@ -830,9 +756,9 @@ MonoBehaviour:
         z: 0
       m_persistence: 0
       m_lacunarity:
-        x: 0
-        y: 0
-        z: 0
+        x: 0.25
+        y: 0.25
+        z: 0.25
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -896,7 +822,7 @@ MonoBehaviour:
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_result
-        node: {fileID: -4155774722027668316}
+        node: {fileID: -3150162396236068285}
         reroutePoints: []
       _direction: 0
       _connectionType: 1
@@ -941,3 +867,77 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 0
+--- !u!114 &8925085202776628099
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 588d49c81e41f9747b34e07747357c8e, type: 3}
+  m_Name: CSG Operation
+  m_EditorClassIdentifier: 
+  graph: {fileID: 11400000}
+  position: {x: 248, y: 440}
+  ports:
+    keys:
+    - m_operandA
+    - m_operandB
+    - m_result
+    values:
+    - _fieldName: m_operandA
+      _node: {fileID: 8925085202776628099}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: -5381561391388365510}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_operandB
+      _node: {fileID: 8925085202776628099}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_valueAndGradient
+        node: {fileID: -706027504667900310}
+        reroutePoints: []
+      _direction: 0
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+    - _fieldName: m_result
+      _node: {fileID: 8925085202776628099}
+      _typeQualifiedName: Unity.Mathematics.float4, Unity.Mathematics, Version=1.0.0.0,
+        Culture=neutral, PublicKeyToken=null
+      connections:
+      - fieldName: m_operandA
+        node: {fileID: -3150162396236068285}
+        reroutePoints: []
+      _direction: 1
+      _connectionType: 1
+      _typeConstraint: 2
+      _dynamic: 0
+  m_operandA:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_operandB:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_result:
+    x: 0
+    y: 0
+    z: 0
+    w: 0
+  m_csgOperator:
+    m_operatorIndex: 1
+    m_smoothing: 0

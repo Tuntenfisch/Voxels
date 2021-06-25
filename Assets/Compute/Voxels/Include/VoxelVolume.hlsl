@@ -1,7 +1,7 @@
-#ifndef TUNTENFISCH_VOXEL_VOLUME
-#define TUNTENFISCH_VOXEL_VOLUME
+#ifndef TUNTENFISCH_VOXELS_VOXEL_VOLUME
+#define TUNTENFISCH_VOXELS_VOXEL_VOLUME
 
-RWStructuredBuffer<Voxel> voxelVolume;
+RWStructuredBuffer<PackedVoxel> voxelVolume;
 
 uint3 numberOfVoxels;
 float voxelSpacing;
@@ -19,12 +19,12 @@ uint CalculateVoxelVolumeIndex(uint3 coordinate)
 
 Voxel GetVoxel(uint3 coordinate)
 {
-    return voxelVolume[CalculateVoxelVolumeIndex(coordinate)];
+    return UnpackVoxel(voxelVolume[CalculateVoxelVolumeIndex(coordinate)]);
 }
 
 void SetVoxel(uint3 coordinate, Voxel voxel)
 {
-    voxelVolume[CalculateVoxelVolumeIndex(coordinate)] = voxel;
+    voxelVolume[CalculateVoxelVolumeIndex(coordinate)] = PackVoxel(voxel);
 }
 
 float3 VoxelToVoxelVolumeSpace(uint3 coordinate, float3 position = 0.0f)

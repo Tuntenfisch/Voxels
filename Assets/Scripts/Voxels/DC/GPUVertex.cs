@@ -14,10 +14,12 @@ namespace Tuntenfisch.Voxels.DC
         private static readonly VertexAttributeDescriptor[] s_attributes =
         {
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3)
+            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float16, 4),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.Float32, 1),
         };
 
         private float3 m_position;
-        private float3 m_normal;
+        private half4 m_normal;
+        private readonly float m_materialIndex;
     }
 }

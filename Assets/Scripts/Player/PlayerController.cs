@@ -1,4 +1,5 @@
 using Tuntenfisch.Voxels.CSG;
+using Tuntenfisch.Voxels.Materials;
 using Tuntenfisch.World;
 using Unity.Mathematics;
 using UnityEngine;
@@ -95,18 +96,18 @@ namespace Tuntenfisch.Player
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
                 CSGPrimitiveType primitiveType = CSGPrimitiveType.Sphere;
-                float3 scale = 4.0f;
+                float3 scale = 2.0f;
 
                 WorldManager.Instance.DrawCSGPrimitiveHologram(primitiveType, hit.point, scale);
 
                 if (m_primaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Union, primitiveType, hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Union), new GPUCSGPrimitive(primitiveType), hit.point, scale);
                 }
 
                 if (m_secondaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(CSGOperatorIndex.Difference, primitiveType, hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), new GPUCSGPrimitive(primitiveType), hit.point, scale);
                 }
             }
         }

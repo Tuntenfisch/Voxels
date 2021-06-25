@@ -1,5 +1,5 @@
-#ifndef TUNTENFISCH_NOISE_GRAPH
-#define TUNTENFISCH_NOISE_GRAPH
+#ifndef TUNTENFISCH_VOXELS_NOISE_NOISE_GRAPH
+#define TUNTENFISCH_VOXELS_NOISE_NOISE_GRAPH
 
 #include "Assets/Compute/Voxels/Include/Noise/Noise.hlsl"
 
@@ -66,7 +66,7 @@ struct NoiseGraphStack
 
 float4 GenerateGraphFBMNoise(float3 position)
 {
-    float4 finalValueAndFinalGradient = 0.0f;
+    float4 finalValueAndGradient = 0.0f;
     
     NoiseGraphStack stack = NoiseGraphStack::Create();
 
@@ -104,12 +104,12 @@ float4 GenerateGraphFBMNoise(float3 position)
                 break;
             
             case noiseGraphNodeTypeOutput:
-                finalValueAndFinalGradient = stack.Pop();
+                finalValueAndGradient = stack.Pop();
                 break;
         }
     }
 
-    return finalValueAndFinalGradient;
+    return finalValueAndGradient;
 }
 
 #endif

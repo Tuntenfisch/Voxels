@@ -20,7 +20,7 @@ namespace Tuntenfisch.Voxels.CSG
         [SerializeField]
         private float m_smoothing;
 
-        public GPUCSGOperator(CSGOperatorIndex operatorIndex, float smoothing)
+        public GPUCSGOperator(CSGOperatorIndex operatorIndex, float smoothing = 0.0f)
         {
             m_operatorIndex = operatorIndex;
             m_smoothing = smoothing;

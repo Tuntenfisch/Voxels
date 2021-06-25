@@ -1,6 +1,6 @@
+using Tuntenfisch.Editor;
 using Unity.Mathematics;
 using UnityEditor;
-using Tuntenfisch.Editor;
 
 namespace Tuntenfisch.World.Editor
 {
@@ -10,9 +10,9 @@ namespace Tuntenfisch.World.Editor
     {
         private static int MaxNumberOfLods => 5;
 
-        private static bool s_showWorldOptions;
-        private static bool s_showChunkOptions;
-        private static bool s_showLevelOfDetailOptions;
+        private static bool s_showWorldOptions = true;
+        private static bool s_showChunkOptions = true;
+        private static bool s_showLevelOfDetailOptions = true;
 
         private SerializedProperty m_viewer;
         private SerializedProperty m_updateInterval;

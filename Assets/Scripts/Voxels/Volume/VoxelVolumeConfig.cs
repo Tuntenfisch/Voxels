@@ -19,8 +19,6 @@ namespace Tuntenfisch.Voxels.Volume
         public int3 NumberOfVoxels => new int3(NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis, NumberOfVoxelsAlongAxis);
         public int3 NumberOfCells => new int3(NumberOfCellsAlongAxis, NumberOfCellsAlongAxis, NumberOfCellsAlongAxis);
         public float3 VoxelVolumeDimensions => VoxelSpacing * (float3)NumberOfCells;
-        public int MaxNumberOfVertices => CellCount;
-        public int MaxNumberOfTriangles => 6 * CellCount;
         public float VoxelSpacing => m_voxelSpacing;
 
         [SerializeField]

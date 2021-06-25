@@ -1,12 +1,13 @@
-﻿#ifndef TUNTENFISCH_VERTEX
-#define TUNTENFISCH_VERTEX
+﻿#ifndef TUNTENFISCH_VOXELS_VERTEX
+#define TUNTENFISCH_VOXELS_VERTEX
 
 #include "Assets/Compute/Include/Packing.hlsl"
 
 struct Vertex
 {
     float3 position;
-    float3 normal;
+    uint2 halfPrecisionNormal;
+    float materialIndex;
 
     float3 GetPosition()
     {
@@ -20,19 +21,31 @@ struct Vertex
 
     float3 GetNormal()
     {
-        return normal;
+        return float3(UnpackFloats(halfPrecisionNormal.x), UnpackFloats(halfPrecisionNormal.y).x); 
     }
 
     void SetNormal(float3 newNormal)
     {
-        normal = newNormal;
+        halfPrecisionNormal = uint2(PackFloats(newNormal.xy), PackFloats(float2(newNormal.z, 0.0f)));
     }
 
-    static Vertex Create(float3 position = 0.0f, float3 normal = 0.0f)
+    uint GetMaterialIndex()
+    {
+        return materialIndex;
+    }
+
+    void SetMaterialIndex(uint newMaterialIndex)
+    {
+        materialIndex =  newMaterialIndex;
+    }
+
+    static Vertex Create(float3 position = 0.0f, float3 normal = 0.0f, uint materialIndex = 0)
     {
         Vertex vertex;
         vertex.position = position;
-        vertex.normal = normal;
+        vertex.halfPrecisionNormal.x = PackFloats(normal.xy);
+        vertex.halfPrecisionNormal.y = PackFloats(float2(normal.z, 0.0f));
+        vertex.materialIndex = materialIndex;
 
         return vertex;
     }
