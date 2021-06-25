@@ -12,15 +12,15 @@ namespace Tuntenfisch.Voxels.Noise.Nodes
 
         [Input(backingValue = ShowBackingValue.Never, connectionType = ConnectionType.Override, typeConstraint = TypeConstraint.Strict)]
         [SerializeField]
-        private float4 m_operandA;
+        private float4 m_voxelA;
 
         [Input(backingValue = ShowBackingValue.Never, connectionType = ConnectionType.Override, typeConstraint = TypeConstraint.Strict)]
         [SerializeField]
-        private float4 m_operandB;
+        private float4 m_voxelB;
 
         [Output(backingValue = ShowBackingValue.Never, connectionType = ConnectionType.Override, typeConstraint = TypeConstraint.Strict)]
         [SerializeField]
-        private float4 m_result;
+        private float4 m_voxel;
 
         [SerializeField]
         private GPUCSGOperator m_csgOperator;

@@ -16,7 +16,7 @@ namespace Tuntenfisch.Voxels.Noise.Nodes
 
         [Output(backingValue = ShowBackingValue.Never, connectionType = ConnectionType.Override, typeConstraint = TypeConstraint.Strict)]
         [SerializeField]
-        private float4 m_valueAndGradient;
+        private float4 m_voxel;
 
         [SerializeField]
         private GPUNoiseParameters m_noiseParameters;
