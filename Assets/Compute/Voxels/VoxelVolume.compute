@@ -2,6 +2,7 @@
 #pragma kernel ApplyVoxelVolumeCSGOperations
 
 #include "Assets/Compute/Voxels/Include/Noise/NoiseGraph.hlsl"
+#include "Assets/Compute/Voxels/Include/MaterialIndex.hlsl"
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
 
@@ -27,7 +28,7 @@ void GenerateVoxelVolume(uint3 voxelID : SV_DispatchThreadID)
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
     float4 valueAndGradient = GenerateGraphFBMNoise(worldPosition);
 
-    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw));
+    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw, materialIndexDirt));
 }
 
 [numthreads(4, 4, 4)]
@@ -39,7 +40,7 @@ void ApplyVoxelVolumeCSGOperations(uint3 voxelID : SV_DispatchThreadID)
     }
 
     float3 worldPosition = VoxelVolumeToWorldSpace(VoxelToVoxelVolumeSpace(voxelID));
-    float4 valueAndGradient = GetVoxel(voxelID).GetValueAndGradient();
+    float4 valueAndGradient = GetVoxel(voxelID).valueAndGradient;
 
     for (uint index = 0; index < numberOfVoxelVolumeCSGOperations; index++)
     {
@@ -49,5 +50,5 @@ void ApplyVoxelVolumeCSGOperations(uint3 voxelID : SV_DispatchThreadID)
         valueAndGradient = ApplyCSGOperator(valueAndGradient, evaluatedPrimitive, voxelVolumeCSGOperation.csgOperator);
     }
 
-    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw));
+    SetVoxel(voxelID, Voxel::Create(valueAndGradient.x, valueAndGradient.yzw, materialIndexDirt));
 }

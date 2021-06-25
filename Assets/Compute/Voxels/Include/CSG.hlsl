@@ -1,5 +1,5 @@
-#ifndef TUNTENFISCH_CONSTRUCTIVE_SOLID_GEOMETRY
-#define TUNTENFISCH_CONSTRUCTIVE_SOLID_GEOMETRY
+#ifndef TUNTENFISCH_VOXELS_CSG
+#define TUNTENFISCH_VOXELS_CSG
 
 // Pretty much everything below is either copied from or based on articles by Inigo Quilez (https://www.iquilezles.org/).
 

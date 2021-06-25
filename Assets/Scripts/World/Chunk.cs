@@ -23,6 +23,7 @@ namespace Tuntenfisch.World
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
+        private MeshRenderer m_meshRenderer;
         private MeshCollider m_meshCollider;
 
         private ComputeBuffer m_voxelVolumeBuffer;
@@ -34,12 +35,15 @@ namespace Tuntenfisch.World
 
         private void Awake()
         {
+            WorldManager.VoxelConfig.MaterialConfig.OnDirtied += ApplyRenderMaterial;
             InitializeMeshComponents();
+            ApplyRenderMaterial();
             m_voxelVolumeCSGOperations = new List<GPUVoxelVolumeCSGOperation>();
         }
 
         private void OnDestroy()
         {
+            WorldManager.VoxelConfig.MaterialConfig.OnDirtied -= ApplyRenderMaterial;
             ReleaseBuffers();
         }
 
@@ -79,7 +83,7 @@ namespace Tuntenfisch.World
             if (m_voxelVolumeBuffer?.count != WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount)
             {
                 m_voxelVolumeBuffer?.Release();
-                m_voxelVolumeBuffer = new ComputeBuffer(WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount, sizeof(float) + sizeof(uint));
+                m_voxelVolumeBuffer = new ComputeBuffer(WorldManager.VoxelConfig.VoxelVolumeConfig.VoxelCount, 2 * sizeof(uint));
             }
         }
 
@@ -190,7 +194,13 @@ namespace Tuntenfisch.World
             m_mesh = new Mesh();
             m_mesh.MarkDynamic();
             m_meshFilter = GetComponent<MeshFilter>();
+            m_meshRenderer = GetComponent<MeshRenderer>();
             m_meshCollider = GetComponent<MeshCollider>();
+        }
+
+        private void ApplyRenderMaterial()
+        {
+            m_meshRenderer.material = WorldManager.VoxelConfig.MaterialConfig.RenderMaterial;
         }
 
         [Flags]

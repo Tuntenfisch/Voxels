@@ -10,6 +10,9 @@ namespace Tuntenfisch.Voxels.Volume
     [RequireComponent(typeof(VoxelConfig))]
     public class VoxelVolume : MonoBehaviour
     {
+        [SerializeField]
+        private int m_voxelVolumeCSGOperationsBufferCapacity = 10;
+
         private VoxelConfig m_voxelConfig;
         private ComputeBuffer m_noiseGraphNodesBuffer;
         private ComputeBuffer m_voxelVolumeCSGOperationsBuffer;
@@ -17,21 +20,25 @@ namespace Tuntenfisch.Voxels.Volume
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-#if UNITY_EDITOR
             m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
             m_voxelConfig.NoiseGraph.OnDirtied += ApplyNoiseGraph;
-#endif
             ApplyVoxelVolumeConfig();
             ApplyNoiseGraph();
         }
 
         private void OnDestroy()
         {
-#if UNITY_EDITOR
             m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
             m_voxelConfig.NoiseGraph.OnDirtied -= ApplyNoiseGraph;
-#endif
             ReleaseBuffers();
+        }
+
+        private void OnValidate()
+        {
+            if (Application.isPlaying && gameObject.activeSelf && m_voxelConfig != null)
+            {
+                CreateBuffers();
+            }
         }
 
         public void GenerateVoxelVolume(ComputeBuffer voxelVolumeBuffer, float3 worldPosition)
@@ -76,18 +83,16 @@ namespace Tuntenfisch.Voxels.Volume
 
         private void CreateBuffers()
         {
-            if (m_noiseGraphNodesBuffer == null || m_noiseGraphNodesBuffer.count < m_voxelConfig.NoiseGraph.Nodes.Count)
+            if (m_noiseGraphNodesBuffer == null || m_noiseGraphNodesBuffer.count != m_voxelConfig.NoiseGraph.Nodes.Count)
             {
                 m_noiseGraphNodesBuffer?.Release();
                 m_noiseGraphNodesBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.Nodes.Count, 1), GPUNoiseGraphNode.SizeInBytes);
             }
 
-            const int voxelVolumeCSGOperationsBufferCount = 10;
-
-            if (m_voxelVolumeCSGOperationsBuffer == null)
+            if (m_voxelVolumeCSGOperationsBuffer == null || m_voxelVolumeCSGOperationsBuffer.count != m_voxelVolumeCSGOperationsBufferCapacity)
             {
                 m_voxelVolumeCSGOperationsBuffer?.Release();
-                m_voxelVolumeCSGOperationsBuffer = new ComputeBuffer(voxelVolumeCSGOperationsBufferCount, GPUVoxelVolumeCSGOperation.SizeInBytes);
+                m_voxelVolumeCSGOperationsBuffer = new ComputeBuffer(m_voxelVolumeCSGOperationsBufferCapacity, GPUVoxelVolumeCSGOperation.SizeInBytes);
             }
         }
 

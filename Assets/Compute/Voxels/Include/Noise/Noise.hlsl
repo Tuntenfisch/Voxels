@@ -1,5 +1,5 @@
-#ifndef TUNTENFISCH_NOISE
-#define TUNTENFISCH_NOISE
+#ifndef TUNTENFISCH_VOXELS_NOISE_NOISE
+#define TUNTENFISCH_VOXELS_NOISE_NOISE
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"

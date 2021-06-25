@@ -1,5 +1,5 @@
-#ifndef TUNTENFISCH_CELL
-#define TUNTENFISCH_CELL
+#ifndef TUNTENFISCH_VOXELS_CELL
+#define TUNTENFISCH_VOXELS_CELL
 
 static const uint numberOfCellCorners = 8;
 
@@ -25,14 +25,6 @@ static const uint3 cellCorners[numberOfCellCorners] =
     uint3(1, 1, 1),
     uint3(1, 0, 1)
 };
-
-float3 ClampToCell(float3 position, float epsilon = 0.0f)
-{
-    float3 min = ((float3)cellCorners[0] - epsilon);
-    float3 max = ((float3)cellCorners[6] + epsilon);
-    
-    return clamp(position, min, max);
-}
 
 static const uint numberOfCellEdges = 12;
 

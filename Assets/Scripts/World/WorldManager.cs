@@ -58,11 +58,10 @@ namespace Tuntenfisch.World
             Assert.IsFalse(m_chunkPrefab.activeSelf);
 
             m_voxelConfig = GetComponent<VoxelConfig>();
-#if UNITY_EDITOR
             m_voxelConfig.VoxelVolumeConfig.OnLateDirtied += ApplyVoxelVolumeConfig;
             m_voxelConfig.DualContouringConfig.OnLateDirtied += ApplyDualContouringConfig;
             m_voxelConfig.NoiseGraph.OnLateDirtied += ApplyNoiseGraph;
-#endif
+
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
             m_csgUtility = GetComponent<CSGUtility>();
@@ -78,10 +77,7 @@ namespace Tuntenfisch.World
             m_updateIntervalSquared = math.pow(m_updateInterval, 2.0f);
             m_lodDistancesSquared = CalculateLodDistancesSquared();
 
-            if (!Application.isEditor)
-            {
-                UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
-            }
+            UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
         }
 
         private void Update()
@@ -100,38 +96,24 @@ namespace Tuntenfisch.World
 
         private void OnDestroy()
         {
-#if UNITY_EDITOR
             m_voxelConfig.VoxelVolumeConfig.OnLateDirtied -= ApplyVoxelVolumeConfig;
             m_voxelConfig.DualContouringConfig.OnLateDirtied -= ApplyDualContouringConfig;
             m_voxelConfig.NoiseGraph.OnLateDirtied -= ApplyNoiseGraph;
-#endif
         }
 
         private void OnValidate() => ApplySettings();
 
-        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, float3 position, float3 scale, bool snapToGrid = false)
+        public void DrawCSGPrimitiveHologram(CSGPrimitiveType primitiveType, float3 position, float3 scale)
         {
-            if (snapToGrid)
-            {
-                position = SnapToGrid(position);
-                scale = SnapToGrid(scale);
-            }
             m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, Matrix4x4.TRS(position, quaternion.identity, scale));
         }
 
-        public void ApplyCSGOperation(CSGOperatorIndex operatorIndex, CSGPrimitiveType csgPrimitiveType, float3 position, float3 scale, bool snapToGrid = false)
+        public void ApplyCSGOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, float3 position, float3 scale)
         {
-            if (snapToGrid)
-            {
-                position = SnapToGrid(position);
-                scale = SnapToGrid(scale);
-            }
-            GPUCSGOperator csgOperator = new GPUCSGOperator(operatorIndex, 0.0f);
-            GPUCSGPrimitive csgPrimitive = new GPUCSGPrimitive(csgPrimitiveType);
             Matrix4x4 worldToObjectMatrix = Matrix4x4.TRS(position, quaternion.identity, scale).inverse;
 
             // Inflate the bounds a bit to ensure CSG operations near the boundary of chunks are processed by all nearby chunks.
-            Bounds bounds = new Bounds(position, 2.0f * scale);
+            Bounds bounds = new Bounds(position, 3.0f * scale);
             int3 minChunkCoordinate = CalculateChunkCoordinate(bounds.min);
             int3 maxChunkCoordinate = CalculateChunkCoordinate(bounds.max);
 
@@ -148,14 +130,6 @@ namespace Tuntenfisch.World
                     }
                 }
             }
-        }
-
-        private float3 SnapToGrid(float3 number)
-        {
-            float voxelSpacing = m_voxelConfig.VoxelVolumeConfig.VoxelSpacing;
-            number = math.round(number / voxelSpacing) * voxelSpacing;
-
-            return number;
         }
 
         private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)

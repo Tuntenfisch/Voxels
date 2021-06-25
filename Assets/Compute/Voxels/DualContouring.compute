@@ -4,6 +4,7 @@
 #pragma kernel GenerateTriangles
 
 #include "Assets/Compute/Voxels/Include/Cell.hlsl"
+#include "Assets/Compute/Voxels/Include/MaterialIndex.hlsl"
 #include "Assets/Compute/Voxels/Include/Vertex.hlsl"
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
@@ -28,12 +29,14 @@ struct Intersection
 {
     float3 position;
     float3 normal;
+    uint materialIndex;
 
-    static Intersection Create(float3 position = 0.0f, float3 normal = 0.0f)
+    static Intersection Create(float3 position = 0.0f, float3 normal = 0.0f, uint materialIndex = 0)
     {
         Intersection intersection;
         intersection.position = position;
         intersection.normal = normal;
+        intersection.materialIndex = materialIndex;
 
         return intersection;
     }
@@ -54,6 +57,8 @@ AppendStructuredBuffer<uint3> generatedTriangles;
 // https://gamedev.stackexchange.com/questions/190131/splitting-up-hlsl-code-into-separate-functions-causes-the-number-of-needed-tempo.
 static uint numberOfIntersections;
 static Intersection intersections[maxNumberOfIntersections];
+static uint numberOfMaterialIndices;
+static uint materialIndices[numberOfCellCorners];
 static float3 forces[numberOfCellCorners];
 static CellVertexInfo neighbourCellVertexInfos[3];
 
@@ -107,29 +112,80 @@ float3 CalculateForce(float3 corner)
         float3 normal = intersections[intersectionIndex].normal;
         float distance = dot(normal, corner - position);
         float3 voxelCornerToPlaneVector = -distance * normal;
+
         force += voxelCornerToPlaneVector;
     }
 
     return force;
 }
 
+uint GetDominantMaterialIndex()
+{
+    const uint4x4 uint4x4Identity = uint4x4
+    (
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
+
+    // We store the counts in an uint4 array so we use up less temporary registers.
+    uint4 materialIndexOccurenceCounts[(numberOfMaterials + 3) / 4];
+
+    [unroll]
+    for (uint iterator = 0; iterator < (numberOfMaterials + 3) / 4; iterator++)
+    {
+        materialIndexOccurenceCounts[iterator] = 0;
+    }
+
+    [unroll(numberOfCellCorners)]
+    for (uint index = 0; index < numberOfMaterialIndices; index++)
+    {
+        uint materialIndex = materialIndices[index];
+        materialIndexOccurenceCounts[materialIndex >> 2] += uint4x4Identity[materialIndex & 3];
+    }
+
+    uint2 dominantMaterialIndexWithCorrespondingOccurenceCount = uint2(materialIndices[0], 0);
+
+    for (index = 0; index < numberOfMaterialIndices; index++)
+    {
+        uint materialIndex = materialIndices[index];
+        uint materialIndexOccurenceCount = materialIndexOccurenceCounts[materialIndex >> 2][materialIndex & 3];
+
+        if (materialIndexOccurenceCount > dominantMaterialIndexWithCorrespondingOccurenceCount.y)
+        {
+            dominantMaterialIndexWithCorrespondingOccurenceCount = uint2(materialIndex, materialIndexOccurenceCount);
+        }
+    }
+
+    return dominantMaterialIndexWithCorrespondingOccurenceCount.x;
+}
+
 Vertex CalculateCenterVertex()
 {
     Vertex vertex = Vertex::Create();
 
+    numberOfMaterialIndices = 0;
+
     [unroll(maxNumberOfIntersections)]
     for (uint intersectionIndex = 0; intersectionIndex < numberOfIntersections; intersectionIndex++)
     {
-        vertex.SetPosition(vertex.GetPosition() + intersections[intersectionIndex].position);
-        vertex.SetNormal(vertex.GetNormal() + intersections[intersectionIndex].normal);
+        Intersection intersection = intersections[intersectionIndex];
+
+        vertex.SetPosition(vertex.GetPosition() + intersection.position);
+        vertex.SetNormal(vertex.GetNormal() + intersection.normal);
+        materialIndices[numberOfMaterialIndices] = intersection.materialIndex;
+
+        numberOfMaterialIndices++;
     }
     vertex.SetPosition(vertex.GetPosition() / numberOfIntersections);
     vertex.SetNormal(normalize(vertex.GetNormal()));
+    vertex.SetMaterialIndex(GetDominantMaterialIndex());
 
     return vertex;
 }
 
-Vertex CalculateFeatureVertex(uint3 coordinate)
+Vertex CalculateCellVertex(uint3 coordinate)
 {
     Vertex vertex = CalculateCenterVertex();
 
@@ -147,6 +203,11 @@ Vertex CalculateFeatureVertex(uint3 coordinate)
     return vertex;
 }
 
+bool IntersectsIsosurface(Voxel sampleA, Voxel sampleB)
+{
+    return sampleA.materialIndex != sampleB.materialIndex && (sampleA.materialIndex == materialIndexAir || sampleB.materialIndex == materialIndexAir);
+}
+
 void CalculatePositionsAndNormals(uint3 coordinate)
 {
     numberOfIntersections = 0;
@@ -161,7 +222,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
         Voxel sampleA = GetVoxel(coordinate + cellCornerA);
         Voxel sampleB = GetVoxel(coordinate + cellCornerB);
 
-        if (sampleA.GetValue() >= 0.0f == sampleB.GetValue() >= 0.0f)
+        if (!IntersectsIsosurface(sampleA, sampleB))
         {
             continue;
         }
@@ -171,7 +232,8 @@ void CalculatePositionsAndNormals(uint3 coordinate)
         intersections[numberOfIntersections++] = Intersection::Create
         (
             lerp(cellCornerA, cellCornerB, interpolant),
-            normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant))
+            normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant)),
+            sampleA.materialIndex != materialIndexAir ? sampleA.materialIndex : sampleB.materialIndex
         );
     }
 }
@@ -193,7 +255,7 @@ void GenerateInnerCellVertices(uint3 id : SV_DispatchThreadID)
     if (numberOfIntersections > 0)
     {
         cellVertexInfo.index = generatedVertices0.IncrementCounter();
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateFeatureVertex(cellID);
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateCellVertex(cellID);
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
@@ -220,17 +282,23 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
         if (childCellVertexInfo.index != nullVertexIndex)
         {
             Vertex childCellVertex = generatedVertices0[childCellVertexInfo.index];
+
             parentCellVertex.SetPosition(parentCellVertex.GetPosition() + childCellVertex.GetPosition());
             parentCellVertex.SetNormal(parentCellVertex.GetNormal() + childCellVertex.GetNormal());
+            materialIndices[numberOfMaterialIndices] = childCellVertex.materialIndex;
+
+            numberOfMaterialIndices++;
             numberOfChildCellVertices++;
         }
     }
 
     if (numberOfChildCellVertices > 0)
     {
-        parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
         parentCellVertex.SetPosition(parentCellVertex.GetPosition() / numberOfChildCellVertices);
         parentCellVertex.SetNormal(normalize(parentCellVertex.GetNormal()));
+        parentCellVertex.SetMaterialIndex(GetDominantMaterialIndex());
+
+        parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
         generatedVertices1[ClampGeneratedVerticesIndex(generatedVertices1, parentCellVertexInfo.index)] = parentCellVertex;
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID, cellStride)] = parentCellVertexInfo;
@@ -251,7 +319,7 @@ void GenerateOuterCellVertices(uint3 cellID : SV_DispatchThreadID)
     if (numberOfIntersections > 0)
     {
         cellVertexInfo.index = generatedVertices0.IncrementCounter();
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateFeatureVertex(cellID);
+        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateCellVertex(cellID);
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
@@ -270,31 +338,20 @@ void GenerateTriangle(CellVertexInfo cellVertexInfo, CellVertexInfo firstNeighbo
         return;
     }
 
-    Vertex cellVertex = generatedVertices0[cellVertexInfo.index];
-    Vertex firstNeighbourCellVertex = generatedVertices0[firstNeighbourCellVertexInfo.index];
-    Vertex secondNeighbourCellVertex = generatedVertices0[secondNeighbourCellVertexInfo.index];
+    Vertex cellVertex = generatedVertices0[indices[0]];
 
-    float3 faceNormal = normalize(cross(firstNeighbourCellVertex.GetPosition() - cellVertex.GetPosition(), secondNeighbourCellVertex.GetPosition() - cellVertex.GetPosition()));
-
-    if (dot(cellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
+    [unroll]
+    for (uint index = 1; index < 3; index++)
     {
-        indices.x = generatedVertices0.IncrementCounter();
-        cellVertex.SetNormal(faceNormal);
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.x)] = cellVertex;
-    }
+        Vertex neighbourCellVertex = generatedVertices0[indices[index]];
 
-    if (dot(firstNeighbourCellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
-    {
-        indices.y = generatedVertices0.IncrementCounter();
-        firstNeighbourCellVertex.SetNormal(faceNormal);
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.y)] = firstNeighbourCellVertex;
-    }
+        if (neighbourCellVertex.materialIndex != cellVertex.materialIndex)
+        {
+            neighbourCellVertex.SetMaterialIndex(cellVertex.materialIndex);
 
-    if (dot(secondNeighbourCellVertex.GetNormal(), faceNormal) <= cosOfHalfSharpFeatureAngle)
-    {
-        indices.z = generatedVertices0.IncrementCounter();
-        secondNeighbourCellVertex.SetNormal(faceNormal);
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, indices.z)] = secondNeighbourCellVertex;
+            indices[index] = generatedVertices0.IncrementCounter();
+            generatedVertices0[indices[index]] = neighbourCellVertex;
+        }
     }
     generatedTriangles.Append(indices);
 }
@@ -341,7 +398,7 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
         Voxel sampleA = GetVoxel(cellID + cellCorners[cellEdge.GetCornerStartIndex()]);
         Voxel sampleB = GetVoxel(cellID + cellCorners[cellEdge.GetCornerEndIndex()]);
 
-        if (sampleA.GetValue() >= 0.0f == sampleB.GetValue() >= 0.0f)
+        if (!IntersectsIsosurface(sampleA, sampleB))
         {
             continue;
         }
