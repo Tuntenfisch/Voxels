@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 
 namespace Tuntenfisch.Player
 {
+    [RequireComponent(typeof(CharacterController), typeof(PlayerInput))]
     public class PlayerController : MonoBehaviour
     {
         private float Gravity => Physics.gravity.y;
@@ -24,7 +25,7 @@ namespace Tuntenfisch.Player
         [Header("Look")]
         [Range(0.0f, 1.0f)]
         [SerializeField]
-        private float m_lookSensitivity = 0.1f;
+        private float m_lookSensitivity = 0.05f;
         [SerializeField]
         private Camera m_camera;
 
@@ -95,19 +96,19 @@ namespace Tuntenfisch.Player
 
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
-                CSGPrimitiveType primitiveType = CSGPrimitiveType.Sphere;
+                GPUCSGPrimitive primitive = new GPUCSGPrimitive(CSGPrimitiveType.Sphere);
                 float3 scale = 2.0f;
 
-                WorldManager.Instance.DrawCSGPrimitiveHologram(primitiveType, hit.point, scale);
+                WorldManager.Instance.DrawCSGPrimitiveHologram(primitive.PrimitiveType, hit.point, scale);
 
                 if (m_primaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Union), new GPUCSGPrimitive(MaterialIndex.Dirt, primitiveType), hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Union), primitive, MaterialIndex.Dirt, hit.point, scale);
                 }
 
                 if (m_secondaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), new GPUCSGPrimitive(MaterialIndex.Dirt, primitiveType), hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), primitive, MaterialIndex.Air, hit.point, scale);
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿namespace Tuntenfisch.Voxels.Noise
+﻿namespace Tuntenfisch.Voxels.Procedural
 {
     public enum NoiseAxes
     {

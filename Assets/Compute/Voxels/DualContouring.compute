@@ -4,7 +4,6 @@
 #pragma kernel GenerateTriangles
 
 #include "Assets/Compute/Voxels/Include/Cell.hlsl"
-#include "Assets/Compute/Voxels/Include/MaterialIndex.hlsl"
 #include "Assets/Compute/Voxels/Include/Vertex.hlsl"
 #include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 #include "Assets/Compute/Voxels/Include/VoxelVolume.hlsl"
@@ -203,11 +202,6 @@ Vertex CalculateCellVertex(uint3 coordinate)
     return vertex;
 }
 
-bool IntersectsIsosurface(Voxel sampleA, Voxel sampleB)
-{
-    return sampleA.materialIndex != sampleB.materialIndex && (sampleA.materialIndex == materialIndexAir || sampleB.materialIndex == materialIndexAir);
-}
-
 void CalculatePositionsAndNormals(uint3 coordinate)
 {
     numberOfIntersections = 0;
@@ -222,7 +216,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
         Voxel sampleA = GetVoxel(coordinate + cellCornerA);
         Voxel sampleB = GetVoxel(coordinate + cellCornerB);
 
-        if (!IntersectsIsosurface(sampleA, sampleB))
+        if (sampleA.IsSolid() == sampleB.IsSolid())
         {
             continue;
         }
@@ -233,7 +227,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
         (
             lerp(cellCornerA, cellCornerB, interpolant),
             normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant)),
-            sampleA.materialIndex != materialIndexAir ? sampleA.materialIndex : sampleB.materialIndex
+            sampleA.IsSolid() ? sampleA.materialIndex : sampleB.materialIndex
         );
     }
 }
@@ -398,7 +392,7 @@ void GenerateTriangles(uint3 cellID : SV_DispatchThreadID)
         Voxel sampleA = GetVoxel(cellID + cellCorners[cellEdge.GetCornerStartIndex()]);
         Voxel sampleB = GetVoxel(cellID + cellCorners[cellEdge.GetCornerEndIndex()]);
 
-        if (!IntersectsIsosurface(sampleA, sampleB))
+        if (sampleA.IsSolid() == sampleB.IsSolid())
         {
             continue;
         }

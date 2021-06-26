@@ -4,6 +4,7 @@
     {
         Air = 0,
         Dirt = 1,
-        Rock = 2
+        Rock = 2,
+        Sand = 3
     }
 }

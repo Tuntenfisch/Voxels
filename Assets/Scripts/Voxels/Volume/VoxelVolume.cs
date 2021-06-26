@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tuntenfisch.Extensions;
-using Tuntenfisch.Voxels.Noise.Nodes;
+using Tuntenfisch.Voxels.Procedural;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -14,22 +14,22 @@ namespace Tuntenfisch.Voxels.Volume
         private int m_voxelVolumeCSGOperationsBufferCapacity = 10;
 
         private VoxelConfig m_voxelConfig;
-        private ComputeBuffer m_noiseGraphNodesBuffer;
+        private ComputeBuffer m_generationGraphNodesBuffer;
         private ComputeBuffer m_voxelVolumeCSGOperationsBuffer;
 
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
             m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
-            m_voxelConfig.NoiseGraph.OnDirtied += ApplyNoiseGraph;
+            m_voxelConfig.GenerationGraph.OnDirtied += ApplyGenerationGraph;
             ApplyVoxelVolumeConfig();
-            ApplyNoiseGraph();
+            ApplyGenerationGraph();
         }
 
         private void OnDestroy()
         {
             m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-            m_voxelConfig.NoiseGraph.OnDirtied -= ApplyNoiseGraph;
+            m_voxelConfig.GenerationGraph.OnDirtied -= ApplyGenerationGraph;
             ReleaseBuffers();
         }
 
@@ -83,10 +83,10 @@ namespace Tuntenfisch.Voxels.Volume
 
         private void CreateBuffers()
         {
-            if (m_noiseGraphNodesBuffer == null || m_noiseGraphNodesBuffer.count != m_voxelConfig.NoiseGraph.Nodes.Count)
+            if (m_generationGraphNodesBuffer == null || m_generationGraphNodesBuffer.count != m_voxelConfig.GenerationGraph.Nodes.Count)
             {
-                m_noiseGraphNodesBuffer?.Release();
-                m_noiseGraphNodesBuffer = new ComputeBuffer(math.max(m_voxelConfig.NoiseGraph.Nodes.Count, 1), GPUNoiseGraphNode.SizeInBytes);
+                m_generationGraphNodesBuffer?.Release();
+                m_generationGraphNodesBuffer = new ComputeBuffer(math.max(m_voxelConfig.GenerationGraph.Nodes.Count, 1), GPUGenerationGraphNode.SizeInBytes);
             }
 
             if (m_voxelVolumeCSGOperationsBuffer == null || m_voxelVolumeCSGOperationsBuffer.count != m_voxelVolumeCSGOperationsBufferCapacity)
@@ -98,10 +98,10 @@ namespace Tuntenfisch.Voxels.Volume
 
         private void ReleaseBuffers()
         {
-            if (m_noiseGraphNodesBuffer != null)
+            if (m_generationGraphNodesBuffer != null)
             {
-                m_noiseGraphNodesBuffer.Release();
-                m_noiseGraphNodesBuffer = null;
+                m_generationGraphNodesBuffer.Release();
+                m_generationGraphNodesBuffer = null;
             }
 
             if (m_voxelVolumeCSGOperationsBuffer != null)
@@ -118,13 +118,13 @@ namespace Tuntenfisch.Voxels.Volume
             m_voxelConfig.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, m_voxelConfig.VoxelVolumeConfig.VoxelSpacing);
         }
 
-        private void ApplyNoiseGraph()
+        private void ApplyGenerationGraph()
         {
             CreateBuffers();
 
-            m_noiseGraphNodesBuffer.SetData(m_voxelConfig.NoiseGraph.Nodes);
-            m_voxelConfig.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfNoiseGraphNoiseNodes, m_voxelConfig.NoiseGraph.Nodes.Count);
-            m_voxelConfig.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.NoiseGraphNodes, m_noiseGraphNodesBuffer);
+            m_generationGraphNodesBuffer.SetData(m_voxelConfig.GenerationGraph.Nodes);
+            m_voxelConfig.VoxelVolumeConfig.Compute.SetInt(ComputeShaderProperties.NumberOfGenerationGraphNodes, m_voxelConfig.GenerationGraph.Nodes.Count);
+            m_voxelConfig.VoxelVolumeConfig.Compute.SetBuffer(0, ComputeShaderProperties.GenerationGraphNodes, m_generationGraphNodesBuffer);
         }
     }
 }

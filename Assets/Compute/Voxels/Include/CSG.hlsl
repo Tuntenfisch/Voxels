@@ -1,50 +1,84 @@
 #ifndef TUNTENFISCH_VOXELS_CSG
 #define TUNTENFISCH_VOXELS_CSG
 
-// Pretty much everything below is either copied from or based on articles by Inigo Quilez (https://www.iquilezles.org/).
+// Parts below are based on articles by Inigo Quilez (https://www.iquilezles.org/).
+#include "Assets/Compute/Include/Enumeration.hlsl"
+#include "Assets/Compute/Voxels/Include/Voxel.hlsl"
 
-static const uint csgOperatorIndexUnion = 0;
-static const uint csgOperatorIndexIntersection = 1;
-static const uint csgOperatorIndexDifference = 2;
-static const uint csgOPeratorIndexSmoothUnion = 3;
-static const uint csgOPeratorIndexSmoothIntersection = 4;
-static const uint csgOperatorIndexSmoothDifference = 5;
-
-static const uint csgPrimitiveTypeSphere = 0;
-static const uint csgPrimitiveTypeCuboid = 1;
-
-float4 Union(float4 lhs, float4 rhs)
+ENUM CSGOperatorIndex
 {
-    return lhs.x < rhs.x ? lhs : rhs;
+    static const uint Union = 0;
+    static const uint Intersection = 1;
+    static const uint Difference = 2;
+    static const uint SmoothUnion = 3;
+    static const uint SmoothIntersection = 4;
+    static const uint SmoothDifference = 5;
+};
+
+ENUM CSGPrimitiveType
+{
+    static const uint Sphere = 0;
+    static const uint Cuboid = 1;
+};
+
+Voxel Union(Voxel lhs, Voxel rhs)
+{
+    Voxel voxel = Voxel::Create();
+    voxel.valueAndGradient = lhs.GetValue() < rhs.GetValue() ? lhs.valueAndGradient : rhs.valueAndGradient;
+    voxel.materialIndex = lhs.GetValue() < rhs.GetValue() ? lhs.materialIndex : rhs.materialIndex;
+
+    return voxel;
 }
 
-float4 Intersection(float4 lhs, float4 rhs)
+Voxel Intersection(Voxel lhs, Voxel rhs)
 {
-    return -Union(-lhs, -rhs);
+    lhs.valueAndGradient *= -1.0f;
+    rhs.valueAndGradient *= -1.0f;
+
+    Voxel voxel = Union(lhs, rhs);
+    voxel.valueAndGradient *= -1.0f;
+
+    return voxel;
 }
 
-float4 Difference(float4 lhs, float4 rhs)
+Voxel Difference(Voxel lhs, Voxel rhs)
 {
-    return Intersection(lhs, -rhs);
+    rhs.materialIndex = lhs.materialIndex;
+    rhs.valueAndGradient *= -1.0f;
+
+    return Intersection(lhs, rhs);
 }
 
-float4 SmoothUnion(float4 lhs, float4 rhs, float smoothing)
+Voxel SmoothUnion(Voxel lhs, Voxel rhs, float smoothing)
 {
-    float h = max(smoothing - abs(lhs.x - rhs.x), 0.0f);
+    float h = max(smoothing - abs(lhs.GetValue() - rhs.GetValue()), 0.0f);
     float m = 0.25f * h * h / smoothing;
     float n = 0.50f * h / smoothing;
 
-    return float4(min(lhs.x, rhs.x) - m, lerp(lhs.yzw, rhs.yzw, lhs.x < rhs.x ? n : 1.0f - n));
+    Voxel voxel = Voxel::Create();
+    voxel.valueAndGradient = float4(min(lhs.GetValue(), rhs.GetValue()) - m, lerp(lhs.GetGradient(), rhs.GetGradient(), lhs.GetValue() < rhs.GetValue() ? n : 1.0f - n));
+    voxel.materialIndex = lhs.GetValue() < rhs.GetValue() ? lhs.materialIndex : rhs.materialIndex;
+
+    return voxel;
 }
 
-float4 SmoothIntersection(float4 lhs, float4 rhs, float smoothing)
+Voxel SmoothIntersection(Voxel lhs, Voxel rhs, float smoothing)
 {
-    return -SmoothUnion(-lhs, -rhs, smoothing);
+    lhs.valueAndGradient *= -1.0f;
+    rhs.valueAndGradient *= -1.0f;
+
+    Voxel voxel = SmoothUnion(lhs, rhs, smoothing);
+    voxel.valueAndGradient *= -1.0f;
+
+    return voxel;
 }
 
-float4 SmoothDifference(float4 lhs, float4 rhs, float smoothing)
+Voxel SmoothDifference(Voxel lhs, Voxel rhs, float smoothing)
 {
-    return SmoothIntersection(lhs, -rhs, smoothing);
+    rhs.materialIndex = lhs.materialIndex;
+    rhs.valueAndGradient *= -1.0f;
+  
+    return SmoothIntersection(lhs, rhs, smoothing);
 }
 
 struct CSGOperator
@@ -53,24 +87,24 @@ struct CSGOperator
     float smoothing;
 };
 
-float4 ApplyCSGOperator(float4 lhs, float4 rhs, CSGOperator csgOperator)
+Voxel ApplyCSGOperator(Voxel lhs, Voxel rhs, CSGOperator csgOperator)
 {
     [branch]
     switch(csgOperator.operatorIndex)
     {
-        case csgOperatorIndexUnion:
+        case CSGOperatorIndex::Union:
             return Union(lhs, rhs);
 
-        case csgOperatorIndexIntersection:
+        case CSGOperatorIndex::Intersection:
             return Intersection(lhs, rhs);
 
-        case csgOperatorIndexDifference:
+        case CSGOperatorIndex::Difference:
             return Difference(lhs, rhs);
 
-        case csgOPeratorIndexSmoothUnion:
+        case CSGOperatorIndex::SmoothUnion:
             return SmoothUnion(lhs, rhs, csgOperator.smoothing);
 
-        case csgOPeratorIndexSmoothIntersection:
+        case CSGOperatorIndex::SmoothIntersection:
             return SmoothIntersection(lhs, rhs, csgOperator.smoothing);
 
         default:
@@ -80,14 +114,12 @@ float4 ApplyCSGOperator(float4 lhs, float4 rhs, CSGOperator csgOperator)
 
 struct CSGPrimitive
 {
-    uint materialIndex;
     uint primitiveType;
 };
 
 float4 EvaluateCSGSphere(float3 position)
 {
     float4 valueAndGradient = 0.0f;
-    
     valueAndGradient.x = length(position) - 0.5f;
     valueAndGradient.yzw = normalize(position);
 
@@ -97,7 +129,6 @@ float4 EvaluateCSGSphere(float3 position)
 float4 EvaluateCSGCuboid(float3 position)
 {
     float4 valueAndGradient = 0.0f;
-    
     float3 d = abs(position) - 0.5f;
     float3 smoothing = sign(position);
     float g = max(d.x, max(d.y, d.z));
@@ -113,7 +144,7 @@ float4 EvaluateCSGPrimitive(float3 position, CSGPrimitive primitive)
     [branch]
     switch(primitive.primitiveType)
     {
-        case csgPrimitiveTypeSphere:
+        case CSGPrimitiveType::Sphere:
             return EvaluateCSGSphere(position);
 
         default:

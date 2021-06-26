@@ -6,6 +6,7 @@ using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Generics.Request;
 using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
+using Tuntenfisch.Voxels.Materials;
 using Tuntenfisch.Voxels.Volume;
 using Unity.Collections;
 using Unity.Jobs;
@@ -100,9 +101,9 @@ namespace Tuntenfisch.World
 
         public void RegenerateMesh() => ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
 
-        public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, Matrix4x4 worldToObjectMatrix)
+        public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, MaterialIndex materialIndex, Matrix4x4 worldToObjectMatrix)
         {
-            m_voxelVolumeCSGOperations.Add(new GPUVoxelVolumeCSGOperation(csgOperator, csgPrimitive, worldToObjectMatrix));
+            m_voxelVolumeCSGOperations.Add(new GPUVoxelVolumeCSGOperation(csgOperator, csgPrimitive, materialIndex, worldToObjectMatrix));
             ProcessChunkFlags(ChunkFlags.CSGOperationPerformed | ChunkFlags.MeshRegenerationRequested);
         }
 
