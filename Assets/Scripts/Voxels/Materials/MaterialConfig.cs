@@ -13,12 +13,12 @@ namespace Tuntenfisch.Voxels.Materials
         public event Action OnLateDirtied;
 
         public Material RenderMaterial => m_renderMaterial;
-        public List<MaterialInfo> MaterialInfos => m_materialInfos;
+        public List<GPUMaterialInfo> MaterialInfos => m_materialInfos;
 
         [SerializeField]
         private Material m_renderMaterial;
         [SerializeField]
-        private List<MaterialInfo> m_materialInfos;
+        private List<GPUMaterialInfo> m_materialInfos;
 
         private void OnValidate()
         {

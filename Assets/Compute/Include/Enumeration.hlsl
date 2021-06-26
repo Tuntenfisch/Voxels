@@ -1,0 +1,6 @@
+#ifndef TUNTENFISCH_ENUMERATION
+#define TUNTENFISCH_ENUMERATION
+
+#define ENUM class
+
+#endif

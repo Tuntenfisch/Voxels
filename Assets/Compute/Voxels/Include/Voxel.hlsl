@@ -13,18 +13,32 @@ struct Voxel
     {
         return valueAndGradient.x;
     }
+
+    void SetValue(float newValue)
+    {
+        valueAndGradient.x = newValue;
+    }
     
     float3 GetGradient()
     {
         return valueAndGradient.yzw;
     }
 
-    static Voxel Create(float value, float3 gradient, uint materialIndex)
+    void SetGradient(float3 newGradient)
+    {
+        valueAndGradient.yzw = newGradient;
+    }
+
+    uint IsSolid()
+    {
+        return valueAndGradient.x >= 0.0;
+    }
+
+    static Voxel Create(float4 valueAndGradient = 0.0f, uint materialIndex = 0)
     {
         Voxel voxel;
-
-        voxel.valueAndGradient = float4(value, gradient);
-        voxel.materialIndex = value >= 0.0f ? materialIndexAir : materialIndex;
+        voxel.valueAndGradient = valueAndGradient;
+        voxel.materialIndex = materialIndex;
 
         return voxel;
     }
@@ -63,7 +77,7 @@ Voxel UnpackVoxel(PackedVoxel voxel)
     float3 gradient = UnpackNormalOctQuadEncode(UnpackFloats(voxel.packedGradient));
     uint materialIndex = voxel.packedValueAndMaterialIndex >> 16;
 
-    return Voxel::Create(value, gradient, materialIndex);
+    return Voxel::Create(float4(value, gradient), materialIndex);
 }
 
 #endif

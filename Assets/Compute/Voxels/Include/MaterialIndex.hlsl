@@ -1,10 +1,16 @@
 ﻿#ifndef TUNTENFISCH_VOXELS_MATERIAL_INDEX
 #define TUNTENFISCH_VOXELS_MATERIAL_INDEX
 
-static const uint numberOfMaterials = 3;
+#include "Assets/Compute/Include/Enumeration.hlsl"
 
-static const uint materialIndexAir = 0;
-static const uint materialIndexDirt = 1;
-static const uint materialIndexRock = 2;
+ENUM MaterialIndex
+{
+    static const uint Air = 0;
+    static const uint Dirt = 1;
+    static const uint Rock = 2;
+    static const uint Sand = 3;
+};
+
+static const uint numberOfMaterials = 4;
 
 #endif

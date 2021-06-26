@@ -7,6 +7,7 @@ using Tuntenfisch.Voxels;
 using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
 using Tuntenfisch.Voxels.Volume;
+using Tuntenfisch.Voxels.Materials;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -60,7 +61,7 @@ namespace Tuntenfisch.World
             m_voxelConfig = GetComponent<VoxelConfig>();
             m_voxelConfig.VoxelVolumeConfig.OnLateDirtied += ApplyVoxelVolumeConfig;
             m_voxelConfig.DualContouringConfig.OnLateDirtied += ApplyDualContouringConfig;
-            m_voxelConfig.NoiseGraph.OnLateDirtied += ApplyNoiseGraph;
+            m_voxelConfig.GenerationGraph.OnLateDirtied += ApplyGenerationGraph;
 
             m_voxelVolume = GetComponent<VoxelVolume>();
             m_dualContouring = GetComponent<DualContouring>();
@@ -98,7 +99,7 @@ namespace Tuntenfisch.World
         {
             m_voxelConfig.VoxelVolumeConfig.OnLateDirtied -= ApplyVoxelVolumeConfig;
             m_voxelConfig.DualContouringConfig.OnLateDirtied -= ApplyDualContouringConfig;
-            m_voxelConfig.NoiseGraph.OnLateDirtied -= ApplyNoiseGraph;
+            m_voxelConfig.GenerationGraph.OnLateDirtied -= ApplyGenerationGraph;
         }
 
         private void OnValidate() => ApplySettings();
@@ -108,7 +109,7 @@ namespace Tuntenfisch.World
             m_csgUtility.DrawCSGPrimitiveHologram(primitiveType, Matrix4x4.TRS(position, quaternion.identity, scale));
         }
 
-        public void ApplyCSGOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, float3 position, float3 scale)
+        public void ApplyCSGOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, MaterialIndex materialIndex, float3 position, float3 scale)
         {
             Matrix4x4 worldToObjectMatrix = Matrix4x4.TRS(position, quaternion.identity, scale).inverse;
 
@@ -125,7 +126,7 @@ namespace Tuntenfisch.World
                     {
                         if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk))
                         {
-                            chunk.ApplyCSGPrimitiveOperation(csgOperator, csgPrimitive, worldToObjectMatrix);
+                            chunk.ApplyCSGPrimitiveOperation(csgOperator, csgPrimitive, materialIndex, worldToObjectMatrix);
                         }
                     }
                 }
@@ -325,7 +326,7 @@ namespace Tuntenfisch.World
             }
         }
 
-        private void ApplyNoiseGraph()
+        private void ApplyGenerationGraph()
         {
             foreach (Chunk chunk in m_chunks.Values)
             {

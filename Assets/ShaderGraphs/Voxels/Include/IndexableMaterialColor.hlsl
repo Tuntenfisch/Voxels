@@ -5,9 +5,9 @@
 
 float4 materialColors[numberOfMaterials];
 
-void GetMaterialColor_float(float index, out float4 color)
+void GetMaterialColor_float(float materialIndex, out float4 color)
 {
-    color = materialColors[round(index)];
+    color = materialColors[round(materialIndex)];
 }
 
 #endif

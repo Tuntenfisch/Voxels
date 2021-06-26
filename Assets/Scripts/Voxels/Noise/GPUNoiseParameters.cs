@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tuntenfisch.Voxels.Noise
+namespace Tuntenfisch.Voxels.Procedural
 {
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
