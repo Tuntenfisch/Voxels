@@ -108,7 +108,7 @@ namespace Tuntenfisch.Player
 
                 if (m_secondaryDown)
                 {
-                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), primitive, MaterialIndex.Air, hit.point, scale);
+                    WorldManager.Instance.ApplyCSGOperation(new GPUCSGOperator(CSGOperatorIndex.Difference), primitive, default, hit.point, scale);
                 }
             }
         }

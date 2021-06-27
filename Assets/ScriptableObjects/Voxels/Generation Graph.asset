@@ -339,7 +339,7 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 0
-  m_materialIndex: 2
+  m_materialIndex: 1
 --- !u!114 &-1847638076584077637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -390,7 +390,7 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 0
-  m_materialIndex: 1
+  m_materialIndex: 3
 --- !u!114 &-1748796865420827563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -705,7 +705,7 @@ MonoBehaviour:
         z: 0
     m_csgPrimitive:
       m_primitiveType: 0
-    m_materialIndex: 2
+    m_materialIndex: 1
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -825,7 +825,7 @@ MonoBehaviour:
         z: 0
     m_csgPrimitive:
       m_primitiveType: 0
-    m_materialIndex: 3
+    m_materialIndex: 2
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -1065,7 +1065,7 @@ MonoBehaviour:
         z: 0
     m_csgPrimitive:
       m_primitiveType: 0
-    m_materialIndex: 1
+    m_materialIndex: 3
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
@@ -1355,7 +1355,7 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 0
-  m_materialIndex: 3
+  m_materialIndex: 2
 --- !u!114 &9117170654364883070
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -34,7 +34,7 @@ namespace Tuntenfisch.Voxels.Procedural
                 Matrix4x4 transformMatrix = Matrix4x4.identity;
                 GPUNoiseParameters noiseParameters = new GPUNoiseParameters();
                 GPUCSGPrimitive csgPrimitive = new GPUCSGPrimitive();
-                MaterialIndex materialIndex = MaterialIndex.Air;
+                MaterialIndex materialIndex = default;
                 GPUCSGOperator csgOperator = new GPUCSGOperator();
 
                 switch (node.GetNodeType())
