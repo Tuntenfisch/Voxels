@@ -2,9 +2,9 @@
 {
     public enum MaterialIndex
     {
-        Air = 0,
-        Dirt = 1,
-        Rock = 2,
-        Sand = 3
+        Dirt = 0,
+        Rock = 1,
+        Sand = 2,
+        Grass = 3
     }
 }

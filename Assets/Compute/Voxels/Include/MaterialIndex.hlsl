@@ -5,10 +5,10 @@
 
 ENUM MaterialIndex
 {
-    static const uint Air = 0;
-    static const uint Dirt = 1;
-    static const uint Rock = 2;
-    static const uint Sand = 3;
+    static const uint Dirt = 0;
+    static const uint Rock = 1;
+    static const uint Sand = 2;
+    static const uint Grass = 3;
 };
 
 static const uint numberOfMaterials = 4;

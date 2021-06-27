@@ -15,10 +15,10 @@ MonoBehaviour:
   m_renderMaterial: {fileID: 2100000, guid: 4c49ef764df32ef468e58bab85d32fcb, type: 2}
   m_materialInfos:
   - m_materialIndex: 0
-    m_color: {r: 1, g: 1, b: 1, a: 0}
+    m_color: {r: 0.11320752, g: 0.057273105, b: 0, a: 0}
   - m_materialIndex: 1
-    m_color: {r: 0.2924528, g: 0.105705835, b: 0, a: 0}
+    m_color: {r: 0.11320752, g: 0.11320752, b: 0.11320752, a: 0}
   - m_materialIndex: 2
-    m_color: {r: 0.1981132, g: 0.1981132, b: 0.1981132, a: 0}
+    m_color: {r: 0.3301887, g: 0.26354405, b: 0.07320221, a: 0}
   - m_materialIndex: 3
-    m_color: {r: 0.4528302, g: 0.34769443, b: 0.09611963, a: 0}
+    m_color: {r: 0.008613612, g: 0.05660379, b: 0, a: 0}
