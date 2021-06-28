@@ -71,6 +71,7 @@ namespace Tuntenfisch.World
             if (m_processChunkFlagsCoroutine != null)
             {
                 StopCoroutine(m_processChunkFlagsCoroutine);
+                m_processChunkFlagsCoroutine = null;
             }
             m_meshFilter.sharedMesh = null;
             m_meshCollider.sharedMesh = null;

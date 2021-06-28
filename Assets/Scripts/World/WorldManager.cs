@@ -31,8 +31,6 @@ namespace Tuntenfisch.World
         [SerializeField]
         private GameObject m_chunkPrefab;
         [SerializeField]
-        private int m_maxNumberOfChunksProcessedEachFrame = 20;
-        [SerializeField]
         private float[] m_lodDistances;
 
         private VoxelConfig m_voxelConfig;
@@ -50,9 +48,6 @@ namespace Tuntenfisch.World
         private float3 m_lastViewerPosition;
         private float m_updateIntervalSquared;
         private float[] m_lodDistancesSquared;
-
-        private Coroutine m_updateWorldCoroutine;
-        private Coroutine m_applySettingsCoroutine;
 
         private void Start()
         {
@@ -78,20 +73,15 @@ namespace Tuntenfisch.World
             m_updateIntervalSquared = math.pow(m_updateInterval, 2.0f);
             m_lodDistancesSquared = CalculateLodDistancesSquared();
 
-            UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
+            UpdateWorld(m_viewer.position);
         }
 
         private void Update()
         {
             if (math.lengthsq((float3)m_viewer.position - m_lastViewerPosition) >= m_updateIntervalSquared)
             {
-                if (m_updateWorldCoroutine != null)
-                {
-                    StopCoroutine(m_updateWorldCoroutine);
-                    m_updateWorldCoroutine = null;
-                }
                 m_lastViewerPosition = m_viewer.position;
-                UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
+                UpdateWorld(m_viewer.position);
             }
         }
 
@@ -133,29 +123,14 @@ namespace Tuntenfisch.World
             }
         }
 
-        private void UpdateWorld(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
+        private void UpdateWorld(float3 viewerPosition)
         {
-            if (m_updateWorldCoroutine == null)
-            {
-                m_updateWorldCoroutine = StartCoroutine(UpdateWorldCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame));
-            }
-            else
-            {
-                throw new InvalidOperationException($"{nameof(UpdateWorldCoroutine)} is already running.");
-            }
+            DestroyChunksOutsideViewDistance(viewerPosition);
+            CreateChunksWithinViewDistance(viewerPosition);
         }
 
-        private IEnumerator UpdateWorldCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame = -1)
+        private void DestroyChunksOutsideViewDistance(float3 viewerPosition)
         {
-            yield return DestroyChunksOutsideViewDistanceCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame);
-            yield return CreateChunksWithinViewDistanceCoroutine(viewerPosition, maxNumberOfChunksProcessedEachFrame);
-
-            m_updateWorldCoroutine = null;
-        }
-
-        private IEnumerator DestroyChunksOutsideViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
-        {
-            int numberOfChunksProcessed = 0;
             m_oldChunkCoordinates.UnionWith(m_chunks.Keys);
 
             foreach (KeyValuePair<int3, Chunk> pair in m_chunks)
@@ -165,12 +140,6 @@ namespace Tuntenfisch.World
                 if (viewerToChunkDistanceSquared <= ViewDistanceSquared)
                 {
                     m_oldChunkCoordinates.Remove(pair.Key);
-                }
-
-                if (++numberOfChunksProcessed == maxNumberOfChunksProcessedEachFrame)
-                {
-                    numberOfChunksProcessed = 0;
-                    yield return null;
                 }
             }
 
@@ -182,9 +151,8 @@ namespace Tuntenfisch.World
             m_oldChunkCoordinates.Clear();
         }
 
-        private IEnumerator CreateChunksWithinViewDistanceCoroutine(float3 viewerPosition, int maxNumberOfChunksProcessedEachFrame)
+        private void CreateChunksWithinViewDistance(float3 viewerPosition)
         {
-            int numberOfChunksProcessed = 0;
             int3 chunkCoordinate = CalculateChunkCoordinate(viewerPosition);
             float3 chunkPosition = chunkCoordinate * m_chunkDimensions;
             float viewerToChunkDistanceSquared = math.lengthsq(chunkPosition - viewerPosition);
@@ -192,7 +160,8 @@ namespace Tuntenfisch.World
 
             m_processedChunkCoordinates.Clear();
             m_chunksToProcess.Clear();
-            m_chunksToProcess.Enqueue((chunkCoordinate, chunkPosition, lod));
+
+            EnqueueChunk(chunkCoordinate, viewerPosition);
 
             while (m_chunksToProcess.Count > 0)
             {
@@ -218,22 +187,15 @@ namespace Tuntenfisch.World
                     });
                     m_chunks[chunkCoordinate] = chunk;
                 }
-                m_processedChunkCoordinates.Add(chunkCoordinate);
 
-                EnqueueNeighbourChunk(chunkCoordinate + new int3(1, 0, 0), viewerPosition);
-                EnqueueNeighbourChunk(chunkCoordinate - new int3(1, 0, 0), viewerPosition);
-                EnqueueNeighbourChunk(chunkCoordinate + new int3(0, 0, 1), viewerPosition);
-                EnqueueNeighbourChunk(chunkCoordinate - new int3(0, 0, 1), viewerPosition);
-
-                if (++numberOfChunksProcessed == maxNumberOfChunksProcessedEachFrame)
-                {
-                    numberOfChunksProcessed = 0;
-                    yield return null;
-                }
+                EnqueueChunk(chunkCoordinate + new int3(1, 0, 0), viewerPosition);
+                EnqueueChunk(chunkCoordinate - new int3(1, 0, 0), viewerPosition);
+                EnqueueChunk(chunkCoordinate + new int3(0, 0, 1), viewerPosition);
+                EnqueueChunk(chunkCoordinate - new int3(0, 0, 1), viewerPosition);
             }
         }
 
-        private void EnqueueNeighbourChunk(int3 neighbourChunkCoordinate, float3 viewerPosition)
+        private void EnqueueChunk(int3 neighbourChunkCoordinate, float3 viewerPosition)
         {
             if (!m_processedChunkCoordinates.Contains(neighbourChunkCoordinate))
             {
@@ -245,6 +207,7 @@ namespace Tuntenfisch.World
                     m_chunksToProcess.Enqueue((neighbourChunkCoordinate, neighbourChunkPosition, CalculateChunkLod(viewerToNeighbourChunkDistanceSquared)));
                 }
             }
+            m_processedChunkCoordinates.Add(neighbourChunkCoordinate);
         }
 
         private float3 CalculateChunkDimensions()
@@ -288,19 +251,10 @@ namespace Tuntenfisch.World
 
         private void ApplySettings()
         {
-            if (Application.isPlaying && gameObject.activeSelf && m_applySettingsCoroutine == null)
+            if (!Application.isPlaying || !gameObject.activeSelf || m_voxelConfig == null)
             {
-                m_applySettingsCoroutine = StartCoroutine(ApplySettingsCoroutine());
+                return;
             }
-        }
-
-        private IEnumerator ApplySettingsCoroutine()
-        {
-            do
-            {
-                yield return null;
-            }
-            while (m_updateWorldCoroutine != null);
 
             m_updateIntervalSquared = math.pow(m_updateInterval, 2.0f);
             m_lodDistancesSquared = CalculateLodDistancesSquared();
@@ -312,8 +266,7 @@ namespace Tuntenfisch.World
             }
             m_chunks.Clear();
 
-            UpdateWorld(m_viewer.position, m_maxNumberOfChunksProcessedEachFrame);
-            m_applySettingsCoroutine = null;
+            UpdateWorld(m_viewer.position);
         }
 
         private void ApplyVoxelVolumeConfig() => ApplySettings();

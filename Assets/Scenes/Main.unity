@@ -173,10 +173,9 @@ MonoBehaviour:
   m_viewer: {fileID: 1023658864}
   m_updateInterval: 20
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
-  m_maxNumberOfChunksProcessedEachFrame: 20
   m_lodDistances:
+  - 200
   - 400
-  - 600
   - 800
 --- !u!114 &337836006
 MonoBehaviour:
@@ -341,7 +340,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1023658861}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a07c5025eaba447aec54813a2c41e0, type: 3}
   m_Name: 

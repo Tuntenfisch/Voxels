@@ -42,7 +42,6 @@ struct Intersection
 };
 
 uint cellStride;
-float cosOfHalfSharpFeatureAngle;
 uint schmitzParticleIterations;
 float schmitzParticleStepSize;
 
@@ -128,11 +127,13 @@ uint GetDominantMaterialIndex()
         0, 0, 0, 1
     );
 
+    const uint length = (numberOfMaterials + 3) / 4;
+
     // We store the counts in an uint4 array so we use up less temporary registers.
-    uint4 materialIndexOccurenceCounts[(numberOfMaterials + 3) / 4];
+    uint4 materialIndexOccurenceCounts[length];
 
     [unroll]
-    for (uint iterator = 0; iterator < (numberOfMaterials + 3) / 4; iterator++)
+    for (uint iterator = 0; iterator < length; iterator++)
     {
         materialIndexOccurenceCounts[iterator] = 0;
     }
@@ -172,11 +173,9 @@ Vertex CalculateCenterVertex()
         Intersection intersection = intersections[intersectionIndex];
 
         vertex.SetPosition(vertex.GetPosition() + intersection.position);
-        vertex.SetNormal(vertex.GetNormal() + intersection.normal);
         materialIndices[numberOfMaterialIndices++] = intersection.materialIndex;
     }
     vertex.SetPosition(vertex.GetPosition() / numberOfIntersections);
-    vertex.SetNormal(normalize(vertex.GetNormal()));
     vertex.SetMaterialIndex(GetDominantMaterialIndex());
 
     return vertex;
@@ -276,7 +275,6 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
             Vertex childCellVertex = generatedVertices0[childCellVertexInfo.index];
 
             parentCellVertex.SetPosition(parentCellVertex.GetPosition() + childCellVertex.GetPosition());
-            parentCellVertex.SetNormal(parentCellVertex.GetNormal() + childCellVertex.GetNormal());
             materialIndices[numberOfMaterialIndices] = childCellVertex.materialIndex;
 
             numberOfMaterialIndices++;
@@ -287,7 +285,6 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
     if (numberOfChildCellVertices > 0)
     {
         parentCellVertex.SetPosition(parentCellVertex.GetPosition() / numberOfChildCellVertices);
-        parentCellVertex.SetNormal(normalize(parentCellVertex.GetNormal()));
         parentCellVertex.SetMaterialIndex(GetDominantMaterialIndex());
 
         parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
