@@ -173,9 +173,7 @@ Vertex CalculateCenterVertex()
 
         vertex.SetPosition(vertex.GetPosition() + intersection.position);
         vertex.SetNormal(vertex.GetNormal() + intersection.normal);
-        materialIndices[numberOfMaterialIndices] = intersection.materialIndex;
-
-        numberOfMaterialIndices++;
+        materialIndices[numberOfMaterialIndices++] = intersection.materialIndex;
     }
     vertex.SetPosition(vertex.GetPosition() / numberOfIntersections);
     vertex.SetNormal(normalize(vertex.GetNormal()));
