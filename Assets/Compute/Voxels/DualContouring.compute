@@ -225,7 +225,7 @@ void CalculatePositionsAndNormals(uint3 coordinate)
         (
             lerp(cellCornerA, cellCornerB, interpolant),
             normalize(lerp(sampleA.GetGradient(), sampleB.GetGradient(), interpolant)),
-            sampleA.IsSolid() ? sampleA.materialIndex : sampleB.materialIndex
+            !sampleA.IsSolid() ? sampleA.materialIndex : sampleB.materialIndex
         );
     }
 }
