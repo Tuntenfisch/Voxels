@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Tuntenfisch.Generics;
+using UnityEditor;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Materials
@@ -36,8 +37,10 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void ApplyMaterialColors()
         {
-            IEnumerable<Color> materialColors = from materialInfo in m_materialInfos select materialInfo.Color;
-            m_renderMaterial.SetColorArray(nameof(materialColors), materialColors.ToArray());
+            Color32[] materialColors = (from materialInfo in m_materialInfos select (Color32)materialInfo.Color).ToArray();
+            Texture2D materialColorsLookupTexture = new Texture2D(materialColors.Length, 1);
+            materialColorsLookupTexture.SetPixels32(materialColors);
+            ((Texture2D)m_renderMaterial.GetTexture(nameof(materialColorsLookupTexture))).LoadImage(materialColorsLookupTexture.EncodeToPNG());
         }
     }
 }
