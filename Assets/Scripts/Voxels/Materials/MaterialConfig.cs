@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tuntenfisch.Generics;
-using UnityEditor;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Materials
