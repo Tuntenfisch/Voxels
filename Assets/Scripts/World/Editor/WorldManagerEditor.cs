@@ -18,7 +18,6 @@ namespace Tuntenfisch.World.Editor
         private SerializedProperty m_updateInterval;
         private SerializedProperty m_chunkPrefab;
         private SerializedProperty m_lodDistances;
-        private SerializedProperty m_maxNumberOfChunksProcessedEachFrame;
 
         private void OnEnable()
         {
@@ -26,7 +25,6 @@ namespace Tuntenfisch.World.Editor
             m_updateInterval = serializedObject.FindProperty(nameof(m_updateInterval));
             m_chunkPrefab = serializedObject.FindProperty(nameof(m_chunkPrefab));
             m_lodDistances = serializedObject.FindProperty(nameof(m_lodDistances));
-            m_maxNumberOfChunksProcessedEachFrame = serializedObject.FindProperty(nameof(m_maxNumberOfChunksProcessedEachFrame));
         }
 
         public override void OnInspectorGUI()
@@ -46,7 +44,6 @@ namespace Tuntenfisch.World.Editor
             if (s_showChunkOptions = EditorGUILayout.BeginFoldoutHeaderGroup(s_showChunkOptions, "Chunk"))
             {
                 EditorGUILayout.ObjectField(m_chunkPrefab);
-                m_maxNumberOfChunksProcessedEachFrame.intValue = EditorGUILayout.IntSlider(ObjectNames.NicifyVariableName(nameof(m_maxNumberOfChunksProcessedEachFrame)), m_maxNumberOfChunksProcessedEachFrame.intValue, 10, 100);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 

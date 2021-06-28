@@ -141,8 +141,6 @@ namespace Tuntenfisch.Voxels.DC
 
         private void ApplyDualContouringConfig()
         {
-            float cosOfHalfSharpFeatureAngle = math.cos(math.radians(0.5f * m_voxelConfig.DualContouringConfig.SharpFeatureAngle));
-            m_voxelConfig.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.CosOfHalfSharpFeatureAngle, cosOfHalfSharpFeatureAngle);
             m_voxelConfig.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.SchmitzParticleIterations, m_voxelConfig.DualContouringConfig.SchmitzParticleIterations);
             m_voxelConfig.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.SchmitzParticleStepSize, m_voxelConfig.DualContouringConfig.SchmitzParticleStepSize);
         }
