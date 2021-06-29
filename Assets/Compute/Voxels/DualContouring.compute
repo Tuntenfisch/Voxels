@@ -173,9 +173,11 @@ Vertex CalculateCenterVertex()
         Intersection intersection = intersections[intersectionIndex];
 
         vertex.SetPosition(vertex.GetPosition() + intersection.position);
+        vertex.SetNormal(vertex.GetNormal() + intersection.normal);
         materialIndices[numberOfMaterialIndices++] = intersection.materialIndex;
     }
     vertex.SetPosition(vertex.GetPosition() / numberOfIntersections);
+    vertex.SetNormal(normalize(vertex.GetNormal()));
     vertex.SetMaterialIndex(GetDominantMaterialIndex());
 
     return vertex;
@@ -275,6 +277,7 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
             Vertex childCellVertex = generatedVertices0[childCellVertexInfo.index];
 
             parentCellVertex.SetPosition(parentCellVertex.GetPosition() + childCellVertex.GetPosition());
+            parentCellVertex.SetNormal(parentCellVertex.GetNormal() + childCellVertex.GetNormal());
             materialIndices[numberOfMaterialIndices] = childCellVertex.materialIndex;
 
             numberOfMaterialIndices++;
@@ -285,6 +288,7 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
     if (numberOfChildCellVertices > 0)
     {
         parentCellVertex.SetPosition(parentCellVertex.GetPosition() / numberOfChildCellVertices);
+        parentCellVertex.SetNormal(normalize(parentCellVertex.GetNormal()));
         parentCellVertex.SetMaterialIndex(GetDominantMaterialIndex());
 
         parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
