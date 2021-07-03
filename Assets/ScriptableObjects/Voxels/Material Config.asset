@@ -19,6 +19,6 @@ MonoBehaviour:
   - m_materialIndex: 1
     m_color: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 0}
   - m_materialIndex: 2
-    m_color: {r: 0.9622642, g: 0.84128773, b: 0.503827, a: 0}
+    m_color: {r: 0.9622642, g: 0.84128773, b: 0.5019608, a: 0}
   - m_materialIndex: 3
-    m_color: {r: 0.23282307, g: 0.4528302, b: 0.2580698, a: 0}
+    m_color: {r: 0.18992524, g: 0.41509432, b: 0.21960784, a: 0}

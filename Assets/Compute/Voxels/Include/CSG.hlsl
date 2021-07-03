@@ -77,7 +77,7 @@ Voxel SmoothDifference(Voxel lhs, Voxel rhs, float smoothing)
 {
     rhs.materialIndex = lhs.materialIndex;
     rhs.valueAndGradient *= -1.0f;
-  
+    
     return SmoothIntersection(lhs, rhs, smoothing);
 }
 
