@@ -1,4 +1,5 @@
 ﻿using System;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.DC
@@ -13,6 +14,7 @@ namespace Tuntenfisch.Voxels.DC
         public ComputeShader Compute => m_compute;
         public int SchmitzParticleIterations => m_schmitzParticleIterations;
         public float SchmitzParticleStepSize => m_schmitzParticleStepSize;
+        public float SharpFeatureAngle => m_sharpFeatureAngle;
 
         [SerializeField]
         private ComputeShader m_compute;
@@ -22,9 +24,15 @@ namespace Tuntenfisch.Voxels.DC
         [Range(0.0f, 0.4f)]
         [SerializeField]
         private float m_schmitzParticleStepSize = 0.2f;
+        [Range(0.0f, 180.0f)]
+        [SerializeField]
+        private float m_sharpFeatureAngle = 30.0f;
 
         private void OnValidate() 
         {
+            float cosOfHalfSharpFeatureAngle = math.cos(math.radians(0.5f * SharpFeatureAngle));
+            Shader.SetGlobalFloat(nameof(cosOfHalfSharpFeatureAngle), cosOfHalfSharpFeatureAngle);
+
             OnDirtied?.Invoke();
             OnLateDirtied?.Invoke();
         }

@@ -37,9 +37,14 @@ namespace Tuntenfisch.Voxels.Materials
         private void ApplyMaterialColors()
         {
             Color32[] materialColors = (from materialInfo in m_materialInfos select (Color32)materialInfo.Color).ToArray();
-            Texture2D materialColorsLookupTexture = new Texture2D(materialColors.Length, 1);
-            materialColorsLookupTexture.SetPixels32(materialColors);
-            ((Texture2D)m_renderMaterial.GetTexture(nameof(materialColorsLookupTexture))).LoadImage(materialColorsLookupTexture.EncodeToPNG());
+            Texture2DArray materialColorsLookupTexture = new Texture2DArray(1, 1, materialColors.Length, TextureFormat.RGBA32, true);
+
+            for (int index = 0; index < materialColors.Length; index++)
+            {
+                materialColorsLookupTexture.SetPixels32(new Color32[] { materialColors[index] }, index);
+            }
+            materialColorsLookupTexture.Apply();
+            Shader.SetGlobalTexture(nameof(materialColorsLookupTexture), materialColorsLookupTexture);
         }
     }
 }
