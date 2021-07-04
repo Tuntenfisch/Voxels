@@ -26,6 +26,9 @@ Shader "Voxels/Voxel"
             #pragma geometry LitPassGeometry
             #pragma fragment LitPassFragment
 
+            // Material Keywords
+            #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+
             // URP Keywords
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
@@ -74,17 +77,18 @@ Shader "Voxels/Voxel"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD1;
                 half3 normalWS : TEXCOORD2;
-                nointerpolation  float materialIndex : TEXCOORD3;
-                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 4);
+                nointerpolation  float3 materialIndices : TEXCOORD3;
+                float3 materialBlends : TEXCOORD4;
+                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 5);
 
                 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
-                    half4 fogFactorAndVertexLight : TEXCOORD5;
+                    half4 fogFactorAndVertexLight : TEXCOORD6;
                 #else
-                    half fogFactor : TEXCOORD5;
+                    half fogFactor : TEXCOORD6;
                 #endif
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                    float4 shadowCoord : TEXCOORD6;
+                    float4 shadowCoord : TEXCOORD7;
                 #endif
             };
 
@@ -125,15 +129,44 @@ Shader "Voxels/Voxel"
             }
 
             [maxvertexcount(3)]
-            void LitPassGeometry(triangle GeometryPassInput input[3], inout TriangleStream<FragmentPassInput> outputStream)
+            void LitPassGeometry(triangle GeometryPassInput inputs[3], inout TriangleStream<FragmentPassInput> outputStream)
             {
-                float3 faceNormal = normalize(cross(input[1].positionWS - input[0].positionWS, input[2].positionWS - input[0].positionWS));
+                const float3x3 float3x3Identity = float3x3
+                (
+                    1.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 0.0f, 1.0f
+                );
+
+                float3 materialIndices = float3(inputs[0].materialIndex, inputs[1].materialIndex, inputs[2].materialIndex);
+                float3 faceNormal = normalize(cross(inputs[1].positionWS - inputs[0].positionWS, inputs[2].positionWS - inputs[0].positionWS));
 
                 for (uint index = 0; index < 3; index++)
                 {
-                    FragmentPassInput vertex = (FragmentPassInput)input[index];
-                    vertex.normalWS = dot(vertex.normalWS, faceNormal) <= cosOfHalfSharpFeatureAngle ? faceNormal : vertex.normalWS;
-                    outputStream.Append(vertex);
+                    GeometryPassInput input = inputs[index];
+                    input.normalWS = dot(input.normalWS, faceNormal) <= cosOfHalfSharpFeatureAngle ? faceNormal : input.normalWS;
+
+                    FragmentPassInput output;
+                    output.positionCS = input.positionCS;
+                    output.positionWS = input.positionWS;
+                    output.normalWS = input.normalWS;
+                    output.materialIndices = materialIndices;
+                    output.materialBlends = float3x3Identity[index];
+
+                    OUTPUT_LIGHTMAP_UV(input.lightmapUV, unity_LightmapST, output.lightmapUV);
+                    OUTPUT_SH(output.normalWS.xyz, output.vertexSH);
+
+                    #if defined(_ADDITIONAL_LIGHTS_VERTEX)
+                        output.fogFactorAndVertexLight = input.fogFactorAndVertexLight;
+                    #else
+                        output.fogFactor = input.fogFactor;
+                    #endif
+
+                    #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                        output.shadowCoord = input.shadowCoord;
+                    #endif
+
+                    outputStream.Append(output);
                 }
                 outputStream.RestartStrip();
             }
@@ -142,9 +175,17 @@ Shader "Voxels/Voxel"
             {
                 SurfaceData surfaceData = (SurfaceData)0;
 
-                half4 albedoAndAlpha = SAMPLE_TEXTURE2D_ARRAY(materialColorsLookupTexture, sampler_point_clamp, float2(0.0f, 0.0f), input.materialIndex);
-                surfaceData.albedo = albedoAndAlpha.xyz;
-                surfaceData.smoothness = albedoAndAlpha.w;
+                half4 color = 0.0h;
+
+                for (uint index = 0; index < 3; index++)
+                {
+                    half4 materialColor = SAMPLE_TEXTURE2D_ARRAY(materialColorsLookupTexture, sampler_point_clamp, float2(0.0f, 0.0f), input.materialIndices[index]);
+                    float materialBlend = input.materialBlends[index];
+                    color += materialBlend * materialColor;
+                }
+
+                surfaceData.albedo = color.rgb;
+                surfaceData.smoothness = color.a;
                 surfaceData.occlusion = 1.0h;
 
                 return surfaceData;
@@ -217,6 +258,47 @@ Shader "Voxels/Voxel"
 
             #include "Assets/Shaders/Voxels/Include/ShadowCasterPass.hlsl"
 
+            ENDHLSL
+
+        }
+
+        Pass
+        {
+
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+
+            ColorMask 0
+            ZWrite On
+            ZTest LEqual
+
+            HLSLPROGRAM
+
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+
+            #include "Assets/Shaders/Voxels/Include/DepthOnlyPass.hlsl"
+
+            ENDHLSL
+
+        }
+
+        Pass
+        {
+
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            ZTest LEqual
+
+            HLSLPROGRAM
+
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            #include "Assets/Shaders/Voxels/Include/DepthNormalsPass.hlsl"
+            
             ENDHLSL
 
         }

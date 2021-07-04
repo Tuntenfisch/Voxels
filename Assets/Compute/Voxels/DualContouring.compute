@@ -333,19 +333,18 @@ void GenerateTriangle(CellVertexInfo cellVertexInfo, CellVertexInfo firstNeighbo
 
     Vertex cellVertex = generatedVertices0[indices[0]];
 
-    [unroll]
-    for (uint index = 1; index < 3; index++)
-    {
-        Vertex neighbourCellVertex = generatedVertices0[indices[index]];
-
-        if (neighbourCellVertex.materialIndex != cellVertex.materialIndex)
-        {
-            neighbourCellVertex.SetMaterialIndex(cellVertex.materialIndex);
-
-            indices[index] = generatedVertices0.IncrementCounter();
-            generatedVertices0[indices[index]] = neighbourCellVertex;
-        }
-    }
+    // for (uint index = 1; index < 3; index++)
+    // {
+    //     Vertex neighbourCellVertex = generatedVertices0[indices[index]];
+    // 
+    //     if (neighbourCellVertex.materialIndex != cellVertex.materialIndex)
+    //     {
+    //         neighbourCellVertex.SetMaterialIndex(cellVertex.materialIndex);
+    // 
+    //         indices[index] = generatedVertices0.IncrementCounter();
+    //         generatedVertices0[indices[index]] = neighbourCellVertex;
+    //     }
+    // }
     generatedTriangles.Append(indices);
 }
 
