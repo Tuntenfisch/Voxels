@@ -1,6 +1,7 @@
 using System;
 using Tuntenfisch.Editor;
 using UnityEditor;
+using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Materials.Editor
 {
@@ -37,14 +38,7 @@ namespace Tuntenfisch.Voxels.Materials.Editor
 
                 for (int index = 0; index < m_materialInfos.arraySize; index++)
                 {
-                    SerializedProperty m_material = m_materialInfos.GetArrayElementAtIndex(index);
-                    SerializedProperty materialIndex = m_material.FindPropertyRelative("m_" + nameof(materialIndex));
-                    SerializedProperty color = m_material.FindPropertyRelative("m_" + nameof(color));
-
-                    materialIndex.intValue = index;
-
-                    EditorGUILayout.LabelField($"{(MaterialIndex)materialIndex.intValue}", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(color);
+                    EditorGUILayout.PropertyField(m_materialInfos.GetArrayElementAtIndex(index), new GUIContent($"{(MaterialIndex)index}"));
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();

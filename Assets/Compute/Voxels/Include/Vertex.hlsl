@@ -7,7 +7,7 @@ struct Vertex
 {
     float3 position;
     uint2 halfPrecisionNormal;
-    float materialIndex;
+    uint materialIndex;
 
     float3 GetPosition()
     {

@@ -49,7 +49,7 @@ Shader "Voxels/Voxel"
             {
                 float4 positionOS : POSITION;
                 float4 normalOS : NORMAL;
-                float materialIndex : TEXCOORD1;
+                uint materialIndex : TEXCOORD1;
                 float2 lightmapUV : TEXCOORD2;
             };
 
@@ -58,7 +58,7 @@ Shader "Voxels/Voxel"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD1;
                 half3 normalWS : TEXCOORD2;
-                float materialIndex : TEXCOORD3;
+                uint materialIndex : TEXCOORD3;
                 DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 4);
 
                 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
@@ -77,8 +77,8 @@ Shader "Voxels/Voxel"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD1;
                 half3 normalWS : TEXCOORD2;
-                nointerpolation  float3 materialIndices : TEXCOORD3;
-                float3 materialBlends : TEXCOORD4;
+                uint3 materialIndices : TEXCOORD3;
+                float3 materialWeights : TEXCOORD4;
                 DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 5);
 
                 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
@@ -138,7 +138,7 @@ Shader "Voxels/Voxel"
                     0.0f, 0.0f, 1.0f
                 );
 
-                float3 materialIndices = float3(inputs[0].materialIndex, inputs[1].materialIndex, inputs[2].materialIndex);
+                uint3 materialIndices = float3(inputs[0].materialIndex, inputs[1].materialIndex, inputs[2].materialIndex);
                 float3 faceNormal = normalize(cross(inputs[1].positionWS - inputs[0].positionWS, inputs[2].positionWS - inputs[0].positionWS));
 
                 for (uint index = 0; index < 3; index++)
@@ -151,7 +151,7 @@ Shader "Voxels/Voxel"
                     output.positionWS = input.positionWS;
                     output.normalWS = input.normalWS;
                     output.materialIndices = materialIndices;
-                    output.materialBlends = float3x3Identity[index];
+                    output.materialWeights = float3x3Identity[index];
 
                     OUTPUT_LIGHTMAP_UV(input.lightmapUV, unity_LightmapST, output.lightmapUV);
                     OUTPUT_SH(output.normalWS.xyz, output.vertexSH);
@@ -180,8 +180,8 @@ Shader "Voxels/Voxel"
                 for (uint index = 0; index < 3; index++)
                 {
                     half4 materialColor = SAMPLE_TEXTURE2D_ARRAY(materialColorsLookupTexture, sampler_point_clamp, float2(0.0f, 0.0f), input.materialIndices[index]);
-                    float materialBlend = input.materialBlends[index];
-                    color += materialBlend * materialColor;
+                    float materialWeight = input.materialWeights[index];
+                    color += materialWeight * materialColor;
                 }
 
                 surfaceData.albedo = color.rgb;
