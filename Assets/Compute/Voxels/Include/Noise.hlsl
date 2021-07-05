@@ -3,7 +3,6 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"
-#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl"
 
 #include "Assets/Compute/Include/Enumeration.hlsl"
@@ -65,9 +64,9 @@ float4 GenerateNoise(float3 position, uint noiseAxes)
     switch(noiseAxes)
     {
         case NoiseAxes::XZ:
-            float3 valueAndGradient = SimplexNoiseGrad(position.xz).zxy;
+            float4 valueAndGradient = SimplexNoiseGrad(float3(position.x, 0.0f, position.z)).wxyz;
 
-            return float4(valueAndGradient.x, float3(valueAndGradient.y, 0.0f, valueAndGradient.z));
+            return float4(valueAndGradient.x, float3(valueAndGradient.y, 0.0f, valueAndGradient.w));
         default:
             return SimplexNoiseGrad(position).wxyz;
     }
