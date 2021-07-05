@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_renderMaterial: {fileID: 2100000, guid: 4c49ef764df32ef468e58bab85d32fcb, type: 2}
   m_materialInfos:
-  - m_materialIndex: 0
-    m_color: {r: 0.4339623, g: 0.28235295, b: 0.12486649, a: 0}
-  - m_materialIndex: 1
-    m_color: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 0}
-  - m_materialIndex: 2
-    m_color: {r: 0.9622642, g: 0.84128773, b: 0.5019608, a: 0}
-  - m_materialIndex: 3
-    m_color: {r: 0.18992524, g: 0.41509432, b: 0.21960784, a: 0}
+  - m_color: {r: 0.4339623, g: 0.28235295, b: 0.12486649, a: 0}
+    m_blend: 0
+  - m_color: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 0}
+    m_blend: 0
+  - m_color: {r: 0.9622642, g: 0.84128773, b: 0.5019608, a: 0}
+    m_blend: 0
+  - m_color: {r: 0.18992524, g: 0.41509432, b: 0.21960784, a: 0}
+    m_blend: 0

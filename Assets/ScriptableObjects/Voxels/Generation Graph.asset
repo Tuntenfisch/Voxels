@@ -174,7 +174,7 @@ MonoBehaviour:
     m_seed: 0
     m_noiseAxes: 0
     m_noiseType: 2
-    m_numberOfOctaves: 14
+    m_numberOfOctaves: 8
     m_initialAmplitude: 7
     m_initialFrequency:
       x: 0.002
@@ -268,7 +268,7 @@ MonoBehaviour:
     m_seed: 0
     m_noiseAxes: 0
     m_noiseType: 0
-    m_numberOfOctaves: 16
+    m_numberOfOctaves: 8
     m_initialAmplitude: 20
     m_initialFrequency:
       x: 0.002
@@ -810,7 +810,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 2
-      m_numberOfOctaves: 14
+      m_numberOfOctaves: 8
       m_initialAmplitude: 7
       m_initialFrequency:
         x: 0.002
@@ -930,7 +930,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 16
+      m_numberOfOctaves: 8
       m_initialAmplitude: 20
       m_initialFrequency:
         x: 0.002
@@ -1130,7 +1130,7 @@ MonoBehaviour:
       m_seed: 0
       m_noiseAxes: 0
       m_noiseType: 0
-      m_numberOfOctaves: 3
+      m_numberOfOctaves: 1
       m_initialAmplitude: 20
       m_initialFrequency:
         x: 0.01
@@ -1871,7 +1871,7 @@ MonoBehaviour:
     m_seed: 0
     m_noiseAxes: 0
     m_noiseType: 0
-    m_numberOfOctaves: 3
+    m_numberOfOctaves: 1
     m_initialAmplitude: 20
     m_initialFrequency:
       x: 0.01

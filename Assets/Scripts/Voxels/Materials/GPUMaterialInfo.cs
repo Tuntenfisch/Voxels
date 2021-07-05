@@ -8,18 +8,18 @@ namespace Tuntenfisch.Voxels.Materials
     [StructLayout(LayoutKind.Sequential)]
     public struct GPUMaterialInfo
     {
-        public MaterialIndex MaterialIndex => m_materialIndex;
         public Color Color => m_color;
+        public bool Blend => m_blend;
 
-        [SerializeField]
-        private MaterialIndex m_materialIndex;
         [SerializeField]
         private Color m_color;
+        [SerializeField]
+        private bool m_blend;
 
-        public GPUMaterialInfo(MaterialIndex materialIndex, Color color)
+        public GPUMaterialInfo(Color color, bool blend)
         {
-            m_materialIndex = materialIndex;
             m_color = color;
+            m_blend = blend;
         }
     }
 }

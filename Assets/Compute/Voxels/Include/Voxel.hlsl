@@ -2,7 +2,7 @@
 #define TUNTENFISCH_VOXELS_VOXEL
 
 #include "Assets/Compute/Include/Packing.hlsl"
-#include "Assets/Compute/Voxels/Include/MaterialIndex.hlsl"
+#include "Assets/Compute/Voxels/Include/Material.hlsl"
 
 struct Voxel
 {

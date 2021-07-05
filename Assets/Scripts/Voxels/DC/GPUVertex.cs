@@ -15,11 +15,11 @@ namespace Tuntenfisch.Voxels.DC
         {
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float16, 4),
-            new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 1)
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UInt32, 1)
         };
 
         private float3 m_position;
         private half4 m_normal;
-        private readonly float m_materialIndex;
+        private readonly uint m_materialIndex;
     }
 }
