@@ -10,7 +10,6 @@ namespace Tuntenfisch.Voxels
         public static readonly int GeneratedVertices0 = Shader.PropertyToID("generatedVertices0");
         public static readonly int GeneratedVertices1 = Shader.PropertyToID("generatedVertices1");
         public static readonly int GenerationGraphNodes = Shader.PropertyToID("generationGraphNodes");
-        public static readonly int MaterialInfos = Shader.PropertyToID("materialInfos");
         public static readonly int NumberOfGenerationGraphNodes = Shader.PropertyToID("numberOfGenerationGraphNodes");
         public static readonly int NumberOfVoxels = Shader.PropertyToID("numberOfVoxels");
         public static readonly int NumberOfVoxelVolumeCSGOperations = Shader.PropertyToID("numberOfVoxelVolumeCSGOperations");

@@ -1,5 +1,5 @@
-#ifndef UNIVERSAL_DEPTH_ONLY_PASS_INCLUDED
-#define UNIVERSAL_DEPTH_ONLY_PASS_INCLUDED
+#ifndef TUNTENFISCH_VOXELS_DEPTH_ONLY_PASS
+#define TUNTENFISCH_VOXELS_DEPTH_ONLY_PASS
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
@@ -29,4 +29,5 @@ float4 DepthNormalsFragment(FragmentPassInput input) : SV_TARGET
 {
     return float4(PackNormalOctRectEncode(TransformWorldToViewDir(input.normalWS, true)), 0.0f, 0.0f);
 }
+
 #endif

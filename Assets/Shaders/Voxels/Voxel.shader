@@ -45,6 +45,8 @@ Shader "Voxels/Voxel"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
 
+            #include "Assets/Shaders/Voxels/Include/Triplanar.hlsl"
+
             struct VertexPassInput
             {
                 float4 positionOS : POSITION;
@@ -93,8 +95,8 @@ Shader "Voxels/Voxel"
             };
 
             float cosOfHalfSharpFeatureAngle;
-            TEXTURE2D_ARRAY(materialColorsLookupTexture);
-            SAMPLER(sampler_point_clamp);
+            TEXTURE2D_ARRAY(materialAlbedosTextureArray);
+            SAMPLER(sampler_linear_repeat);
 
             GeometryPassInput LitPassVertex(VertexPassInput input)
             {
@@ -175,17 +177,15 @@ Shader "Voxels/Voxel"
             {
                 SurfaceData surfaceData = (SurfaceData)0;
 
-                half4 color = 0.0h;
+                half4 albdeo = 0.0h;
 
                 for (uint index = 0; index < 3; index++)
                 {
-                    half4 materialColor = SAMPLE_TEXTURE2D_ARRAY(materialColorsLookupTexture, sampler_point_clamp, float2(0.0f, 0.0f), input.materialIndices[index]);
-                    float materialWeight = input.materialWeights[index];
-                    color += materialWeight * materialColor;
+                    half4 materialColor = TriplanarSampleTexture2DArray(input.positionWS, input.normalWS, materialAlbedosTextureArray, sampler_linear_repeat, input.materialIndices[index]);
+                    albdeo += input.materialWeights[index] * materialColor;
                 }
 
-                surfaceData.albedo = color.rgb;
-                surfaceData.smoothness = color.a;
+                surfaceData.albedo = albdeo.rgb;
                 surfaceData.occlusion = 1.0h;
 
                 return surfaceData;

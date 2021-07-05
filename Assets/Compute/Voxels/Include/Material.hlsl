@@ -13,23 +13,4 @@ ENUM MaterialIndex
 
 static const uint numberOfMaterials = 4;
 
-struct MaterialInfo
-{
-    uint materialIndex;
-    float4 color;
-    bool blend;
-
-    static MaterialInfo Create(uint materialIndex, float4 color, bool blend)
-    {
-        MaterialInfo materialInfo;
-        materialInfo.materialIndex = materialIndex;
-        materialInfo.color = color;
-        materialInfo.blend = blend;
-
-        return materialInfo;
-    }
-};
-
-StructuredBuffer<MaterialInfo> materialInfos;
-
 #endif
