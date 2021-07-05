@@ -119,7 +119,7 @@ struct CSGPrimitive
 
 float4 EvaluateCSGSphere(float3 position)
 {
-    float4 valueAndGradient = 0.0f;
+    float4 valueAndGradient;
     valueAndGradient.x = length(position) - 0.5f;
     valueAndGradient.yzw = normalize(position);
 
@@ -128,7 +128,7 @@ float4 EvaluateCSGSphere(float3 position)
 
 float4 EvaluateCSGCuboid(float3 position)
 {
-    float4 valueAndGradient = 0.0f;
+    float4 valueAndGradient;
     float3 d = abs(position) - 0.5f;
     float3 smoothing = sign(position);
     float g = max(d.x, max(d.y, d.z));

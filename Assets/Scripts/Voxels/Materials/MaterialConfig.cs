@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Tuntenfisch.Generics;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Tuntenfisch.Voxels.Materials
 {
@@ -13,12 +13,12 @@ namespace Tuntenfisch.Voxels.Materials
         public event Action OnLateDirtied;
 
         public Material RenderMaterial => m_renderMaterial;
-        public List<GPUMaterialInfo> MaterialInfos => m_materialInfos;
+        public List<MaterialInfo> MaterialInfos => m_materialInfos;
 
         [SerializeField]
         private Material m_renderMaterial;
         [SerializeField]
-        private List<GPUMaterialInfo> m_materialInfos;
+        private List<MaterialInfo> m_materialInfos;
 
         private void OnValidate()
         {
@@ -28,23 +28,25 @@ namespace Tuntenfisch.Voxels.Materials
 
         protected override void OnScriptableObjectAwake()
         {
-            OnDirtied += ApplyMaterialColors;
-            ApplyMaterialColors();
+            OnDirtied += ApplyMaterialAlbedos;
+            ApplyMaterialAlbedos();
         }
 
-        protected override void OnScriptableObjectDestroy() => OnDirtied -= ApplyMaterialColors;
+        protected override void OnScriptableObjectDestroy() => OnDirtied -= ApplyMaterialAlbedos;
 
-        private void ApplyMaterialColors()
+        private void ApplyMaterialAlbedos()
         {
-            Color32[] materialColors = (from materialInfo in m_materialInfos select (Color32)materialInfo.Color).ToArray();
-            Texture2DArray materialColorsLookupTexture = new Texture2DArray(1, 1, materialColors.Length, TextureFormat.RGBA32, true);
-
-            for (int index = 0; index < materialColors.Length; index++)
+            int width = m_materialInfos[0].Albedo.width;
+            int height = m_materialInfos[0].Albedo.height;
+            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, m_materialInfos.Count, TextureFormat.RGBA32, true);
+            
+            for (int index = 0; index < m_materialInfos.Count; index++)
             {
-                materialColorsLookupTexture.SetPixels32(new Color32[] { materialColors[index] }, index);
+                Texture2D materialAlbedoTexture = m_materialInfos[index].Albedo;
+                Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedosTextureArray, index);
             }
-            materialColorsLookupTexture.Apply();
-            Shader.SetGlobalTexture(nameof(materialColorsLookupTexture), materialColorsLookupTexture);
+            materialAlbedosTextureArray.Apply();
+            Shader.SetGlobalTexture(nameof(materialAlbedosTextureArray), materialAlbedosTextureArray);
         }
     }
 }
