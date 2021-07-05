@@ -175,11 +175,11 @@ MonoBehaviour:
     m_noiseAxes: 0
     m_noiseType: 2
     m_numberOfOctaves: 8
-    m_initialAmplitude: 7
+    m_initialAmplitude: 20
     m_initialFrequency:
-      x: 0.002
-      y: 0.002
-      z: 0.002
+      x: 0.003
+      y: 0.003
+      z: 0.003
     m_persistence: 0.5
     m_lacunarity:
       x: 2
@@ -811,11 +811,11 @@ MonoBehaviour:
       m_noiseAxes: 0
       m_noiseType: 2
       m_numberOfOctaves: 8
-      m_initialAmplitude: 7
+      m_initialAmplitude: 20
       m_initialFrequency:
-        x: 0.002
-        y: 0.002
-        z: 0.002
+        x: 0.003
+        y: 0.003
+        z: 0.003
       m_persistence: 0.5
       m_lacunarity:
         x: 2

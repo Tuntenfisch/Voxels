@@ -181,12 +181,15 @@ namespace Tuntenfisch.World
             m_mesh.SetVertexBufferData(vertices, 0, 0, vertexCount);
             m_mesh.SetIndexBufferParams(triangleCount, IndexFormat.UInt32);
 #if !UNITY_EDITOR
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices);
+            MeshUpdateFlags flags = MeshUpdateFlags.DontNotifyMeshUsers | MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontValidateIndices;
+            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, flags);
+            m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount), flags);
+            m_mesh.RecalculateBounds(flags);
 #else
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, MeshUpdateFlags.DontRecalculateBounds);
-#endif
+            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
-            m_mesh.RecalculateBounds();
+            m_mesh.RecalculateBounds(MeshUpdateFlags.DontValidateIndices);
+#endif
             m_meshFilter.sharedMesh = m_mesh;
             ProcessChunkFlags(ChunkFlags.MeshBakingRequested);
         }
