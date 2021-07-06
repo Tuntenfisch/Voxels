@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Tuntenfisch.Voxels.Materials
 {
@@ -28,13 +27,13 @@ namespace Tuntenfisch.Voxels.Materials
 
         protected override void OnScriptableObjectAwake()
         {
-            OnDirtied += ApplyMaterialAlbedos;
-            ApplyMaterialAlbedos();
+            OnDirtied += ApplyMaterialConfig;
+            ApplyMaterialConfig();
         }
 
-        protected override void OnScriptableObjectDestroy() => OnDirtied -= ApplyMaterialAlbedos;
+        protected override void OnScriptableObjectDestroy() => OnDirtied -= ApplyMaterialConfig;
 
-        private void ApplyMaterialAlbedos()
+        private void ApplyMaterialConfig()
         {
             int width = m_materialInfos[0].Albedo.width;
             int height = m_materialInfos[0].Albedo.height;

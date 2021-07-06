@@ -1309,17 +1309,17 @@ MonoBehaviour:
       m_smoothing: 0
   - m_nodeType: 1
     m_transformMatrix:
-      e00: 0.16666667
+      e00: 0.1
       e01: 0
       e02: 0
       e03: 0
       e10: 0
-      e11: 0.16666667
+      e11: 0.1
       e12: 0
-      e13: -1.6666667
+      e13: -1
       e20: 0
       e21: 0
-      e22: 0.16666667
+      e22: 0.1
       e23: 0
       e30: 0
       e31: 0
@@ -1561,9 +1561,9 @@ MonoBehaviour:
     y: 0
     z: 0
   m_scale:
-    x: 6
-    y: 6
-    z: 6
+    x: 10
+    y: 10
+    z: 10
   m_invert: 1
 --- !u!114 &281790846129076961
 MonoBehaviour:

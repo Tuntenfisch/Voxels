@@ -1,6 +1,15 @@
 Shader "Voxels/Voxel"
 {
-    Properties { }
+    Properties
+    {
+        _MaterialBlendOffset ("Material Blend Offset", Range(0, 0.33)) = 0.25
+        _MaterialBlendExponent ("Material Blend Exponent", Range(0.0, 8.0)) = 2.0
+
+        [Space(20)]
+        _TriplanarCoordinateScaling ("Triplanar Coordinate Scaling", Float) = 1.0
+        _TriplanarBlendOffset ("Triplanar Blend Offset", Range(0, 0.5)) = 0.25
+        _TriplanarBlendExponent ("Triplanar Blend Exponent", Range(0.0, 8.0)) = 2.0
+    }
     SubShader
     {
         Tags { "RenderPipeline" = "UniversalPipeline" "RenderType" = "Opaque" "Queue" = "Geometry" }
@@ -10,6 +19,11 @@ Shader "Voxels/Voxel"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
+        float _MaterialBlendOffset;
+        float _MaterialBlendExponent;
+        float _TriplanarCoordinateScaling;
+        float _TriplanarBlendOffset;
+        float _TriplanarBlendExponent;
         CBUFFER_END
 
         ENDHLSL
@@ -44,8 +58,6 @@ Shader "Voxels/Voxel"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
-
-            #include "Assets/Shaders/Voxels/Include/Triplanar.hlsl"
 
             struct VertexPassInput
             {
@@ -97,6 +109,8 @@ Shader "Voxels/Voxel"
             float cosOfHalfSharpFeatureAngle;
             TEXTURE2D_ARRAY(materialAlbedosTextureArray);
             SAMPLER(sampler_linear_repeat);
+
+            #include "Assets/Shaders/Voxels/Include/Triplanar.hlsl"
 
             GeometryPassInput LitPassVertex(VertexPassInput input)
             {
@@ -179,10 +193,15 @@ Shader "Voxels/Voxel"
 
                 half4 albdeo = 0.0h;
 
+                float3 materialWeights = input.materialWeights;
+                materialWeights = saturate(materialWeights - _MaterialBlendOffset);
+                materialWeights = pow(materialWeights, _MaterialBlendExponent);
+                materialWeights /= dot(materialWeights, 1.0f);
+                
                 for (uint index = 0; index < 3; index++)
                 {
                     half4 materialColor = TriplanarSampleTexture2DArray(input.positionWS, input.normalWS, materialAlbedosTextureArray, sampler_linear_repeat, input.materialIndices[index]);
-                    albdeo += input.materialWeights[index] * materialColor;
+                    albdeo += materialWeights[index] * materialColor;
                 }
 
                 surfaceData.albedo = albdeo.rgb;
