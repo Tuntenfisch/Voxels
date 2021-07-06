@@ -112,6 +112,21 @@ Voxel ApplyCSGOperator(Voxel lhs, Voxel rhs, CSGOperator csgOperator)
     }
 }
 
+// When combining a primitive (effectively an SDF) with other SDFs, the primitive
+// will perturb the shape of nearby SDFs and hence alter the generated mesh's 
+// geometry. But the mesh's geometry is even affected when the the isosurface the 
+// primitive is describing isn't intersecting any of the other isosurfaces at all.
+//
+// This is due to small values, i.e. values close to 0, near the primitive's isosurface
+// "winning" when the primitive is combined with other SDFs. Multiplying the
+// value of the primitive by a "large" factor effectively narrows the interval
+// of small values the primitive's SDFs has and therefore limits the region in which
+// it affects other SDFs when combined. The isosurface, which is generated at the 0
+// transition of the SDF isn't affect.
+//
+// At least that's my theory behind it...
+static const float csgPrimitiveValueMultiplier = 10.0f;
+
 struct CSGPrimitive
 {
     uint primitiveType;
@@ -121,7 +136,8 @@ float4 EvaluateCSGSphere(float3 position)
 {
     float4 valueAndGradient;
     valueAndGradient.x = length(position) - 0.5f;
-    valueAndGradient.yzw = normalize(position);
+    valueAndGradient.x *= csgPrimitiveValueMultiplier;
+    valueAndGradient.yzw = position;
 
     return valueAndGradient;
 }
@@ -134,8 +150,9 @@ float4 EvaluateCSGCuboid(float3 position)
     float g = max(d.x, max(d.y, d.z));
     
     valueAndGradient.x = length(max(d, 0.0f)) + min(max(d.x, max(d.y, d.z)), 0.0f);
+    valueAndGradient.x *= csgPrimitiveValueMultiplier;
     valueAndGradient.yzw = smoothing * (g > 0.0f ? normalize(max(d, 0.0f)) : step(d.yzx, d.xyz) * step(d.zxy, d.xyz));
-    
+
     return valueAndGradient;
 }
 
