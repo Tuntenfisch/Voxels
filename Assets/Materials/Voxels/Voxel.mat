@@ -256,6 +256,8 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _HeightTransition: 0
+    - _MaterialBlendExponent: 1
+    - _MaterialBlendOffset: 0
     - _Metallic: 0
     - _Metallic0: 0
     - _Metallic1: 0
@@ -292,6 +294,10 @@ Material:
     - _StencilWriteMask: 255
     - _Strength: 0.2
     - _Surface: 0
+    - _TextureScaling: -0.17
+    - _TriplanarBlendExponent: 2
+    - _TriplanarBlendOffset: 0.25
+    - _TriplanarCoordinateScaling: 0.35
     - _UseUIAlphaClip: 0
     - _WindQuality: 0
     - _WireframeSmoothing: 1

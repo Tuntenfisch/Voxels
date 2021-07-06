@@ -29,6 +29,7 @@ namespace Tuntenfisch.Voxels.Materials.Editor
 
             if (m_materialFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(m_materialFoldout, ObjectNames.NicifyVariableName(nameof(m_materialInfos))))
             {
+                EditorGUI.indentLevel++;
                 int materialCount = Enum.GetNames(typeof(MaterialIndex)).Length;
 
                 if (m_materialInfos.arraySize != materialCount)
@@ -40,6 +41,7 @@ namespace Tuntenfisch.Voxels.Materials.Editor
                 {
                     EditorGUILayout.PropertyField(m_materialInfos.GetArrayElementAtIndex(index), new GUIContent($"{(MaterialIndex)index}"));
                 }
+                EditorGUI.indentLevel--;
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
