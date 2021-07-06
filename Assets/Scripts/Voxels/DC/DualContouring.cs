@@ -29,13 +29,11 @@ namespace Tuntenfisch.Voxels.DC
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-            m_voxelConfig.DualContouringConfig.OnDirtied += ApplyDualContouringConfig;
             m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
             m_requests = new Queue<(Request, OnMeshGenerated)>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_requestPool = new ObjectPool<Request>(() => { return new Request(); });
 
-            ApplyDualContouringConfig();
             ApplyVoxelVolumeConfig();
         }
 
@@ -54,7 +52,6 @@ namespace Tuntenfisch.Voxels.DC
 
         private void OnDestroy()
         {
-            m_voxelConfig.DualContouringConfig.OnDirtied -= ApplyDualContouringConfig;
             m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
             OnDestroyed?.Invoke();
         }
@@ -137,12 +134,6 @@ namespace Tuntenfisch.Voxels.DC
             {
                 worker.Dispose();
             }
-        }
-
-        private void ApplyDualContouringConfig()
-        {
-            m_voxelConfig.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.SchmitzParticleIterations, m_voxelConfig.DualContouringConfig.SchmitzParticleIterations);
-            m_voxelConfig.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.SchmitzParticleStepSize, m_voxelConfig.DualContouringConfig.SchmitzParticleStepSize);
         }
 
         private void ApplyVoxelVolumeConfig()
