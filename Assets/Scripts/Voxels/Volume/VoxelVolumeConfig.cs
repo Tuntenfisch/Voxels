@@ -1,11 +1,12 @@
 ﻿using System;
+using Tuntenfisch.Generics;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Volume
 {
     [CreateAssetMenu(fileName = "Voxel Volume Config", menuName = "Voxels/Voxel Volume Config")]
-    public class VoxelVolumeConfig : ScriptableObject
+    public class VoxelVolumeConfig : ManagedScriptableObject
     {
         public event Action OnDirtied;
         public event Action OnLateDirtied;
@@ -33,8 +34,21 @@ namespace Tuntenfisch.Voxels.Volume
         private void OnValidate()
         {
             m_numberOfVoxelsAlongAxis = Mathf.ClosestPowerOfTwo(m_numberOfVoxelsAlongAxis) + 3;
+
+            ApplyVoxelVolumeConfig();
+
             OnDirtied?.Invoke();
             OnLateDirtied?.Invoke();
+        }
+
+        protected override void OnScriptableObjectAwake() => ApplyVoxelVolumeConfig();
+
+        protected override void OnScriptableObjectDestroy() { }
+
+        private void ApplyVoxelVolumeConfig()
+        {
+            Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, NumberOfVoxels.x, NumberOfVoxels.y, NumberOfVoxels.z);
+            Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, VoxelSpacing);
         }
     }
 }

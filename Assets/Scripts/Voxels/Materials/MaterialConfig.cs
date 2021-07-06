@@ -21,27 +21,25 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void OnValidate()
         {
+            ApplyMaterialConfig();
+
             OnDirtied?.Invoke();
             OnLateDirtied?.Invoke();
         }
 
-        protected override void OnScriptableObjectAwake()
-        {
-            OnDirtied += ApplyMaterialConfig;
-            ApplyMaterialConfig();
-        }
+        protected override void OnScriptableObjectAwake() => ApplyMaterialConfig();
 
-        protected override void OnScriptableObjectDestroy() => OnDirtied -= ApplyMaterialConfig;
+        protected override void OnScriptableObjectDestroy() { }
 
         private void ApplyMaterialConfig()
         {
-            int width = m_materialInfos[0].Albedo.width;
-            int height = m_materialInfos[0].Albedo.height;
-            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, m_materialInfos.Count, TextureFormat.RGBA32, true);
-            
-            for (int index = 0; index < m_materialInfos.Count; index++)
+            int width = MaterialInfos[0].Albedo.width;
+            int height = MaterialInfos[0].Albedo.height;
+            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, TextureFormat.RGBA32, true);
+
+            for (int index = 0; index < MaterialInfos.Count; index++)
             {
-                Texture2D materialAlbedoTexture = m_materialInfos[index].Albedo;
+                Texture2D materialAlbedoTexture = MaterialInfos[index].Albedo;
                 Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedosTextureArray, index);
             }
             materialAlbedosTextureArray.Apply();

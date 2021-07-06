@@ -20,15 +20,12 @@ namespace Tuntenfisch.Voxels.Volume
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
             m_voxelConfig.GenerationGraph.OnDirtied += ApplyGenerationGraph;
-            ApplyVoxelVolumeConfig();
             ApplyGenerationGraph();
         }
 
         private void OnDestroy()
         {
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
             m_voxelConfig.GenerationGraph.OnDirtied -= ApplyGenerationGraph;
             ReleaseBuffers();
         }
@@ -109,13 +106,6 @@ namespace Tuntenfisch.Voxels.Volume
                 m_voxelVolumeCSGOperationsBuffer.Release();
                 m_voxelVolumeCSGOperationsBuffer = null;
             }
-        }
-
-        private void ApplyVoxelVolumeConfig()
-        {
-            int3 numberOfVoxels = m_voxelConfig.VoxelVolumeConfig.NumberOfVoxels;
-            m_voxelConfig.VoxelVolumeConfig.Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, numberOfVoxels.x, numberOfVoxels.y, numberOfVoxels.z);
-            m_voxelConfig.VoxelVolumeConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, m_voxelConfig.VoxelVolumeConfig.VoxelSpacing);
         }
 
         private void ApplyGenerationGraph()

@@ -1,11 +1,12 @@
 ﻿using System;
+using Tuntenfisch.Generics;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.DC
 {
     [CreateAssetMenu(fileName = "Dual Contouring Config", menuName = "Voxels/Dual Contouring Config")]
-    public class DualContouringConfig : ScriptableObject
+    public class DualContouringConfig : ManagedScriptableObject
     {
         public event Action OnDirtied;
         public event Action OnLateDirtied;
@@ -28,13 +29,25 @@ namespace Tuntenfisch.Voxels.DC
         [SerializeField]
         private float m_sharpFeatureAngle = 30.0f;
 
-        private void OnValidate() 
+        private void OnValidate()
+        {
+            ApplyDualContouringConfig();
+
+            OnDirtied?.Invoke();
+            OnLateDirtied?.Invoke();
+        }
+
+        protected override void OnScriptableObjectAwake() => ApplyDualContouringConfig();
+
+        protected override void OnScriptableObjectDestroy() { }
+
+        private void ApplyDualContouringConfig()
         {
             float cosOfHalfSharpFeatureAngle = math.cos(math.radians(0.5f * SharpFeatureAngle));
             Shader.SetGlobalFloat(nameof(cosOfHalfSharpFeatureAngle), cosOfHalfSharpFeatureAngle);
 
-            OnDirtied?.Invoke();
-            OnLateDirtied?.Invoke();
+            Compute.SetInt(ComputeShaderProperties.SchmitzParticleIterations, SchmitzParticleIterations);
+            Compute.SetFloat(ComputeShaderProperties.SchmitzParticleStepSize, SchmitzParticleStepSize);
         }
     }
 }
