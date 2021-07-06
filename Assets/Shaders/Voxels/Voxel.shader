@@ -267,9 +267,6 @@ Shader "Voxels/Voxel"
             Name "ShadowCaster"
             Tags { "LightMode" = "ShadowCaster" }
 
-            ZWrite On
-            ZTest LEqual
-
             HLSLPROGRAM
 
             #pragma vertex ShadowPassVertex
@@ -288,8 +285,6 @@ Shader "Voxels/Voxel"
             Tags { "LightMode" = "DepthOnly" }
 
             ColorMask 0
-            ZWrite On
-            ZTest LEqual
 
             HLSLPROGRAM
 
