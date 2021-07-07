@@ -57,7 +57,6 @@ Shader "Voxels/Voxel"
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
 
             struct VertexPassInput
             {
@@ -155,12 +154,12 @@ Shader "Voxels/Voxel"
                 );
 
                 uint3 materialIndices = float3(inputs[0].materialIndex, inputs[1].materialIndex, inputs[2].materialIndex);
-                float3 faceNormal = normalize(cross(inputs[1].positionWS - inputs[0].positionWS, inputs[2].positionWS - inputs[0].positionWS));
+                float3 faceNormalWS = normalize(cross(inputs[1].positionWS - inputs[0].positionWS, inputs[2].positionWS - inputs[0].positionWS));
 
                 for (uint index = 0; index < 3; index++)
                 {
                     GeometryPassInput input = inputs[index];
-                    input.normalWS = dot(input.normalWS, faceNormal) <= cosOfHalfSharpFeatureAngle ? faceNormal : input.normalWS;
+                    input.normalWS = dot(input.normalWS, faceNormalWS) <= cosOfHalfSharpFeatureAngle ? faceNormalWS : input.normalWS;
 
                     FragmentPassInput output;
                     output.positionCS = input.positionCS;
@@ -169,8 +168,11 @@ Shader "Voxels/Voxel"
                     output.materialIndices = materialIndices;
                     output.materialWeights = float3x3Identity[index];
 
-                    OUTPUT_LIGHTMAP_UV(input.lightmapUV, unity_LightmapST, output.lightmapUV);
-                    OUTPUT_SH(output.normalWS.xyz, output.vertexSH);
+                    #if defined(LIGHTMAP_ON)
+                        output.lightmapUV = input.lightmapUV;
+                    #else
+                        output.vertexSH = input.vertexSH;
+                    #endif
 
                     #if defined(_ADDITIONAL_LIGHTS_VERTEX)
                         output.fogFactorAndVertexLight = input.fogFactorAndVertexLight;
