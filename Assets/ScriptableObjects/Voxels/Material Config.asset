@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: Material Config
   m_EditorClassIdentifier: 
   m_renderMaterial: {fileID: 2100000, guid: 4c49ef764df32ef468e58bab85d32fcb, type: 2}
-  m_triplanarPositionScaling: 0.25
   m_materialInfos:
-  - m_albedo: {fileID: 2800000, guid: 026d493f01ef6c84bbc427a7f0691eab, type: 3}
-  - m_albedo: {fileID: 2800000, guid: 9ec15ff816c4c4a4d9138f37a2b21016, type: 3}
-  - m_albedo: {fileID: 2800000, guid: 3472bbc8b600c684a94b1e10ed016da7, type: 3}
-  - m_albedo: {fileID: 2800000, guid: 243352ac59656554b9188ac3c02ccc16, type: 3}
+  - m_albedo: {fileID: 2800000, guid: a390d5ad79ea30348bdb931cf7a0ff57, type: 3}
+  - m_albedo: {fileID: 2800000, guid: 9f9eda6491cb6a841b916fb72277bce6, type: 3}
+  - m_albedo: {fileID: 2800000, guid: b019fc8bdd6fe454c86d8fac9e134acf, type: 3}
+  - m_albedo: {fileID: 2800000, guid: f1f2ed79b26fc7e4a9249b0bfda382e1, type: 3}
