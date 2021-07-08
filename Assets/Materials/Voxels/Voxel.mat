@@ -223,6 +223,9 @@ Material:
     - _AlphaClip: 0
     - _AlphaTestToggle: 0
     - _Blend: 0
+    - _BlendExponent: 2
+    - _BlendHeightStrength: 0.5
+    - _BlendOffset: 0.2
     - _BlendOp: 0
     - _BumpScale: 1
     - _CameraFadingEnabled: 0
@@ -232,6 +235,7 @@ Material:
     - _ClearCoatSmoothness: 0
     - _ColorMask: 15
     - _ColorMode: 0
+    - _CoordinateScaling: 0.15
     - _Cull: 2
     - _Cutoff: 1
     - _DetailAlbedoMapScale: 1
@@ -256,7 +260,8 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _HeightTransition: 0
-    - _MaterialBlendExponent: 1
+    - _MaterialBlendExponent: 0
+    - _MaterialBlendHeightStrength: 0
     - _MaterialBlendOffset: 0
     - _Metallic: 0
     - _Metallic0: 0
@@ -295,9 +300,10 @@ Material:
     - _Strength: 0.2
     - _Surface: 0
     - _TextureScaling: -0.17
-    - _TriplanarBlendExponent: 2
+    - _TriplanarBlendExponent: 0.63
+    - _TriplanarBlendHeightStrength: 0.99
     - _TriplanarBlendOffset: 0.25
-    - _TriplanarCoordinateScaling: 0.25
+    - _TriplanarCoordinateScaling: -0.02
     - _UseUIAlphaClip: 0
     - _WindQuality: 0
     - _WireframeSmoothing: 1

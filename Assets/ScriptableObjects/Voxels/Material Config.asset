@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_renderMaterial: {fileID: 2100000, guid: 4c49ef764df32ef468e58bab85d32fcb, type: 2}
   m_materialInfos:
-  - m_albedoTexture: {fileID: 2800000, guid: a390d5ad79ea30348bdb931cf7a0ff57, type: 3}
-    m_normalTexture: {fileID: 2800000, guid: 8bb17a6e834e49846b2e95c8e60396fd, type: 3}
-    m_mohsTexture: {fileID: 2800000, guid: 88e5051178ca1f245bc4a25f8f2b6857, type: 3}
+  - m_albedoTexture: {fileID: 2800000, guid: 77adc2dc926272a4f899e4322a025b49, type: 3}
+    m_normalTexture: {fileID: 2800000, guid: 6934497e42aba654892931a53f4a603d, type: 3}
+    m_mohsTexture: {fileID: 2800000, guid: 1c4085259e11a7d4cb26e844a43c4ffd, type: 3}
   - m_albedoTexture: {fileID: 2800000, guid: 9f9eda6491cb6a841b916fb72277bce6, type: 3}
     m_normalTexture: {fileID: 2800000, guid: 2a55a094ad5dd004785e5e3f238bea51, type: 3}
     m_mohsTexture: {fileID: 2800000, guid: 02e09fc423a7acb44aa5fd93c2a18bbc, type: 3}

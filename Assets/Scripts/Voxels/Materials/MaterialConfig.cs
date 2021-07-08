@@ -42,27 +42,23 @@ namespace Tuntenfisch.Voxels.Materials
             int width = MaterialInfos[0].AlbedoTexture.width;
             int height = MaterialInfos[0].AlbedoTexture.height;
 
-            Texture2DArray materialAlbedoTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
-            Texture2DArray materialNormalTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].NormalTexture.format, true);
-            Texture2DArray materialMOHSTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].MOHSTexture.format, true);
+            Texture2DArray materialAlbedoTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
+            Texture2DArray materialNormalTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].NormalTexture.format, true);
+            Texture2DArray materialMOHSTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].MOHSTexture.format, true);
 
             for (int index = 0; index < MaterialInfos.Count; index++)
             {
-                Texture2D materialAlbedoTexture = MaterialInfos[index].AlbedoTexture;
-                Texture2D materialNormalTexture = MaterialInfos[index].NormalTexture;
-                Texture2D materialMOHSTexture = MaterialInfos[index].MOHSTexture;
-
-                Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedoTextureArray, index);
-                Graphics.CopyTexture(materialNormalTexture, 0, materialNormalTextureArray, index);
-                Graphics.CopyTexture(materialMOHSTexture, 0, materialMOHSTextureArray, index);
+                Graphics.CopyTexture(MaterialInfos[index].AlbedoTexture, 0, materialAlbedoTextures, index);
+                Graphics.CopyTexture(MaterialInfos[index].NormalTexture, 0, materialNormalTextures, index);
+                Graphics.CopyTexture(MaterialInfos[index].MOHSTexture, 0, materialMOHSTextures, index);
             }
-            materialAlbedoTextureArray.Apply(false);
-            materialNormalTextureArray.Apply(false);
-            materialMOHSTextureArray.Apply(false);
+            materialAlbedoTextures.Apply(false);
+            materialNormalTextures.Apply(false);
+            materialMOHSTextures.Apply(false);
 
-            Shader.SetGlobalTexture(nameof(materialAlbedoTextureArray), materialAlbedoTextureArray);
-            Shader.SetGlobalTexture(nameof(materialNormalTextureArray), materialNormalTextureArray);
-            Shader.SetGlobalTexture(nameof(materialMOHSTextureArray), materialMOHSTextureArray);
+            Shader.SetGlobalTexture(nameof(materialAlbedoTextures), materialAlbedoTextures);
+            Shader.SetGlobalTexture(nameof(materialNormalTextures), materialNormalTextures);
+            Shader.SetGlobalTexture(nameof(materialMOHSTextures), materialMOHSTextures);
         }
     }
 }

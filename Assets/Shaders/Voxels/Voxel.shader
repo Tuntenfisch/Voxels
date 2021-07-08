@@ -2,13 +2,10 @@ Shader "Voxels/Voxel"
 {
     Properties
     {
-        _MaterialBlendOffset ("Material Blend Offset", Range(0, 0.33)) = 0.25
-        _MaterialBlendExponent ("Material Blend Exponent", Range(0.0, 8.0)) = 2.0
-
-        [Space(20)]
-        _TriplanarCoordinateScaling ("Triplanar Coordinate Scaling", Float) = 1.0
-        _TriplanarBlendOffset ("Triplanar Blend Offset", Range(0, 0.5)) = 0.25
-        _TriplanarBlendExponent ("Triplanar Blend Exponent", Range(0.0, 8.0)) = 2.0
+        _CoordinateScaling ("Coordinate Scaling", Float) = 0.15
+        _BlendOffset ("Blend Offset", Range(0, 0.33)) = 0.2
+        _BlendExponent ("Blend Exponent", Range(0.0, 8.0)) = 2.0
+        _BlendHeightStrength ("Blend Height Strength", Range(0.01, 0.99)) = 0.5
     }
     SubShader
     {
@@ -19,11 +16,10 @@ Shader "Voxels/Voxel"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
-        float _MaterialBlendOffset;
-        float _MaterialBlendExponent;
-        float _TriplanarCoordinateScaling;
-        float _TriplanarBlendOffset;
-        float _TriplanarBlendExponent;
+        half _CoordinateScaling;
+        half _BlendOffset;
+        half _BlendExponent;
+        half _BlendHeightStrength;
         CBUFFER_END
 
         ENDHLSL
@@ -91,7 +87,7 @@ Shader "Voxels/Voxel"
                 float3 positionWS : TEXCOORD1;
                 half3 normalWS : TEXCOORD2;
                 uint3 materialIndices : TEXCOORD3;
-                float3 materialWeights : TEXCOORD4;
+                half3 materialWeights : TEXCOORD4;
                 DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 5);
 
                 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
@@ -106,9 +102,9 @@ Shader "Voxels/Voxel"
             };
 
             float cosOfHalfSharpFeatureAngle;
-            TEXTURE2D_ARRAY(materialAlbedoTextureArray);
-            TEXTURE2D_ARRAY(materialNormalTextureArray);
-            TEXTURE2D_ARRAY(materialMOHSTextureArray);
+            TEXTURE2D_ARRAY(materialAlbedoTextures);
+            TEXTURE2D_ARRAY(materialNormalTextures);
+            TEXTURE2D_ARRAY(materialMOHSTextures);
             SAMPLER(sampler_linear_repeat);
 
             #include "Assets/Shaders/Voxels/Include/Triplanar.hlsl"
@@ -148,11 +144,11 @@ Shader "Voxels/Voxel"
             [maxvertexcount(3)]
             void LitPassGeometry(triangle GeometryPassInput inputs[3], inout TriangleStream<FragmentPassInput> outputStream)
             {
-                const float3x3 float3x3Identity = float3x3
+                const half3x3 half3x3Identity = half3x3
                 (
-                    1.0f, 0.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 0.0f, 1.0f
+                    1.0h, 0.0h, 0.0h,
+                    0.0h, 1.0h, 0.0h,
+                    0.0h, 0.0h, 1.0h
                 );
 
                 uint3 materialIndices = float3(inputs[0].materialIndex, inputs[1].materialIndex, inputs[2].materialIndex);
@@ -168,7 +164,7 @@ Shader "Voxels/Voxel"
                     output.positionWS = input.positionWS;
                     output.normalWS = input.normalWS;
                     output.materialIndices = materialIndices;
-                    output.materialWeights = float3x3Identity[index];
+                    output.materialWeights = half3x3Identity[index];
 
                     #if defined(LIGHTMAP_ON)
                         output.lightmapUV = input.lightmapUV;
@@ -191,41 +187,59 @@ Shader "Voxels/Voxel"
                 outputStream.RestartStrip();
             }
 
+            float3 GetMaterialBlendWeights(FragmentPassInput input, half3 heights)
+            {
+                float3 materialWeights = abs(input.materialWeights);
+                materialWeights = saturate(materialWeights - _BlendOffset);
+                materialWeights *= abs(lerp(1.0h, heights, _BlendHeightStrength));
+                materialWeights = pow(materialWeights, _BlendExponent);
+                materialWeights /= dot(materialWeights, 1.0h);
+
+                return materialWeights;
+            }
+
             SurfaceData CreateSurfaceData(FragmentPassInput input)
             {
                 SurfaceData surfaceData = (SurfaceData)0;
+                TriplanarData triplanarDatas[3];
 
-                half4 albdeo = 0.0h;
-
-                float3 materialWeights = input.materialWeights;
-                materialWeights = saturate(materialWeights - _MaterialBlendOffset);
-                materialWeights = pow(materialWeights, _MaterialBlendExponent);
-                materialWeights /= dot(materialWeights, 1.0f);
-                
                 for (uint index = 0; index < 3; index++)
                 {
-                    half4 materialColor = TriplanarSampleTexture2DArray(input.positionWS, input.normalWS, materialAlbedoTextureArray, sampler_linear_repeat, input.materialIndices[index]);
-                    albdeo += materialWeights[index] * materialColor;
+                    triplanarDatas[index] = ApplyTriplanarTexturing
+                    (
+                        input.positionWS,
+                        input.normalWS,
+                        materialAlbedoTextures,
+                        materialNormalTextures,
+                        materialMOHSTextures,
+                        sampler_linear_repeat,
+                        input.materialIndices[index]
+                    );
                 }
 
-                surfaceData.albedo = albdeo.rgb;
-                surfaceData.occlusion = 1.0h;
+                half3 heights = half3(triplanarDatas[0].height, triplanarDatas[1].height, triplanarDatas[2].height);
+                float3 materialWeights = GetMaterialBlendWeights(input, heights);
+
+                for (index = 0; index < 3; index++)
+                {
+                    surfaceData.albedo += materialWeights[index] * triplanarDatas[index].albedo.rgb;
+                    surfaceData.alpha += materialWeights[index] * triplanarDatas[index].albedo.a;
+                    // Misuse SurfaceData's normalTS field to store our normalWS.
+                    surfaceData.normalTS += materialWeights[index] * triplanarDatas[index].normalWS;
+                    surfaceData.metallic += materialWeights[index] * triplanarDatas[index].metallic;
+                    surfaceData.occlusion += materialWeights[index] * triplanarDatas[index].occlusion;
+                    surfaceData.smoothness += materialWeights[index] * triplanarDatas[index].smoothness;
+                }
 
                 return surfaceData;
             }
 
-            InputData CreateInputData(FragmentPassInput input, half3 normalTS)
+            InputData CreateInputData(FragmentPassInput input, half3 normalWS)
             {
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
-
-                half3 viewDirWS = GetWorldSpaceNormalizeViewDir(inputData.positionWS);
-                inputData.normalWS = input.normalWS;
-
-                inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
-                viewDirWS = SafeNormalize(viewDirWS);
-
-                inputData.viewDirectionWS = viewDirWS;
+                inputData.normalWS = NormalizeNormalPerPixel(normalWS);
+                inputData.viewDirectionWS = SafeNormalize(GetWorldSpaceNormalizeViewDir(inputData.positionWS));
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                     inputData.shadowCoord = input.shadowCoord;
