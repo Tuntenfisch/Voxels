@@ -88,7 +88,7 @@ namespace Tuntenfisch.Editor
                 for (int y = 0; y < combinedTexture.height; y++)
                 {
                     // default value for each property (metallic, occlusion, height, smoothness) if not present.
-                    Color combinedPixel = new Color(0.0f, 1.0f, 0.5f, 0.0f);
+                    Color combinedPixel = new Color(0.0f, 1.0f, 0.0f, 0.0f);
 
                     for (int index = 0; index < textures.Length; index++)
                     {
