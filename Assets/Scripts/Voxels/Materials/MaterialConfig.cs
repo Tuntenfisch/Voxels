@@ -21,6 +21,11 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void OnValidate()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             ApplyMaterialConfig();
 
             OnDirtied?.Invoke();
@@ -33,17 +38,31 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void ApplyMaterialConfig()
         {
+            // The dimensions should be the same across all types of textures.
             int width = MaterialInfos[0].AlbedoTexture.width;
             int height = MaterialInfos[0].AlbedoTexture.height;
-            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
+
+            Texture2DArray materialAlbedoTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
+            Texture2DArray materialNormalTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].NormalTexture.format, true);
+            Texture2DArray materialMOHSTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].MOHSTexture.format, true);
 
             for (int index = 0; index < MaterialInfos.Count; index++)
             {
                 Texture2D materialAlbedoTexture = MaterialInfos[index].AlbedoTexture;
-                Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedosTextureArray, index);
+                Texture2D materialNormalTexture = MaterialInfos[index].NormalTexture;
+                Texture2D materialMOHSTexture = MaterialInfos[index].MOHSTexture;
+
+                Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedoTextureArray, index);
+                Graphics.CopyTexture(materialNormalTexture, 0, materialNormalTextureArray, index);
+                Graphics.CopyTexture(materialMOHSTexture, 0, materialMOHSTextureArray, index);
             }
-            materialAlbedosTextureArray.Apply(false);
-            Shader.SetGlobalTexture(nameof(materialAlbedosTextureArray), materialAlbedosTextureArray);
+            materialAlbedoTextureArray.Apply(false);
+            materialNormalTextureArray.Apply(false);
+            materialMOHSTextureArray.Apply(false);
+
+            Shader.SetGlobalTexture(nameof(materialAlbedoTextureArray), materialAlbedoTextureArray);
+            Shader.SetGlobalTexture(nameof(materialNormalTextureArray), materialNormalTextureArray);
+            Shader.SetGlobalTexture(nameof(materialMOHSTextureArray), materialMOHSTextureArray);
         }
     }
 }

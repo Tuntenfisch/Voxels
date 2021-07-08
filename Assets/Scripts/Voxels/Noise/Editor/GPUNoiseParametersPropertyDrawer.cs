@@ -57,6 +57,7 @@ namespace Tuntenfisch.Voxels.Procedural.Editor
 
             return lineCount * EditorGUIUtility.singleLineHeight + (lineCount - 1) * EditorGUIUtility.standardVerticalSpacing;
         }
+
         private void InitializeProperties()
         {
             m_seed = m_noiseParameters.FindPropertyRelative(nameof(m_seed));
