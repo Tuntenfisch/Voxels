@@ -106,7 +106,9 @@ Shader "Voxels/Voxel"
             };
 
             float cosOfHalfSharpFeatureAngle;
-            TEXTURE2D_ARRAY(materialAlbedosTextureArray);
+            TEXTURE2D_ARRAY(materialAlbedoTextureArray);
+            TEXTURE2D_ARRAY(materialNormalTextureArray);
+            TEXTURE2D_ARRAY(materialMOHSTextureArray);
             SAMPLER(sampler_linear_repeat);
 
             #include "Assets/Shaders/Voxels/Include/Triplanar.hlsl"
@@ -202,7 +204,7 @@ Shader "Voxels/Voxel"
                 
                 for (uint index = 0; index < 3; index++)
                 {
-                    half4 materialColor = TriplanarSampleTexture2DArray(input.positionWS, input.normalWS, materialAlbedosTextureArray, sampler_linear_repeat, input.materialIndices[index]);
+                    half4 materialColor = TriplanarSampleTexture2DArray(input.positionWS, input.normalWS, materialAlbedoTextureArray, sampler_linear_repeat, input.materialIndices[index]);
                     albdeo += materialWeights[index] * materialColor;
                 }
 

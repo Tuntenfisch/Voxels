@@ -53,6 +53,7 @@ namespace Tuntenfisch.Voxels.CSG.Editor
 
             return lineCount * EditorGUIUtility.singleLineHeight + (lineCount - 1) * EditorGUIUtility.standardVerticalSpacing;
         }
+
         private void InitializeProperties()
         {
             m_operatorIndex = m_csgOperator.FindPropertyRelative(nameof(m_operatorIndex));
