@@ -56,7 +56,7 @@ namespace Tuntenfisch.Player
 
         public void OnJump() => m_wantsToJump = m_controller.isGrounded;
 
-        public void OnLook(InputValue value) => m_lookDelta += (float2)value.Get<Vector2>();
+        public void OnLook(InputValue value) => m_lookDelta = value.Get<Vector2>();
 
         public void OnPrimary(InputValue value) => m_primaryDown = value.isPressed;
 
@@ -97,7 +97,7 @@ namespace Tuntenfisch.Player
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
                 GPUCSGPrimitive primitive = new GPUCSGPrimitive(CSGPrimitiveType.Sphere);
-                float3 scale = 2.0f;
+                float3 scale = 3.0f;
 
                 WorldManager.Instance.DrawCSGPrimitiveHologram(primitive.PrimitiveType, hit.point, scale);
 
