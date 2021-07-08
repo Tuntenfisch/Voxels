@@ -125,7 +125,7 @@ Voxel ApplyCSGOperator(Voxel lhs, Voxel rhs, CSGOperator csgOperator)
 // transition of the SDF isn't affect.
 //
 // At least that's my theory behind it...
-static const float csgPrimitiveValueMultiplier = 10.0f;
+static const float csgPrimitiveValueMultiplier = 7.5f;
 
 struct CSGPrimitive
 {

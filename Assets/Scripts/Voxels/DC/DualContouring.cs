@@ -37,7 +37,7 @@ namespace Tuntenfisch.Voxels.DC
             ApplyVoxelVolumeConfig();
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             while (m_requests.Count > 0 && m_workers.Count > 0)
             {
