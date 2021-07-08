@@ -33,16 +33,16 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void ApplyMaterialConfig()
         {
-            int width = MaterialInfos[0].Albedo.width;
-            int height = MaterialInfos[0].Albedo.height;
-            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, TextureFormat.RGBA32, true);
+            int width = MaterialInfos[0].AlbedoTexture.width;
+            int height = MaterialInfos[0].AlbedoTexture.height;
+            Texture2DArray materialAlbedosTextureArray = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
 
             for (int index = 0; index < MaterialInfos.Count; index++)
             {
-                Texture2D materialAlbedoTexture = MaterialInfos[index].Albedo;
+                Texture2D materialAlbedoTexture = MaterialInfos[index].AlbedoTexture;
                 Graphics.CopyTexture(materialAlbedoTexture, 0, materialAlbedosTextureArray, index);
             }
-            materialAlbedosTextureArray.Apply();
+            materialAlbedosTextureArray.Apply(false);
             Shader.SetGlobalTexture(nameof(materialAlbedosTextureArray), materialAlbedosTextureArray);
         }
     }
