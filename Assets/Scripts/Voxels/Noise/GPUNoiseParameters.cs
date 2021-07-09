@@ -16,8 +16,6 @@ namespace Tuntenfisch.Voxels.Procedural
 
         [Header("General")]
         [SerializeField]
-        private MaterialIndex m_materialIndex;
-        [SerializeField]
         private int m_seed;
         [SerializeField]
         private NoiseAxes m_noiseAxes;
