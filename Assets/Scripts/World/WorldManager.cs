@@ -11,6 +11,7 @@ using Tuntenfisch.Voxels.Materials;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
+using Unity.Collections;
 
 namespace Tuntenfisch.World
 {
@@ -121,6 +122,25 @@ namespace Tuntenfisch.World
                     }
                 }
             }
+        }
+
+        public bool GetMaterialFromRaycastHit(RaycastHit hit, out MaterialIndex materialIndex)
+        {
+            materialIndex = default;
+
+            if (!(hit.collider is MeshCollider))
+            {
+                return false;
+            }
+
+            int3 chunkCoordinate = CalculateChunkCoordinate(hit.point);
+
+            if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk) && chunk.GetMaterialFromRaycastHit(hit, out materialIndex))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void UpdateWorld(float3 viewerPosition)

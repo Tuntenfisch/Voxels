@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Tuntenfisch.Voxels.Materials;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 
@@ -18,8 +19,12 @@ namespace Tuntenfisch.Voxels.DC
             new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UInt32, 1)
         };
 
+        public float3 Position => m_position;
+        public half4 Normal => m_normal;
+        public MaterialIndex MaterialIndex => m_materialIndex;
+
         private float3 m_position;
         private half4 m_normal;
-        private readonly uint m_materialIndex;
+        private readonly MaterialIndex m_materialIndex;
     }
 }

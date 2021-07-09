@@ -19,10 +19,11 @@ namespace Tuntenfisch.World
     public class Chunk : MonoBehaviour, IPoolable
     {
         public int Lod { get; set; }
-
         private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
         private Mesh m_mesh;
+        private int m_vertexCount;
+        private int m_triangleCount;
         private MeshFilter m_meshFilter;
         private MeshRenderer m_meshRenderer;
         private MeshCollider m_meshCollider;
@@ -78,6 +79,39 @@ namespace Tuntenfisch.World
             m_requestHandle = null;
             m_voxelVolumeCSGOperations.Clear();
             gameObject.SetActive(false);
+        }
+
+        public bool GetMaterialFromRaycastHit(RaycastHit hit, out MaterialIndex materialIndex)
+        {
+            materialIndex = default;
+
+            if (hit.triangleIndex >= m_triangleCount)
+            {
+                return false;
+            }
+
+            using Mesh.MeshDataArray meshDataArray = Mesh.AcquireReadOnlyMeshData(m_mesh);
+            {
+                Mesh.MeshData meshData = meshDataArray[0];
+                NativeArray<int> triangles = meshData.GetIndexData<int>();
+                NativeArray<GPUVertex> vertices = meshData.GetVertexData<GPUVertex>();
+
+                float shortestDistanceSquared = float.MaxValue;
+
+                for (int index = 0; index < 3; index++)
+                {
+                    GPUVertex vertex = vertices[triangles[3 * hit.triangleIndex + index]];
+                    float distanceSquared = (hit.transform.TransformPoint(vertex.Position) - hit.point).sqrMagnitude;
+
+                    if (distanceSquared < shortestDistanceSquared)
+                    {
+                        shortestDistanceSquared = distanceSquared;
+                        materialIndex = vertex.MaterialIndex;
+                    }
+                }
+            }
+
+            return true;
         }
 
         private void CreateBuffers()
@@ -168,6 +202,8 @@ namespace Tuntenfisch.World
         private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
         {
             m_requestHandle = null;
+            m_vertexCount = vertexCount;
+            m_triangleCount = triangleCount;
 
             if (vertexCount == 0 || triangleCount == 0)
             {
@@ -203,10 +239,7 @@ namespace Tuntenfisch.World
             m_meshCollider = GetComponent<MeshCollider>();
         }
 
-        private void ApplyRenderMaterial()
-        {
-            m_meshRenderer.material = WorldManager.VoxelConfig.MaterialConfig.RenderMaterial;
-        }
+        private void ApplyRenderMaterial() => m_meshRenderer.material = WorldManager.VoxelConfig.MaterialConfig.RenderMaterial;
 
         [Flags]
         private enum ChunkFlags

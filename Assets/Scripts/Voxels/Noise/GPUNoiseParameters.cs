@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using Tuntenfisch.Voxels.Materials;
 using Unity.Mathematics;
 using UnityEngine;
 
