@@ -1,6 +1,6 @@
-﻿using Tuntenfisch.Voxels.Materials;
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
+using Tuntenfisch.Voxels.Materials;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -14,7 +14,7 @@ namespace Tuntenfisch.Voxels.Procedural
 
         private static readonly int s_sizeInBytes = Marshal.SizeOf<GPUNoiseParameters>();
 
-        // General Parameters.
+        [Header("General")]
         [SerializeField]
         private MaterialIndex m_materialIndex;
         [SerializeField]
@@ -24,13 +24,16 @@ namespace Tuntenfisch.Voxels.Procedural
         [SerializeField]
         private NoiseType m_noiseType;
 
-        // FBM parameters.
+        [Header("Fractional Brownian Motion")]
+        [Range(1, 32)]
         [SerializeField]
         private int m_numberOfOctaves;
+        [Min(1.0f)]
         [SerializeField]
         private float m_initialAmplitude;
         [SerializeField]
         private float3 m_initialFrequency;
+        [Range(0.0f, 2.0f)]
         [SerializeField]
         private float m_persistence;
         [SerializeField]

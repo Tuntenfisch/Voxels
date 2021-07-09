@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Tuntenfisch.Attributes;
+using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Procedural
 {
@@ -17,6 +18,7 @@ namespace Tuntenfisch.Voxels.Procedural
         [SerializeField]
         private float m_warpedPosition;
 
+        [InlineField]
         [SerializeField]
         private GPUNoiseParameters m_noiseParameters;
 

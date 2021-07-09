@@ -81,7 +81,16 @@ namespace Tuntenfisch.Voxels.DC
                 request.Lod = lod;
                 request.VoxelVolumeToWorldSpaceOffset = worldPosition;
             });
-            m_requests.Enqueue((request, callback));
+
+            // If a worker is available, directly dispatch the request.
+            if (m_workers.Count > 0)
+            {
+                StartCoroutine(DispatchWorkerCoroutine(request, callback));
+            }
+            else
+            {
+                m_requests.Enqueue((request, callback));
+            }
 
             return new RequestHandle(request);
         }
