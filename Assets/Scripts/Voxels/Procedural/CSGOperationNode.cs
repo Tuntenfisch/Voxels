@@ -1,6 +1,7 @@
 ﻿using Tuntenfisch.Voxels.CSG;
 using Unity.Mathematics;
 using UnityEngine;
+using Tuntenfisch.Attributes;
 
 namespace Tuntenfisch.Voxels.Procedural
 {
@@ -22,6 +23,7 @@ namespace Tuntenfisch.Voxels.Procedural
         [SerializeField]
         private float3 m_voxel;
 
+        [InlineField]
         [SerializeField]
         private GPUCSGOperator m_csgOperator;
 

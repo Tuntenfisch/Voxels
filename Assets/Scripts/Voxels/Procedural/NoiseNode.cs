@@ -1,4 +1,5 @@
-﻿using Unity.Mathematics;
+﻿using Tuntenfisch.Attributes;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Procedural
@@ -18,6 +19,7 @@ namespace Tuntenfisch.Voxels.Procedural
         [SerializeField]
         private float2 m_valueAndGradient;
 
+        [InlineField]
         [SerializeField]
         private GPUNoiseParameters m_noiseParameters;
 

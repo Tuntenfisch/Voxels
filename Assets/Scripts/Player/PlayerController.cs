@@ -30,7 +30,7 @@ namespace Tuntenfisch.Player
         private Camera m_camera;
 
         private CharacterController m_controller;
-
+        
         private float2 m_moveDelta;
         private bool m_wantsToJump;
         private float2 m_lookDelta;

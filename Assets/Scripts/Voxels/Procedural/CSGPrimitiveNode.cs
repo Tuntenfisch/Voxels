@@ -1,4 +1,5 @@
-﻿using Tuntenfisch.Voxels.CSG;
+﻿using Tuntenfisch.Attributes;
+using Tuntenfisch.Voxels.CSG;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace Tuntenfisch.Voxels.Procedural
         [SerializeField]
         private float2 m_voxel;
 
+        [InlineField]
         [SerializeField]
         private GPUCSGPrimitive m_csgPrimitive;
 
