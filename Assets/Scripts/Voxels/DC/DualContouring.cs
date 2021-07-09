@@ -29,12 +29,9 @@ namespace Tuntenfisch.Voxels.DC
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied += ApplyVoxelVolumeConfig;
             m_requests = new Queue<(Request, OnMeshGenerated)>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
             m_requestPool = new ObjectPool<Request>(() => { return new Request(); });
-
-            ApplyVoxelVolumeConfig();
         }
 
         private void LateUpdate()
@@ -50,11 +47,7 @@ namespace Tuntenfisch.Voxels.DC
             }
         }
 
-        private void OnDestroy()
-        {
-            m_voxelConfig.VoxelVolumeConfig.OnDirtied -= ApplyVoxelVolumeConfig;
-            OnDestroyed?.Invoke();
-        }
+        private void OnDestroy() => OnDestroyed?.Invoke();
 
         private void OnValidate()
         {
@@ -134,13 +127,6 @@ namespace Tuntenfisch.Voxels.DC
             {
                 worker.Dispose();
             }
-        }
-
-        private void ApplyVoxelVolumeConfig()
-        {
-            int3 numberOfVoxels = m_voxelConfig.VoxelVolumeConfig.NumberOfVoxels;
-            m_voxelConfig.DualContouringConfig.Compute.SetInts(ComputeShaderProperties.NumberOfVoxels, numberOfVoxels.x, numberOfVoxels.y, numberOfVoxels.z);
-            m_voxelConfig.DualContouringConfig.Compute.SetFloat(ComputeShaderProperties.VoxelSpacing, m_voxelConfig.VoxelVolumeConfig.VoxelSpacing);
         }
 
         private class Worker : IDisposable
