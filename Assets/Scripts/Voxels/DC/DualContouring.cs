@@ -109,7 +109,7 @@ namespace Tuntenfisch.Voxels.DC
             switch (status)
             {
                 case Worker.Status.GPUReadbackError:
-                    Debug.LogError("GPU readback error detected.");
+                    Debug.LogWarning("GPU readback error detected.");
                     // If we encountered a GPU readback error, just try again.
                     m_requests.Enqueue((request, callback));
                     break;

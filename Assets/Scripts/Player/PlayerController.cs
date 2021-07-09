@@ -97,7 +97,7 @@ namespace Tuntenfisch.Player
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
             {
                 GPUCSGPrimitive primitive = new GPUCSGPrimitive(CSGPrimitiveType.Sphere);
-                float3 scale = 3.0f;
+                float3 scale = 4.0f;
 
                 WorldManager.Instance.DrawCSGPrimitiveHologram(primitive.PrimitiveType, hit.point, scale);
 
