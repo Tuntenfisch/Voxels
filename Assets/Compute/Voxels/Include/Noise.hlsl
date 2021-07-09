@@ -24,7 +24,6 @@ ENUM NoiseType
 struct NoiseParameters
 {
     // General Parameters.
-    uint materialIndex;
     uint seed;
     uint noiseAxes;
     uint noiseType;
@@ -36,10 +35,9 @@ struct NoiseParameters
     float persistence;
     float3 lacunarity;
 
-    static NoiseParameters Create(uint materialIndex, uint seed, uint noiseAxes, uint noiseType, uint numberOfOctaves, float initialAmplitude, float3 initialFrequency, float persistence, float3 lacunarity)
+    static NoiseParameters Create(uint seed, uint noiseAxes, uint noiseType, uint numberOfOctaves, float initialAmplitude, float3 initialFrequency, float persistence, float3 lacunarity)
     {
         NoiseParameters noiseParameters;
-        noiseParameters.materialIndex = materialIndex;
         noiseParameters.seed = seed;
         noiseParameters.noiseAxes = noiseAxes;
         noiseParameters.noiseType = noiseType;
