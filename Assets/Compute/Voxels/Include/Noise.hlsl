@@ -58,6 +58,10 @@ float3 CalculateOctaveOffset(uint seed, uint octave)
 
 float4 GenerateNoise(float3 position, uint noiseAxes)
 {
+    // For some reasons the noise functions generate spike-like artifacts at positions that are a multiple of 100.
+    // Adding a random offset will ensure that we don't sample at those positions in the first place.
+    position += 0.100594f;
+
     [branch]
     switch(noiseAxes)
     {

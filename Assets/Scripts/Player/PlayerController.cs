@@ -15,10 +15,10 @@ namespace Tuntenfisch.Player
         private const float c_minDownwardVelocity = -2.0f;
 
         [Header("Movement")]
-        [Range(1.0f, 10.0f)]
+        [Min(1.0f)]
         [SerializeField]
         private float m_movementSpeed = 5.0f;
-        [Range(1.0f, 10.0f)]
+        [Min(1.0f)]
         [SerializeField]
         private float m_jumpHeight = 1.5f;
 
