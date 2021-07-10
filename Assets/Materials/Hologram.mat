@@ -126,7 +126,7 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - Emissive_Color: {r: 8, g: 0, b: 0, a: 0}
+    - Emissive_Color: {r: 0, g: 7.999999, b: 0.111282334, a: 0}
     - Tiling: {r: 3, g: 3, b: 0, a: 0}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
