@@ -144,6 +144,7 @@ namespace Tuntenfisch.World
         {
             if (lod != -1 && lod != m_targetLOD)
             {
+                m_targetLOD = lod;
                 ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
             }
             else if (lod == -1)
