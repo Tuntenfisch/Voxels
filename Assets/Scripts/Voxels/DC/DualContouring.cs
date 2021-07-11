@@ -17,32 +17,32 @@ namespace Tuntenfisch.Voxels.DC
     {
         private event Action OnDestroyed;
 
-        [Range(1, 8)]
+        [Range(1, 16)]
         [SerializeField]
         private int m_numberOfWorkers = 4;
 
         private VoxelConfig m_voxelConfig;
-        private Queue<(Request, OnMeshGenerated)> m_requests;
+        private Queue<(Worker.Task, OnMeshGenerated)> m_tasks;
         private Stack<Worker> m_workers;
-        private ObjectPool<Request> m_requestPool;
+        private ObjectPool<Worker.Task> m_taskPool;
 
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-            m_requests = new Queue<(Request, OnMeshGenerated)>();
+            m_tasks = new Queue<(Worker.Task, OnMeshGenerated)>();
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
-            m_requestPool = new ObjectPool<Request>(() => { return new Request(); });
+            m_taskPool = new ObjectPool<Worker.Task>(() => { return new Worker.Task(); });
         }
 
         private void LateUpdate()
         {
-            while (m_requests.Count > 0 && m_workers.Count > 0)
+            while (m_tasks.Count > 0 && m_workers.Count > 0)
             {
-                (Request request, OnMeshGenerated callback) = m_requests.Dequeue();
+                (Worker.Task task, OnMeshGenerated callback) = m_tasks.Dequeue();
 
-                if (!request.Canceled)
+                if (!task.Canceled)
                 {
-                    StartCoroutine(DispatchWorkerCoroutine(request, callback));
+                    StartCoroutine(DispatchWorkerCoroutine(task, callback));
                 }
             }
         }
@@ -63,7 +63,7 @@ namespace Tuntenfisch.Voxels.DC
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
         }
 
-        public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, int lod, float3 worldPosition, OnMeshGenerated callback)
+        public RequestHandle RequestMeshAsync(ComputeBuffer voxelVolumeBuffer, int lod, float3 worldPosition,  OnMeshGenerated callback)
         {
             if (voxelVolumeBuffer == null)
             {
@@ -75,33 +75,33 @@ namespace Tuntenfisch.Voxels.DC
                 throw new ArgumentNullException(nameof(callback));
             }
 
-            Request request = m_requestPool.Acquire((request) =>
+            Worker.Task task = m_taskPool.Acquire((task) =>
             {
-                request.VoxelVolumeBuffer = voxelVolumeBuffer;
-                request.Lod = lod;
-                request.VoxelVolumeToWorldSpaceOffset = worldPosition;
+                task.VoxelVolumeBuffer = voxelVolumeBuffer;
+                task.LOD = lod;
+                task.VoxelVolumeToWorldSpaceOffset = worldPosition;
             });
 
-            // If a worker is available, directly dispatch the request.
+            // If a worker is available, directly dispatch the task.
             if (m_workers.Count > 0)
             {
-                StartCoroutine(DispatchWorkerCoroutine(request, callback));
+                StartCoroutine(DispatchWorkerCoroutine(task, callback));
             }
             else
             {
-                m_requests.Enqueue((request, callback));
+                m_tasks.Enqueue((task, callback));
             }
 
-            return new RequestHandle(request);
+            return new RequestHandle(task);
         }
 
-        private IEnumerator DispatchWorkerCoroutine(Request request, OnMeshGenerated callback)
+        private IEnumerator DispatchWorkerCoroutine(Worker.Task task, OnMeshGenerated callback)
         {
             Worker worker = m_workers.Pop();
-            worker.GenerateMeshAsync(request.VoxelVolumeBuffer, request.VoxelVolumeToWorldSpaceOffset, request.Lod);
+            worker.GenerateMeshAsync(task);
             Worker.Status status;
 
-            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback)
+            while ((status = worker.Process(task)) == Worker.Status.WaitingForGPUReadback)
             {
                 yield return null;
             }
@@ -110,21 +110,25 @@ namespace Tuntenfisch.Voxels.DC
             {
                 case Worker.Status.GPUReadbackError:
                     Debug.LogWarning("GPU readback error detected.");
-                    // If we encountered a GPU readback error, just try again.
-                    m_requests.Enqueue((request, callback));
-                    break;
 
-                case Worker.Status.Retry:
-                    m_requests.Enqueue((request, callback));
+                    if (!task.Canceled)
+                    {
+                        // If we encountered a GPU readback error, just try again.
+                        m_tasks.Enqueue((task, callback));
+                    }
+                    else
+                    {
+                        m_taskPool.Release(task);
+                    }
                     break;
 
                 default:
-                    // Only call the callback if the request hasn't been canceled.
-                    if (!request.Canceled)
+                    // Only call the callback if the task hasn't been canceled.
+                    if (!task.Canceled)
                     {
                         callback(worker.VertexCount, worker.TriangleCount, worker.Vertices, worker.Triangles);
                     }
-                    m_requestPool.Release(request);
+                    m_taskPool.Release(task);
                     break;
             }
 
@@ -147,15 +151,15 @@ namespace Tuntenfisch.Voxels.DC
 
             private DualContouring m_parent;
 
+            private NativeArray<GPUVertex> m_generatedVertices;
+            private NativeArray<int> m_generatedTriangles;
+            private NativeArray<int> m_counts;
+
             private AsyncComputeBuffer m_cellVertexInfoLookupTableBuffer;
             private AsyncComputeBuffer m_generatedVerticesBuffer0;
             private AsyncComputeBuffer m_generatedVerticesBuffer1;
             private AsyncComputeBuffer m_generatedTrianglesBuffer;
             private AsyncComputeBuffer m_countBuffer;
-
-            private NativeArray<GPUVertex> m_generatedVertices;
-            private NativeArray<int> m_generatedTriangles;
-            private NativeArray<int> m_counts;
 
             public Worker(DualContouring parent)
             {
@@ -173,7 +177,7 @@ namespace Tuntenfisch.Voxels.DC
                 m_parent = null;
             }
 
-            public Status Process()
+            public Status Process(Task task)
             {
                 if (m_countBuffer.IsDataAvailable())
                 {
@@ -187,21 +191,6 @@ namespace Tuntenfisch.Voxels.DC
                     if (VertexCount == 0 || TriangleCount == 0)
                     {
                         return Status.Done;
-                    }
-
-                    if (VertexCount > m_generatedVerticesBuffer0.Count)
-                    {
-                        // The mesh is larger than the buffer currently allocated. Enlarge buffers and try again.
-                        int count = (int)math.round(1.5f * VertexCount);
-
-                        m_generatedVertices.Dispose();
-                        m_generatedVertices = new NativeArray<GPUVertex>(count, Allocator.Persistent);
-                        m_generatedVerticesBuffer0.Release();
-                        m_generatedVerticesBuffer0 = new AsyncComputeBuffer(count, GPUVertex.SizeInBytes, ComputeBufferType.Counter);
-                        m_generatedVerticesBuffer1.Release();
-                        m_generatedVerticesBuffer1 = new AsyncComputeBuffer(count, GPUVertex.SizeInBytes, ComputeBufferType.Counter);
-
-                        return Status.Retry;
                     }
 
                     // Retrieve vertices and triangles asynchronously.
@@ -225,16 +214,16 @@ namespace Tuntenfisch.Voxels.DC
                 return Status.WaitingForGPUReadback;
             }
 
-            public void GenerateMeshAsync(ComputeBuffer voxelVolumeBuffer, float3 voxelVolumeToWorldOffset, int lod)
+            public void GenerateMeshAsync(Task task)
             {
                 m_generatedVerticesBuffer0.SetCounterValue(0);
                 m_generatedTrianglesBuffer.SetCounterValue(0);
 
-                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)voxelVolumeToWorldOffset);
+                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetVector(ComputeShaderProperties.VoxelVolumeToWorldSpaceOffset, (Vector3)task.VoxelVolumeToWorldSpaceOffset);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetInt(ComputeShaderProperties.CellStride, 1);
 
                 // First we generate the inner cell vertices, i.e. all vertices which's cells do not reside on the surface of the voxel volume of this chunk.
-                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.VoxelVolume, task.VoxelVolumeBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.CellVertexInfoLookupTable, m_cellVertexInfoLookupTableBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(0, ComputeShaderProperties.GeneratedVertices0, m_generatedVerticesBuffer0);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.Dispatch(0, m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCells - 2);
@@ -244,7 +233,7 @@ namespace Tuntenfisch.Voxels.DC
                 // to create a lower lod. In order to leverage the GPU's parallelism we do this iteratively, similarly to how parallel reduction works.
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(1, ComputeShaderProperties.CellVertexInfoLookupTable, m_cellVertexInfoLookupTableBuffer);
 
-                for (int cellStride = 2; cellStride <= (1 << lod); cellStride <<= 1)
+                for (int cellStride = 2; cellStride <= (1 << task.LOD); cellStride <<= 1)
                 {
                     m_generatedVerticesBuffer1.SetCounterValue(0);
 
@@ -260,13 +249,13 @@ namespace Tuntenfisch.Voxels.DC
 
                 // After the desired lod has been generated, we populate the outermost cells with vertices at the highest level of detail. This will ensure that no
                 // seams will be visible, resulting in a watertight mesh.
-                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.VoxelVolume, task.VoxelVolumeBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.CellVertexInfoLookupTable, m_cellVertexInfoLookupTableBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(2, ComputeShaderProperties.GeneratedVertices0, m_generatedVerticesBuffer0);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.Dispatch(2, m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCells);
 
                 // Finally, we triangulate the vertices to form the mesh.
-                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(3, ComputeShaderProperties.VoxelVolume, voxelVolumeBuffer);
+                m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(3, ComputeShaderProperties.VoxelVolume, task.VoxelVolumeBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(3, ComputeShaderProperties.CellVertexInfoLookupTable, m_cellVertexInfoLookupTableBuffer);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(3, ComputeShaderProperties.GeneratedVertices0, m_generatedVerticesBuffer0);
                 m_parent.m_voxelConfig.DualContouringConfig.Compute.SetBuffer(3, ComputeShaderProperties.GeneratedTriangles, m_generatedTrianglesBuffer);
@@ -280,27 +269,26 @@ namespace Tuntenfisch.Voxels.DC
             private void CreateBuffers()
             {
                 // Create CPU buffers.
-                int generatedVertexCapacity = m_parent.m_voxelConfig.VoxelVolumeConfig.CellCount;
+                int maxNumberOfVertices = m_parent.m_voxelConfig.VoxelVolumeConfig.CellCount;
 
-                if (!m_generatedVertices.IsCreated || m_generatedVertices.Length != generatedVertexCapacity)
+                if (!m_generatedVertices.IsCreated || m_generatedVertices.Length != maxNumberOfVertices)
                 {
                     if (m_generatedVertices.IsCreated)
                     {
                         m_generatedVertices.Dispose();
                     }
-                    m_generatedVertices = new NativeArray<GPUVertex>(generatedVertexCapacity, Allocator.Persistent);
+                    m_generatedVertices = new NativeArray<GPUVertex>(maxNumberOfVertices, Allocator.Persistent);
                 }
 
-                int generatedTriangleCapacity = 3 * 6 * (int)math.round(math.pow(m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - 1, 3));
+                int maxNumberOfTriangles = 3 * 6 * (int)math.round(math.pow(m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - 1, 3));
 
-                if (!m_generatedTriangles.IsCreated || m_generatedTriangles.Length != generatedTriangleCapacity)
+                if (!m_generatedTriangles.IsCreated || m_generatedTriangles.Length != maxNumberOfTriangles)
                 {
                     if (m_generatedTriangles.IsCreated)
                     {
                         m_generatedTriangles.Dispose();
                     }
-
-                    m_generatedTriangles = new NativeArray<int>(generatedTriangleCapacity, Allocator.Persistent);
+                    m_generatedTriangles = new NativeArray<int>(maxNumberOfTriangles, Allocator.Persistent);
                 }
 
                 if (!m_counts.IsCreated || m_counts.Length != 2)
@@ -410,29 +398,28 @@ namespace Tuntenfisch.Voxels.DC
             {
                 WaitingForGPUReadback,
                 GPUReadbackError,
-                Retry,
                 Done
             }
-        }
 
-        private class Request : IPoolable, IRequest
-        {
-            public bool Canceled => m_canceled;
-            public ComputeBuffer VoxelVolumeBuffer { get; set; }
-            public int Lod { get; set; }
-            public float3 VoxelVolumeToWorldSpaceOffset { get; set; }
-
-            private bool m_canceled;
-
-            public void OnAcquire() { }
-
-            public void OnRelease()
+            public class Task : IPoolable, IRequest
             {
-                VoxelVolumeBuffer = null;
-                m_canceled = false;
-            }
+                public bool Canceled => m_canceled;
+                public ComputeBuffer VoxelVolumeBuffer { get; set; }
+                public int LOD { get; set; }
+                public float3 VoxelVolumeToWorldSpaceOffset { get; set; }
 
-            public void Cancel() => m_canceled = true;
+                private bool m_canceled;
+
+                public void OnAcquire() { }
+
+                public void OnRelease()
+                {
+                    VoxelVolumeBuffer = null;
+                    m_canceled = false;
+                }
+
+                public void Cancel() => m_canceled = true;
+            }
         }
     }
 }

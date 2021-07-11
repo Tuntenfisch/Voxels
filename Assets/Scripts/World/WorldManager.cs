@@ -189,11 +189,7 @@ namespace Tuntenfisch.World
 
                 if (m_chunks.TryGetValue(chunkCoordinate, out Chunk chunk))
                 {
-                    if (chunk.Lod != lod)
-                    {
-                        chunk.Lod = lod;
-                        chunk.RegenerateMesh();
-                    }
+                    chunk.RegenerateMesh(lod);
                 }
                 else
                 {
@@ -201,9 +197,8 @@ namespace Tuntenfisch.World
                     chunk = m_sharedChunkPool.Acquire((chunk) =>
                     {
                         chunk.transform.position = chunkPosition;
-                        chunk.Lod = lod;
                         chunk.RegenerateVoxelVolume();
-                        chunk.RegenerateMesh();
+                        chunk.RegenerateMesh(lod);
                     });
                     m_chunks[chunkCoordinate] = chunk;
                 }

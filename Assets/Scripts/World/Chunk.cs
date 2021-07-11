@@ -12,18 +12,21 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
 
 namespace Tuntenfisch.World
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class Chunk : MonoBehaviour, IPoolable
     {
-        public int Lod { get; set; }
+
+
         private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
         private Mesh m_mesh;
-        private int m_vertexCount;
-        private int m_triangleCount;
+        public int m_currentLOD;
+        public int m_targetLOD;
+
         private MeshFilter m_meshFilter;
         private MeshRenderer m_meshRenderer;
         private MeshCollider m_meshCollider;
@@ -57,27 +60,30 @@ namespace Tuntenfisch.World
 
         public void OnAcquire()
         {
+            m_targetLOD = -1;
             CreateBuffers();
             gameObject.SetActive(true);
         }
 
         public void OnRelease()
         {
+            m_meshFilter.sharedMesh = null;
+            m_meshCollider.sharedMesh = null;
+
             if (HasPendingRequest)
             {
                 m_requestHandle.Cancel();
                 m_requestHandle = null;
             }
+            m_voxelVolumeCSGOperations.Clear();
 
             if (m_processChunkFlagsCoroutine != null)
             {
                 StopCoroutine(m_processChunkFlagsCoroutine);
                 m_processChunkFlagsCoroutine = null;
             }
-            m_meshFilter.sharedMesh = null;
-            m_meshCollider.sharedMesh = null;
-            m_requestHandle = null;
-            m_voxelVolumeCSGOperations.Clear();
+            m_flags = 0;
+
             gameObject.SetActive(false);
         }
 
@@ -85,7 +91,7 @@ namespace Tuntenfisch.World
         {
             materialIndex = default;
 
-            if (hit.triangleIndex >= m_triangleCount)
+            if (hit.triangleIndex >= m_mesh.triangles.Length)
             {
                 return false;
             }
@@ -101,7 +107,7 @@ namespace Tuntenfisch.World
                 for (int index = 0; index < 3; index++)
                 {
                     GPUVertex vertex = vertices[triangles[3 * hit.triangleIndex + index]];
-                    float distanceSquared = (hit.transform.TransformPoint(vertex.Position) - hit.point).sqrMagnitude;
+                    float distanceSquared = math.lengthsq(hit.transform.TransformPoint(vertex.Position) - hit.point);
 
                     if (distanceSquared < shortestDistanceSquared)
                     {
@@ -134,7 +140,17 @@ namespace Tuntenfisch.World
 
         public void RegenerateVoxelVolume() => ProcessChunkFlags(ChunkFlags.VoxelVolumeRegenerationRequested);
 
-        public void RegenerateMesh() => ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
+        public void RegenerateMesh(int lod = -1)
+        {
+            if (lod != -1 && lod != m_targetLOD)
+            {
+                ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
+            }
+            else if (lod == -1)
+            {
+                ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
+            }
+        }
 
         public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, MaterialIndex materialIndex, Matrix4x4 worldToObjectMatrix)
         {
@@ -178,7 +194,7 @@ namespace Tuntenfisch.World
                 )
                 {
                     m_flags &= ~ChunkFlags.MeshRegenerationRequested;
-                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, Lod, transform.position, OnMeshGenerated);
+                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, m_targetLOD, transform.position,  OnMeshGenerated);
                 }
 
                 if (m_flags.HasFlag(ChunkFlags.MeshBakingRequested))
@@ -202,8 +218,7 @@ namespace Tuntenfisch.World
         private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
         {
             m_requestHandle = null;
-            m_vertexCount = vertexCount;
-            m_triangleCount = triangleCount;
+            m_currentLOD = m_targetLOD;
 
             if (vertexCount == 0 || triangleCount == 0)
             {
