@@ -174,9 +174,9 @@ MonoBehaviour:
   m_updateInterval: 20
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
   m_lodDistances:
-  - 100
   - 200
   - 400
+  - 800
 --- !u!114 &337836006
 MonoBehaviour:
   m_ObjectHideFlags: 0
