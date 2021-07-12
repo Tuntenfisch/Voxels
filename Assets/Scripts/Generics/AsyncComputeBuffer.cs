@@ -16,6 +16,7 @@ namespace Tuntenfisch.Generics
 
         private readonly ComputeBuffer m_buffer;
         private AsyncGPUReadbackRequest m_request;
+        private int m_requestedCount;
         private AsyncComputeBufferFlags m_flags;
 
         public AsyncComputeBuffer(int count, int stride, ComputeBufferType type = ComputeBufferType.Default) => m_buffer = new ComputeBuffer(count, stride, type);
@@ -25,6 +26,7 @@ namespace Tuntenfisch.Generics
         public void StartReadback(int count)
         {
             ValidateCountAndStateForDataRequest(count);
+            m_requestedCount = count;
             m_request = AsyncGPUReadback.Request(m_buffer, count * m_buffer.stride, 0);
             m_flags |= AsyncComputeBufferFlags.ReadbackInProgress;
         }
@@ -45,6 +47,7 @@ namespace Tuntenfisch.Generics
                 throw new ArgumentException($"Length of parameter {nameof(array)} is too small to store the readback.");
             }
 
+            m_requestedCount = count;
             m_request = AsyncGPUReadback.RequestIntoNativeArray(ref array, m_buffer, count * m_buffer.stride, 0);
             m_flags |= AsyncComputeBufferFlags.ReadbackInProgress;
         }
@@ -59,7 +62,7 @@ namespace Tuntenfisch.Generics
             return m_request.done;
         }
 
-        public void EndReadback()
+        public int EndReadback()
         {
             if (!m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress))
             {
@@ -68,6 +71,8 @@ namespace Tuntenfisch.Generics
 
             m_request.WaitForCompletion();
             m_flags &= ~AsyncComputeBufferFlags.ReadbackInProgress;
+
+            return m_requestedCount;
         }
 
         public NativeArray<T> GetData<T>() where T : struct

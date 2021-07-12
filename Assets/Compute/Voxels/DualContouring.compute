@@ -48,7 +48,7 @@ float schmitzParticleStepSize;
 RWStructuredBuffer<CellVertexInfo> cellVertexInfoLookupTable;
 RWStructuredBuffer<Vertex> generatedVertices0;
 RWStructuredBuffer<Vertex> generatedVertices1;
-AppendStructuredBuffer<uint3> generatedTriangles;
+RWByteAddressBuffer generatedTriangles;
 
 // Theoretically we can declare below arrays locally and pass them around functions with the "out" or "inout" modifier but that will
 // result in more temporary registers being used by the compiler for some reason. See the following link for more information:
@@ -70,14 +70,6 @@ uint CalculateCellVertexInfoLookupTableIndex(uint3 coordinate, uint stride = 1)
     coordinate = IsOuterVoxel(coordinate) ? coordinate : (coordinate - 1) / stride * stride + 1;
 
     return dot(coordinate, uint3(1, numberOfVoxels.x - 1, (numberOfVoxels.x - 1) * (numberOfVoxels.y - 1)));
-}
-
-uint ClampGeneratedVerticesIndex(RWStructuredBuffer<Vertex> generatedVertices, uint index)
-{
-    uint2 countAndStride;
-    generatedVertices.GetDimensions(countAndStride.x, countAndStride.y);
-    
-    return min(index, countAndStride.x - 1);
 }
 
 float3 CalculateCombinedForce(float3 center)
@@ -248,7 +240,7 @@ void GenerateInnerCellVertices(uint3 id : SV_DispatchThreadID)
     if (numberOfIntersections > 0)
     {
         cellVertexInfo.index = generatedVertices0.IncrementCounter();
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateCellVertex(cellID);
+        generatedVertices0[cellVertexInfo.index] = CalculateCellVertex(cellID);
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
@@ -292,7 +284,7 @@ void ApplyLevelOfDetail(uint3 id : SV_DispatchThreadID)
         parentCellVertex.SetMaterialIndex(GetDominantMaterialIndex());
 
         parentCellVertexInfo.index = generatedVertices1.IncrementCounter();
-        generatedVertices1[ClampGeneratedVerticesIndex(generatedVertices1, parentCellVertexInfo.index)] = parentCellVertex;
+        generatedVertices1[parentCellVertexInfo.index] = parentCellVertex;
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID, cellStride)] = parentCellVertexInfo;
 }
@@ -312,7 +304,7 @@ void GenerateOuterCellVertices(uint3 cellID : SV_DispatchThreadID)
     if (numberOfIntersections > 0)
     {
         cellVertexInfo.index = generatedVertices0.IncrementCounter();
-        generatedVertices0[ClampGeneratedVerticesIndex(generatedVertices0, cellVertexInfo.index)] = CalculateCellVertex(cellID);
+        generatedVertices0[cellVertexInfo.index] = CalculateCellVertex(cellID);
     }
     cellVertexInfoLookupTable[CalculateCellVertexInfoLookupTableIndex(cellID)] = cellVertexInfo;
 }
@@ -331,7 +323,9 @@ void GenerateTriangle(CellVertexInfo cellVertexInfo, CellVertexInfo firstNeighbo
         return;
     }
 
-    generatedTriangles.Append(indices);
+    // The first 8 bytes of the generated triangles buffer will be used to store the number of vertices/triangles
+    // generated and therefore need to stay empty.
+    generatedTriangles.Store3(8 + 12 * cellVertexInfoLookupTable.IncrementCounter(), indices);
 }
 
 void GetNeighbourCellsVertexInfos(uint3 coordinate, uint index)
