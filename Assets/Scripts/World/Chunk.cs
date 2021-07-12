@@ -21,10 +21,10 @@ namespace Tuntenfisch.World
     {
         private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
-        private Mesh m_mesh;
-        public int m_currentLOD;
-        public int m_targetLOD;
+        private int m_currentLOD;
+        private int m_targetLOD;
 
+        private Mesh m_mesh;
         private MeshFilter m_meshFilter;
         private MeshRenderer m_meshRenderer;
         private MeshCollider m_meshCollider;
@@ -193,7 +193,16 @@ namespace Tuntenfisch.World
                 )
                 {
                     m_flags &= ~ChunkFlags.MeshRegenerationRequested;
-                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync(m_voxelVolumeBuffer, m_targetLOD, transform.position,  OnMeshGenerated);
+                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync
+                    (
+                        m_voxelVolumeBuffer,
+                        m_currentLOD,
+                        m_targetLOD,
+                        m_mesh.vertexCount,
+                        m_mesh.triangles.Length,
+                        transform.position,
+                        OnMeshGenerated
+                    );
                 }
 
                 if (m_flags.HasFlag(ChunkFlags.MeshBakingRequested))
@@ -232,11 +241,11 @@ namespace Tuntenfisch.World
             m_mesh.SetIndexBufferParams(triangleCount, IndexFormat.UInt32);
 #if !UNITY_EDITOR
             MeshUpdateFlags flags = MeshUpdateFlags.DontNotifyMeshUsers | MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontValidateIndices;
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount, flags);
+            m_mesh.SetIndexBufferData(triangles, 2, 0, triangleCount, flags);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount), flags);
             m_mesh.RecalculateBounds(flags);
 #else
-            m_mesh.SetIndexBufferData(triangles, 0, 0, triangleCount);
+            m_mesh.SetIndexBufferData(triangles, 2, 0, triangleCount);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds(MeshUpdateFlags.DontValidateIndices);
 #endif

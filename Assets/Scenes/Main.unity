@@ -171,7 +171,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_viewer: {fileID: 1023658864}
-  m_updateInterval: 20
+  m_updateInterval: 33.5
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
   m_lodDistances:
   - 200
@@ -203,6 +203,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_numberOfWorkers: 8
+  m_readbackInflationFactor: 1.25
 --- !u!114 &337836008
 MonoBehaviour:
   m_ObjectHideFlags: 0
