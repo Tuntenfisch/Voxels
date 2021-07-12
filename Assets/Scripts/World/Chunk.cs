@@ -23,6 +23,8 @@ namespace Tuntenfisch.World
 
         private int m_currentLOD;
         private int m_targetLOD;
+        private int m_vertexCount;
+        private int m_triangleCount;
 
         private Mesh m_mesh;
         private MeshFilter m_meshFilter;
@@ -89,7 +91,7 @@ namespace Tuntenfisch.World
         {
             materialIndex = default;
 
-            if (hit.triangleIndex >= m_mesh.triangles.Length)
+            if (hit.triangleIndex >= m_triangleCount)
             {
                 return false;
             }
@@ -198,8 +200,8 @@ namespace Tuntenfisch.World
                         m_voxelVolumeBuffer,
                         m_currentLOD,
                         m_targetLOD,
-                        m_mesh.vertexCount,
-                        m_mesh.triangles.Length,
+                        m_vertexCount,
+                        m_triangleCount,
                         transform.position,
                         OnMeshGenerated
                     );
@@ -227,6 +229,8 @@ namespace Tuntenfisch.World
         {
             m_requestHandle = null;
             m_currentLOD = m_targetLOD;
+            m_vertexCount = vertexCount;
+            m_triangleCount = triangleCount;
 
             if (vertexCount == 0 || triangleCount == 0)
             {

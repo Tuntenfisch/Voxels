@@ -303,18 +303,8 @@ namespace Tuntenfisch.Voxels.DC
             {
                 float lodDifferenceFactor = math.pow(2.0f, task.TargetLOD - task.CurrentLOD);
 
-                int estimatedVertexCount = (int)math.round(math.clamp
-                (
-                    m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentVertexCount,
-                    100, 
-                    m_generatedVertices.Length
-                ));
-                int estimatedTriangleCount = (int)math.round(math.clamp
-                (
-                    m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentTriangleCount,
-                    100, 
-                    m_generatedTriangles.Length
-                ));
+                int estimatedVertexCount = (int)math.round(math.clamp(m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentVertexCount, 2, m_generatedVertices.Length));
+                int estimatedTriangleCount = (int)math.round(math.clamp(m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentTriangleCount, 2, m_generatedTriangles.Length));
 
                 return (estimatedVertexCount, estimatedTriangleCount);
             }
