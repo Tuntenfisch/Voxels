@@ -10,17 +10,15 @@ using Tuntenfisch.Voxels.Materials;
 using Tuntenfisch.Voxels.Volume;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Unity.Mathematics;
 
 namespace Tuntenfisch.World
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class Chunk : MonoBehaviour, IPoolable
     {
-
-
         private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
 
         private Mesh m_mesh;
