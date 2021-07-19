@@ -5,7 +5,6 @@ using System.Linq;
 using Tuntenfisch.Extensions;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
-using Tuntenfisch.Generics.Request;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -45,7 +44,7 @@ namespace Tuntenfisch.Voxels.DC
 
                 if (!task.Canceled)
                 {
-                    StartCoroutine(DispatchWorkerCoroutine(task, callback));
+                    DispatchWorker(task, callback);
                 }
             }
         }
@@ -66,7 +65,7 @@ namespace Tuntenfisch.Voxels.DC
             m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
         }
 
-        public RequestHandle RequestMeshAsync
+        public IRequest RequestMeshAsync
         (
             ComputeBuffer voxelVolumeBuffer,
             int currentLOD,
@@ -95,20 +94,24 @@ namespace Tuntenfisch.Voxels.DC
                 task.CurrentVertexCount = currentVertexCount;
                 task.CurrentTriangleCount = currentTriangleCount;
                 task.VoxelVolumeToWorldSpaceOffset = worldPosition;
+
+                return task;
             });
 
             // If a worker is available, directly dispatch the task.
             if (m_workers.Count > 0)
             {
-                StartCoroutine(DispatchWorkerCoroutine(task, callback));
+                DispatchWorker(task, callback);
             }
             else
             {
                 m_tasks.Enqueue((task, callback));
             }
 
-            return new RequestHandle(task);
+            return task;
         }
+
+        private void DispatchWorker(Worker.Task task, OnMeshGenerated callback) => StartCoroutine(DispatchWorkerCoroutine(task, callback));
 
         private IEnumerator DispatchWorkerCoroutine(Worker.Task task, OnMeshGenerated callback)
         {
@@ -124,7 +127,10 @@ namespace Tuntenfisch.Voxels.DC
             switch (status)
             {
                 case Worker.Status.GPUReadbackError:
-                    Debug.LogWarning("GPU readback error detected.");
+                    if (Debug.isDebugBuild)
+                    {
+                        Debug.LogWarning("GPU readback error detected.");
+                    }
 
                     if (!task.Canceled)
                     {
@@ -141,7 +147,7 @@ namespace Tuntenfisch.Voxels.DC
                     // Only call the callback if the task hasn't been canceled.
                     if (!task.Canceled)
                     {
-                        callback(worker.VertexCount, worker.TriangleCount, worker.Vertices, worker.Triangles);
+                        callback(worker.Vertices, worker.VertexCount, 0, worker.Triangles, worker.TriangleCount, 2);
                     }
                     m_taskPool.Release(task);
                     break;
@@ -296,15 +302,19 @@ namespace Tuntenfisch.Voxels.DC
                 ComputeBuffer.CopyCount(m_cellVertexInfoLookupTableBuffer, m_generatedTrianglesBuffer, sizeof(uint));
                 // Retrieve both the vertices and triangles buffer.
                 m_generatedVerticesBuffer0.StartReadbackNonAlloc(ref m_generatedVertices, estimatedVertexCount);
-                m_generatedTrianglesBuffer.StartReadbackNonAlloc(ref m_generatedTriangles, estimatedTriangleCount);
+                // We're adding 2 because the vertex and triangle counts are stored in the buffer as well.
+                m_generatedTrianglesBuffer.StartReadbackNonAlloc(ref m_generatedTriangles, estimatedTriangleCount + 2);
             }
 
             private (int, int) EstimateVertexAndTriangleCounts(Task task)
             {
-                float lodDifferenceFactor = math.pow(2.0f, task.TargetLOD - task.CurrentLOD);
+                float factor = m_parent.m_readbackInflationFactor * math.pow(2.0f, task.TargetLOD - task.CurrentLOD);
 
-                int estimatedVertexCount = (int)math.round(math.clamp(m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentVertexCount, 2, m_generatedVertices.Length));
-                int estimatedTriangleCount = (int)math.round(math.clamp(m_parent.m_readbackInflationFactor * lodDifferenceFactor * task.CurrentTriangleCount, 2, m_generatedTriangles.Length));
+                int estimatedVertexCount = (int)math.round(factor * task.CurrentVertexCount);
+                estimatedVertexCount = math.clamp(1, estimatedVertexCount, m_generatedVertices.Length);
+
+                int estimatedTriangleCount = (int)math.round(factor * task.CurrentTriangleCount);
+                estimatedTriangleCount = math.clamp(1, estimatedTriangleCount, m_generatedTriangles.Length - 2);
 
                 return (estimatedVertexCount, estimatedTriangleCount);
             }
@@ -327,7 +337,7 @@ namespace Tuntenfisch.Voxels.DC
                 int maxNumberOfTriangles = 3 * 6 * (int)math.round(math.pow(m_parent.m_voxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - 1, 3));
                 // As mentioned, in addition to storing the triangles, this buffer will also store the number of vertices and triangles generated, i.e.
                 // two additional integers.
-                int generatedTrianglesCapacity = 2 + maxNumberOfTriangles;
+                int generatedTrianglesCapacity = maxNumberOfTriangles + 2;
 
                 if (!m_generatedTriangles.IsCreated || m_generatedTriangles.Length != generatedTrianglesCapacity)
                 {
@@ -424,7 +434,7 @@ namespace Tuntenfisch.Voxels.DC
 
             public class Task : IPoolable, IRequest
             {
-                public bool Canceled => m_canceled;
+                public bool Canceled { get; private set; }
                 public ComputeBuffer VoxelVolumeBuffer { get; set; }
                 public int CurrentLOD { get; set; }
                 public int TargetLOD { get; set; }
@@ -432,17 +442,15 @@ namespace Tuntenfisch.Voxels.DC
                 public int CurrentTriangleCount { get; set; }
                 public float3 VoxelVolumeToWorldSpaceOffset { get; set; }
 
-                private bool m_canceled;
-
                 public void OnAcquire() { }
 
                 public void OnRelease()
                 {
                     VoxelVolumeBuffer = null;
-                    m_canceled = false;
+                    Canceled = false;
                 }
 
-                public void Cancel() => m_canceled = true;
+                public void Cancel() => Canceled = true;
             }
         }
     }

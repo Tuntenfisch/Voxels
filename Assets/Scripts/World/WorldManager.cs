@@ -1,17 +1,15 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
 using Tuntenfisch.Voxels;
 using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
-using Tuntenfisch.Voxels.Volume;
 using Tuntenfisch.Voxels.Materials;
+using Tuntenfisch.Voxels.Volume;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
-using Unity.Collections;
 
 namespace Tuntenfisch.World
 {
@@ -63,7 +61,7 @@ namespace Tuntenfisch.World
             m_dualContouring = GetComponent<DualContouring>();
             m_csgUtility = GetComponent<CSGUtility>();
 
-            m_sharedChunkPool = new ObjectPool<Chunk>(() => { return Instantiate(Instance.m_chunkPrefab, Instance.transform).GetComponent<Chunk>(); });
+            m_sharedChunkPool = new ObjectPool<Chunk>(() => { return Instantiate(m_chunkPrefab, transform).GetComponent<Chunk>(); });
             m_chunks = new Dictionary<int3, Chunk>();
             m_oldChunkCoordinates = new HashSet<int3>();
             m_chunksToProcess = new Queue<(int3, float3, int)>();
@@ -104,10 +102,9 @@ namespace Tuntenfisch.World
         {
             Matrix4x4 worldToObjectMatrix = Matrix4x4.TRS(position, quaternion.identity, scale).inverse;
 
-            // Inflate the bounds a bit to ensure CSG operations near the boundary of chunks are processed by all nearby chunks.
-            Bounds bounds = new Bounds(position, 3.0f * scale);
-            int3 minChunkCoordinate = CalculateChunkCoordinate(bounds.min);
-            int3 maxChunkCoordinate = CalculateChunkCoordinate(bounds.max);
+            // Inflate the scale a bit to ensure CSG operations near the boundary of chunks are processed by all nearby chunks.
+            int3 minChunkCoordinate = CalculateChunkCoordinate(position - 1.5f * scale);
+            int3 maxChunkCoordinate = CalculateChunkCoordinate(position + 1.5f * scale);
 
             for (int3 chunkCoordinate = minChunkCoordinate; chunkCoordinate.z <= maxChunkCoordinate.z; chunkCoordinate.z++)
             {
@@ -199,6 +196,8 @@ namespace Tuntenfisch.World
                         chunk.transform.position = chunkPosition;
                         chunk.RegenerateVoxelVolume();
                         chunk.RegenerateMesh(lod);
+
+                        return chunk;
                     });
                     m_chunks[chunkCoordinate] = chunk;
                 }
@@ -228,6 +227,7 @@ namespace Tuntenfisch.World
         private float3 CalculateChunkDimensions()
         {
             const int voxelOverlap = 1;
+
             float inflationFactor = 1.0f + (float)voxelOverlap / (VoxelConfig.VoxelVolumeConfig.NumberOfCellsAlongAxis - voxelOverlap);
 
             return VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;

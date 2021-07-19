@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
-using Tuntenfisch.Generics.Request;
 using Tuntenfisch.Voxels.CSG;
 using Tuntenfisch.Voxels.DC;
 using Tuntenfisch.Voxels.Materials;
@@ -19,8 +18,6 @@ namespace Tuntenfisch.World
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class Chunk : MonoBehaviour, IPoolable
     {
-        private bool HasPendingRequest => !m_requestHandle?.Canceled ?? false;
-
         private int m_currentLOD;
         private int m_targetLOD;
         private int m_vertexCount;
@@ -32,7 +29,7 @@ namespace Tuntenfisch.World
         private MeshCollider m_meshCollider;
 
         private ComputeBuffer m_voxelVolumeBuffer;
-        private RequestHandle m_requestHandle;
+        private IRequest m_request;
         private JobHandle m_bakeJobHandle;
         private List<GPUVoxelVolumeCSGOperation> m_voxelVolumeCSGOperations;
         private Coroutine m_processChunkFlagsCoroutine;
@@ -69,21 +66,16 @@ namespace Tuntenfisch.World
         {
             m_meshFilter.sharedMesh = null;
             m_meshCollider.sharedMesh = null;
-
-            if (HasPendingRequest)
-            {
-                m_requestHandle.Cancel();
-                m_requestHandle = null;
-            }
+            m_request?.Cancel();
+            m_request = null;
             m_voxelVolumeCSGOperations.Clear();
 
             if (m_processChunkFlagsCoroutine != null)
             {
                 StopCoroutine(m_processChunkFlagsCoroutine);
-                m_processChunkFlagsCoroutine = null;
             }
+            m_processChunkFlagsCoroutine = null;
             m_flags = 0;
-
             gameObject.SetActive(false);
         }
 
@@ -186,16 +178,10 @@ namespace Tuntenfisch.World
                     m_voxelVolumeCSGOperations.Clear();
                 }
 
-                if
-                (
-                    m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) &&
-                    !m_flags.HasFlag(ChunkFlags.MeshBakingRequested) &&
-                    !m_flags.HasFlag(ChunkFlags.IsBakingMesh) &&
-                    !HasPendingRequest
-                )
+                if (m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) && !m_flags.HasFlag(ChunkFlags.MeshBakingRequested) && !m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_request == null)
                 {
                     m_flags &= ~ChunkFlags.MeshRegenerationRequested;
-                    m_requestHandle = WorldManager.DualContouring.RequestMeshAsync
+                    m_request = WorldManager.DualContouring.RequestMeshAsync
                     (
                         m_voxelVolumeBuffer,
                         m_currentLOD,
@@ -217,6 +203,7 @@ namespace Tuntenfisch.World
                 if (m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_bakeJobHandle.IsCompleted)
                 {
                     m_flags &= ~ChunkFlags.IsBakingMesh;
+                    m_meshCollider.sharedMesh = null;
                     m_meshCollider.sharedMesh = m_mesh;
                 }
 
@@ -225,9 +212,9 @@ namespace Tuntenfisch.World
             m_processChunkFlagsCoroutine = null;
         }
 
-        private void OnMeshGenerated(int vertexCount, int triangleCount, NativeArray<GPUVertex> vertices, NativeArray<int> triangles)
+        private void OnMeshGenerated(NativeArray<GPUVertex> vertices, int vertexCount, int vertexStartIndex, NativeArray<int> triangles, int triangleCount, int triangleStartIndex)
         {
-            m_requestHandle = null;
+            m_request = null;
             m_currentLOD = m_targetLOD;
             m_vertexCount = vertexCount;
             m_triangleCount = triangleCount;
@@ -241,18 +228,20 @@ namespace Tuntenfisch.World
             }
 
             m_mesh.SetVertexBufferParams(vertexCount, GPUVertex.Attributes);
-            m_mesh.SetVertexBufferData(vertices, 0, 0, vertexCount);
             m_mesh.SetIndexBufferParams(triangleCount, IndexFormat.UInt32);
 #if !UNITY_EDITOR
             MeshUpdateFlags flags = MeshUpdateFlags.DontNotifyMeshUsers | MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontValidateIndices;
-            m_mesh.SetIndexBufferData(triangles, 2, 0, triangleCount, flags);
+            m_mesh.SetVertexBufferData(vertices, vertexStartIndex, 0, vertexCount, 0, flags);
+            m_mesh.SetIndexBufferData(triangles, triangleStartIndex, 0, triangleCount, flags);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount), flags);
             m_mesh.RecalculateBounds(flags);
 #else
-            m_mesh.SetIndexBufferData(triangles, 2, 0, triangleCount);
+            m_mesh.SetVertexBufferData(vertices, vertexStartIndex, 0, vertexCount);
+            m_mesh.SetIndexBufferData(triangles, triangleStartIndex, 0, triangleCount);
             m_mesh.SetSubMesh(0, new SubMeshDescriptor(0, triangleCount));
             m_mesh.RecalculateBounds(MeshUpdateFlags.DontValidateIndices);
 #endif
+            m_meshFilter.sharedMesh = null;
             m_meshFilter.sharedMesh = m_mesh;
             ProcessChunkFlags(ChunkFlags.MeshBakingRequested);
         }
