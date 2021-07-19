@@ -56,9 +56,9 @@ namespace Tuntenfisch.Voxels.Materials
             materialNormalTextures.Apply(false);
             materialMOHSTextures.Apply(false);
 
-            Shader.SetGlobalTexture(nameof(materialAlbedoTextures), materialAlbedoTextures);
-            Shader.SetGlobalTexture(nameof(materialNormalTextures), materialNormalTextures);
-            Shader.SetGlobalTexture(nameof(materialMOHSTextures), materialMOHSTextures);
+            Shader.SetGlobalTexture(ShaderProperties.MaterialAlbedoTextures, materialAlbedoTextures);
+            Shader.SetGlobalTexture(ShaderProperties.MaterialNormalTextures, materialNormalTextures);
+            Shader.SetGlobalTexture(ShaderProperties.MaterialMOHSTextures, materialMOHSTextures);
         }
     }
 }

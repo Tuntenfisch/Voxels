@@ -59,7 +59,10 @@ namespace Tuntenfisch.Editor
                     }
                     else if (texture.width != assetTexture.width || texture.height != assetTexture.height)
                     {
-                        Debug.LogError($"Texture dimensions for combining aren't all of equal size. Aborting.");
+                        if (Debug.isDebugBuild)
+                        {
+                            Debug.LogError($"Texture dimensions for combining aren't all of equal size. Aborting.");
+                        }
 
                         return;
                     }
@@ -78,7 +81,10 @@ namespace Tuntenfisch.Editor
             // If we found both a smoothness and roughness texture we will use the roughness texture but display a warning that both exist.
             if (textures[3] != null && textures[4] != null)
             {
-                Debug.LogWarning($"Found {AssetDatabase.GetAssetPath(textures[3])} and {AssetDatabase.GetAssetPath(textures[4])} texture. Using roughness for combining.");
+                if (Debug.isDebugBuild)
+                {
+                    Debug.LogWarning($"Found {AssetDatabase.GetAssetPath(textures[3])} and {AssetDatabase.GetAssetPath(textures[4])} texture. Using roughness for combining.");
+                }
             }
 
             Texture2D combinedTexture = new Texture2D(assetTexture.width, assetTexture.height, TextureFormat.ARGB32, true);

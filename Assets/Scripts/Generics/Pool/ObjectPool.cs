@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Tuntenfisch.Generics.Pool
 {
-    public class ObjectPool<T> where T : class, IPoolable
+    public class ObjectPool<T> where T : IPoolable
     {
         private readonly Stack<T> m_available;
         private readonly HashSet<T> m_inUse;
@@ -22,7 +22,7 @@ namespace Tuntenfisch.Generics.Pool
             Populate(initialCount);
         }
 
-        public T Acquire(Action<T> initializer)
+        public T Acquire(Func<T, T> initializer)
         {
             T obj;
 
@@ -36,7 +36,7 @@ namespace Tuntenfisch.Generics.Pool
             }
             m_inUse.Add(obj);
             obj.OnAcquire();
-            initializer(obj);
+            obj = initializer(obj);
 
             return obj;
         }
@@ -63,19 +63,6 @@ namespace Tuntenfisch.Generics.Pool
             {
                 T obj = m_generator();
                 m_available.Push(obj);
-            }
-        }
-
-        public void Apply(Action<T, bool> action)
-        {
-            foreach (T obj in m_available)
-            {
-                action(obj, false);
-            }
-
-            foreach (T obj in m_inUse)
-            {
-                action(obj, true);
             }
         }
     }

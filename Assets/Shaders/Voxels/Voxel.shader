@@ -32,25 +32,28 @@ Shader "Voxels/Voxel"
 
             HLSLPROGRAM
 
-            #pragma vertex LitPassVertex
-            #pragma geometry LitPassGeometry
-            #pragma fragment LitPassFragment
+            #pragma require geometry
 
             // Material Keywords
-            #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+            #pragma shader_feature_local_fragment _SPECULAR_SETUP
 
             // URP Keywords
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
             #pragma multi_compile _ SHADOWS_SHADOWMASK
 
             // Unity Keywords
-            #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile_fog
+
+            #pragma vertex LitPassVertex
+            #pragma geometry LitPassGeometry
+            #pragma fragment LitPassFragment
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -58,16 +61,36 @@ Shader "Voxels/Voxel"
             {
                 float4 positionOS : POSITION;
                 float4 normalOS : NORMAL;
-                uint materialIndex : TEXCOORD1;
-                float2 lightmapUV : TEXCOORD2;
+                uint materialIndex : TEXCOORD0;
+                float2 lightmapUV : TEXCOORD1;
             };
 
             struct GeometryPassInput
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionWS : TEXCOORD1;
-                half3 normalWS : TEXCOORD2;
-                uint materialIndex : TEXCOORD3;
+                float3 positionWS : TEXCOORD0;
+                half3 normalWS : TEXCOORD1;
+                uint materialIndex : TEXCOORD2;
+                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 3);
+
+                #if defined(_ADDITIONAL_LIGHTS_VERTEX)
+                    half4 fogFactorAndVertexLight : TEXCOORD4;
+                #else
+                    half fogFactor : TEXCOORD4;
+                #endif
+
+                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                    float4 shadowCoord : TEXCOORD5;
+                #endif
+            };
+
+            struct FragmentPassInput
+            {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+                half3 normalWS : TEXCOORD1;
+                uint3 materialIndices : TEXCOORD2;
+                half3 materialWeights : TEXCOORD3;
                 DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 4);
 
                 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
@@ -78,26 +101,6 @@ Shader "Voxels/Voxel"
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                     float4 shadowCoord : TEXCOORD6;
-                #endif
-            };
-
-            struct FragmentPassInput
-            {
-                float4 positionCS : SV_POSITION;
-                float3 positionWS : TEXCOORD1;
-                half3 normalWS : TEXCOORD2;
-                uint3 materialIndices : TEXCOORD3;
-                half3 materialWeights : TEXCOORD4;
-                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 5);
-
-                #if defined(_ADDITIONAL_LIGHTS_VERTEX)
-                    half4 fogFactorAndVertexLight : TEXCOORD6;
-                #else
-                    half fogFactor : TEXCOORD6;
-                #endif
-
-                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                    float4 shadowCoord : TEXCOORD7;
                 #endif
             };
 
@@ -224,7 +227,7 @@ Shader "Voxels/Voxel"
                 {
                     surfaceData.albedo += materialWeights[index] * triplanarDatas[index].albedo.rgb;
                     surfaceData.alpha += materialWeights[index] * triplanarDatas[index].albedo.a;
-                    // Misuse SurfaceData's normalTS field to store our normalWS.
+                    // Use SurfaceData's normalTS field to store our normalWS.
                     surfaceData.normalTS += materialWeights[index] * triplanarDatas[index].normalWS;
                     surfaceData.metallic += materialWeights[index] * triplanarDatas[index].metallic;
                     surfaceData.occlusion += materialWeights[index] * triplanarDatas[index].occlusion;
@@ -302,8 +305,6 @@ Shader "Voxels/Voxel"
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
 
-            ColorMask 0
-
             HLSLPROGRAM
 
             #pragma vertex DepthOnlyVertex
@@ -320,9 +321,6 @@ Shader "Voxels/Voxel"
 
             Name "DepthNormals"
             Tags { "LightMode" = "DepthNormals" }
-
-            ZWrite On
-            ZTest LEqual
 
             HLSLPROGRAM
 
