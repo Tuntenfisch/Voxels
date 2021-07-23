@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Tuntenfisch.Generics;
 using Tuntenfisch.Generics.Pool;
@@ -27,12 +26,12 @@ namespace Tuntenfisch.World
         private MeshFilter m_meshFilter;
         private MeshRenderer m_meshRenderer;
         private MeshCollider m_meshCollider;
+        private OnMeshGenerated m_onMeshGeneratedDelegate;
 
         private ComputeBuffer m_voxelVolumeBuffer;
         private IRequest m_request;
         private JobHandle m_bakeJobHandle;
         private List<GPUVoxelVolumeCSGOperation> m_voxelVolumeCSGOperations;
-        private Coroutine m_processChunkFlagsCoroutine;
         private ChunkFlags m_flags;
 
         private void Awake()
@@ -41,6 +40,49 @@ namespace Tuntenfisch.World
             InitializeMeshComponents();
             ApplyRenderMaterial();
             m_voxelVolumeCSGOperations = new List<GPUVoxelVolumeCSGOperation>();
+        }
+
+        private void Update()
+        {
+            if (m_flags == 0)
+            {
+                return;
+            }
+
+            if (m_flags.HasFlag(ChunkFlags.VoxelVolumeRegenerationRequested))
+            {
+                m_flags &= ~ChunkFlags.VoxelVolumeRegenerationRequested;
+                WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
+            }
+
+            if (m_flags.HasFlag(ChunkFlags.CSGOperationPerformed))
+            {
+                m_flags &= ~ChunkFlags.CSGOperationPerformed;
+                WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
+                m_voxelVolumeCSGOperations.Clear();
+            }
+
+            if (m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) && !m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_request == null)
+            {
+                m_flags &= ~ChunkFlags.MeshRegenerationRequested;
+                m_request = WorldManager.DualContouring.RequestMeshAsync
+                (
+                    m_voxelVolumeBuffer,
+                    m_currentLOD,
+                    m_targetLOD,
+                    m_vertexCount,
+                    m_triangleCount,
+                    transform.position,
+                    m_onMeshGeneratedDelegate
+                );
+            }
+
+            if (m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_bakeJobHandle.IsCompleted)
+            {
+                m_flags &= ~ChunkFlags.IsBakingMesh;
+                m_meshCollider.sharedMesh = null;
+                m_meshCollider.sharedMesh = m_mesh;
+            }
         }
 
         private void OnDestroy()
@@ -69,12 +111,6 @@ namespace Tuntenfisch.World
             m_request?.Cancel();
             m_request = null;
             m_voxelVolumeCSGOperations.Clear();
-
-            if (m_processChunkFlagsCoroutine != null)
-            {
-                StopCoroutine(m_processChunkFlagsCoroutine);
-            }
-            m_processChunkFlagsCoroutine = null;
             m_flags = 0;
             gameObject.SetActive(false);
         }
@@ -130,86 +166,25 @@ namespace Tuntenfisch.World
             }
         }
 
-        public void RegenerateVoxelVolume() => ProcessChunkFlags(ChunkFlags.VoxelVolumeRegenerationRequested);
+        public void RegenerateVoxelVolume() => m_flags |= ChunkFlags.VoxelVolumeRegenerationRequested;
 
         public void RegenerateMesh(int lod = -1)
         {
             if (lod != -1 && lod != m_targetLOD)
             {
                 m_targetLOD = lod;
-                ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
+                m_flags |= ChunkFlags.MeshRegenerationRequested;
             }
             else if (lod == -1)
             {
-                ProcessChunkFlags(ChunkFlags.MeshRegenerationRequested);
+                m_flags |= ChunkFlags.MeshRegenerationRequested;
             }
         }
 
         public void ApplyCSGPrimitiveOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, MaterialIndex materialIndex, Matrix4x4 worldToObjectMatrix)
         {
             m_voxelVolumeCSGOperations.Add(new GPUVoxelVolumeCSGOperation(csgOperator, csgPrimitive, materialIndex, worldToObjectMatrix));
-            ProcessChunkFlags(ChunkFlags.CSGOperationPerformed | ChunkFlags.MeshRegenerationRequested);
-        }
-
-        private void ProcessChunkFlags(ChunkFlags flags)
-        {
-            m_flags |= flags;
-
-            if (m_processChunkFlagsCoroutine == null)
-            {
-                m_processChunkFlagsCoroutine = StartCoroutine(ProcessChunkFlagsCoroutine());
-            }
-        }
-
-        private IEnumerator ProcessChunkFlagsCoroutine()
-        {
-            while (m_flags != 0)
-            {
-                if (m_flags.HasFlag(ChunkFlags.VoxelVolumeRegenerationRequested))
-                {
-                    m_flags &= ~ChunkFlags.VoxelVolumeRegenerationRequested;
-                    WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
-                }
-
-                if (m_flags.HasFlag(ChunkFlags.CSGOperationPerformed))
-                {
-                    m_flags &= ~ChunkFlags.CSGOperationPerformed;
-                    WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
-                    m_voxelVolumeCSGOperations.Clear();
-                }
-
-                if (m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) && !m_flags.HasFlag(ChunkFlags.MeshBakingRequested) && !m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_request == null)
-                {
-                    m_flags &= ~ChunkFlags.MeshRegenerationRequested;
-                    m_request = WorldManager.DualContouring.RequestMeshAsync
-                    (
-                        m_voxelVolumeBuffer,
-                        m_currentLOD,
-                        m_targetLOD,
-                        m_vertexCount,
-                        m_triangleCount,
-                        transform.position,
-                        OnMeshGenerated
-                    );
-                }
-
-                if (m_flags.HasFlag(ChunkFlags.MeshBakingRequested))
-                {
-                    m_flags &= ~ChunkFlags.MeshBakingRequested;
-                    m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
-                    ProcessChunkFlags(ChunkFlags.IsBakingMesh);
-                }
-
-                if (m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_bakeJobHandle.IsCompleted)
-                {
-                    m_flags &= ~ChunkFlags.IsBakingMesh;
-                    m_meshCollider.sharedMesh = null;
-                    m_meshCollider.sharedMesh = m_mesh;
-                }
-
-                yield return null;
-            }
-            m_processChunkFlagsCoroutine = null;
+            m_flags |= ChunkFlags.CSGOperationPerformed | ChunkFlags.MeshRegenerationRequested;
         }
 
         private void OnMeshGenerated(NativeArray<GPUVertex> vertices, int vertexCount, int vertexStartIndex, NativeArray<int> triangles, int triangleCount, int triangleStartIndex)
@@ -243,7 +218,9 @@ namespace Tuntenfisch.World
 #endif
             m_meshFilter.sharedMesh = null;
             m_meshFilter.sharedMesh = m_mesh;
-            ProcessChunkFlags(ChunkFlags.MeshBakingRequested);
+
+            m_bakeJobHandle = new BakeJob(m_mesh.GetInstanceID()).Schedule();
+            m_flags |= ChunkFlags.IsBakingMesh;
         }
 
         private void InitializeMeshComponents()
@@ -253,6 +230,7 @@ namespace Tuntenfisch.World
             m_meshFilter = GetComponent<MeshFilter>();
             m_meshRenderer = GetComponent<MeshRenderer>();
             m_meshCollider = GetComponent<MeshCollider>();
+            m_onMeshGeneratedDelegate = OnMeshGenerated;
         }
 
         private void ApplyRenderMaterial() => m_meshRenderer.material = WorldManager.VoxelConfig.MaterialConfig.RenderMaterial;
@@ -263,8 +241,7 @@ namespace Tuntenfisch.World
             VoxelVolumeRegenerationRequested = 1,
             CSGOperationPerformed = 2,
             MeshRegenerationRequested = 4,
-            MeshBakingRequested = 8,
-            IsBakingMesh = 16
+            IsBakingMesh = 8
         }
     }
 }

@@ -30,7 +30,8 @@ namespace Tuntenfisch.Player
         private Camera m_camera;
 
         private CharacterController m_controller;
-        
+        private int m_playerLayerMask;
+
         private float2 m_moveDelta;
         private bool m_wantsToJump;
         private float2 m_lookDelta;
@@ -42,6 +43,7 @@ namespace Tuntenfisch.Player
         private void Start()
         {
             m_controller = GetComponent<CharacterController>();
+            m_playerLayerMask = LayerMask.GetMask("Player");
             Cursor.lockState = CursorLockMode.Locked;
         }
 
@@ -94,7 +96,7 @@ namespace Tuntenfisch.Player
         {
             Ray ray = new Ray(m_camera.transform.position, m_camera.transform.forward);
 
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~LayerMask.GetMask("Player")))
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, ~m_playerLayerMask))
             {
                 GPUCSGPrimitive primitive = new GPUCSGPrimitive(CSGPrimitiveType.Sphere);
                 float3 scale = 4.0f;

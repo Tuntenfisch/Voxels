@@ -173,6 +173,7 @@ MonoBehaviour:
   m_viewer: {fileID: 1023658864}
   m_updateInterval: 33.5
   m_chunkPrefab: {fileID: 6443619016532032082, guid: 3605e23936cdf3f498ff9f218128ac42, type: 3}
+  m_initialChunkPoolPopulation: 500
   m_lodDistances:
   - 200
   - 400
@@ -203,6 +204,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_numberOfWorkers: 8
+  m_initialTaskPoolPopulation: 500
   m_readbackInflationFactor: 1.25
 --- !u!114 &337836008
 MonoBehaviour:
@@ -347,7 +349,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_movementSpeed: 100
-  m_jumpHeight: 15
+  m_jumpHeight: 50
   m_lookSensitivity: 0.05
   m_camera: {fileID: 1169219614}
 --- !u!114 &1023658863
