@@ -17,6 +17,7 @@ namespace Tuntenfisch.World.Editor
         private SerializedProperty m_viewer;
         private SerializedProperty m_updateInterval;
         private SerializedProperty m_chunkPrefab;
+        private SerializedProperty m_initialChunkPoolPopulation;
         private SerializedProperty m_lodDistances;
 
         private void OnEnable()
@@ -24,6 +25,7 @@ namespace Tuntenfisch.World.Editor
             m_viewer = serializedObject.FindProperty(nameof(m_viewer));
             m_updateInterval = serializedObject.FindProperty(nameof(m_updateInterval));
             m_chunkPrefab = serializedObject.FindProperty(nameof(m_chunkPrefab));
+            m_initialChunkPoolPopulation = serializedObject.FindProperty(nameof(m_initialChunkPoolPopulation));
             m_lodDistances = serializedObject.FindProperty(nameof(m_lodDistances));
         }
 
@@ -44,6 +46,7 @@ namespace Tuntenfisch.World.Editor
             if (s_showChunkOptions = EditorGUILayout.BeginFoldoutHeaderGroup(s_showChunkOptions, "Chunk"))
             {
                 EditorGUILayout.ObjectField(m_chunkPrefab);
+                m_initialChunkPoolPopulation.intValue = math.max(EditorGUILayout.IntField(ObjectNames.NicifyVariableName(nameof(m_initialChunkPoolPopulation)), m_initialChunkPoolPopulation.intValue), 0);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 

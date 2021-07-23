@@ -5,38 +5,29 @@ namespace Tuntenfisch.Generics.Pool
 {
     public class ObjectPool<T> where T : IPoolable
     {
+        public int NumberOfAvailableObjects => m_available.Count;
+        public int NumberOfObjectsGenerated { get; private set; }
+
         private readonly Stack<T> m_available;
-        private readonly HashSet<T> m_inUse;
         private readonly Func<T> m_generator;
 
-        public ObjectPool(Func<T> generator, int initialCapacity = 0, int initialCount = 0)
+        public ObjectPool(Func<T> generator, int initialPopulation = 0)
         {
-            if (initialCapacity < initialCount)
-            {
-                throw new ArgumentOutOfRangeException(nameof(initialCapacity), initialCapacity, $"Parameter {nameof(initialCapacity)} must be at least as large parameter {nameof(initialCount)}.");
-            }
-
-            m_available = new Stack<T>(initialCapacity);
-            m_inUse = new HashSet<T>();
+            m_available = new Stack<T>(initialPopulation);
             m_generator = generator;
-            Populate(initialCount);
+            Populate(initialPopulation);
         }
 
-        public T Acquire(Func<T, T> initializer)
+        public T Acquire()
         {
             T obj;
 
             if (m_available.Count == 0)
             {
-                obj = m_generator();
+                Populate(1);
             }
-            else
-            {
-                obj = m_available.Pop();
-            }
-            m_inUse.Add(obj);
+            obj = m_available.Pop();
             obj.OnAcquire();
-            obj = initializer(obj);
 
             return obj;
         }
@@ -46,11 +37,6 @@ namespace Tuntenfisch.Generics.Pool
             if (obj == null)
             {
                 throw new ArgumentNullException(nameof(obj));
-            }
-
-            if (!m_inUse.Remove(obj))
-            {
-                throw new ArgumentException($"Paremeter {nameof(obj)} doesn't belong to this pool.", nameof(obj));
             }
 
             obj.OnRelease();
@@ -63,6 +49,7 @@ namespace Tuntenfisch.Generics.Pool
             {
                 T obj = m_generator();
                 m_available.Push(obj);
+                NumberOfObjectsGenerated++;
             }
         }
     }

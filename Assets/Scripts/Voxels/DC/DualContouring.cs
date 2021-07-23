@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using Cysharp.Threading.Tasks;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Tuntenfisch.Extensions;
@@ -19,33 +19,31 @@ namespace Tuntenfisch.Voxels.DC
         [Range(1, 16)]
         [SerializeField]
         private int m_numberOfWorkers = 4;
+        [Min(0)]
+        [SerializeField]
+        private int m_initialTaskPoolPopulation = 0;
         [Range(1.0f, 2.0f)]
         [SerializeField]
         private float m_readbackInflationFactor = 1.25f;
 
         private VoxelConfig m_voxelConfig;
-        private Queue<(Worker.Task, OnMeshGenerated)> m_tasks;
-        private Stack<Worker> m_workers;
+        private Queue<Worker.Task> m_tasks;
+        private Stack<Worker> m_availableWorkers;
         private ObjectPool<Worker.Task> m_taskPool;
 
         private void Awake()
         {
             m_voxelConfig = GetComponent<VoxelConfig>();
-            m_tasks = new Queue<(Worker.Task, OnMeshGenerated)>();
-            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
-            m_taskPool = new ObjectPool<Worker.Task>(() => { return new Worker.Task(); });
+            m_tasks = new Queue<Worker.Task>();
+            m_availableWorkers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
+            m_taskPool = new ObjectPool<Worker.Task>(() => { return new Worker.Task(); }, m_initialTaskPoolPopulation);
         }
 
         private void LateUpdate()
         {
-            while (m_tasks.Count > 0 && m_workers.Count > 0)
+            while (m_tasks.Count > 0 && m_availableWorkers.Count > 0)
             {
-                (Worker.Task task, OnMeshGenerated callback) = m_tasks.Dequeue();
-
-                if (!task.Canceled)
-                {
-                    DispatchWorker(task, callback);
-                }
+                DispatchWorker(m_tasks.Dequeue());
             }
         }
 
@@ -53,16 +51,16 @@ namespace Tuntenfisch.Voxels.DC
 
         private void OnValidate()
         {
-            if (m_workers == null)
+            if (m_availableWorkers == null)
             {
                 return;
             }
 
-            foreach (Worker worker in m_workers)
+            foreach (Worker worker in m_availableWorkers)
             {
                 worker.Dispose();
             }
-            m_workers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
+            m_availableWorkers = new Stack<Worker>(Enumerable.Range(0, m_numberOfWorkers).Select(index => new Worker(this)));
         }
 
         public IRequest RequestMeshAsync
@@ -76,86 +74,61 @@ namespace Tuntenfisch.Voxels.DC
             OnMeshGenerated callback
         )
         {
-            if (voxelVolumeBuffer == null)
-            {
-                throw new ArgumentNullException(nameof(voxelVolumeBuffer));
-            }
-
-            if (callback == null)
-            {
-                throw new ArgumentNullException(nameof(callback));
-            }
-
-            Worker.Task task = m_taskPool.Acquire((task) =>
-            {
-                task.VoxelVolumeBuffer = voxelVolumeBuffer;
-                task.CurrentLOD = currentLOD;
-                task.TargetLOD = targetLOD;
-                task.CurrentVertexCount = currentVertexCount;
-                task.CurrentTriangleCount = currentTriangleCount;
-                task.VoxelVolumeToWorldSpaceOffset = worldPosition;
-
-                return task;
-            });
+            Worker.Task task = m_taskPool.Acquire();
+            task.VoxelVolumeBuffer = voxelVolumeBuffer ?? throw new ArgumentNullException(nameof(voxelVolumeBuffer));
+            task.CurrentLOD = currentLOD;
+            task.TargetLOD = targetLOD;
+            task.CurrentVertexCount = currentVertexCount;
+            task.CurrentTriangleCount = currentTriangleCount;
+            task.VoxelVolumeToWorldSpaceOffset = worldPosition;
+            task.Callback = callback ?? throw new ArgumentNullException(nameof(callback));
 
             // If a worker is available, directly dispatch the task.
-            if (m_workers.Count > 0)
+            if (m_availableWorkers.Count > 0)
             {
-                DispatchWorker(task, callback);
+                DispatchWorker(task);
             }
             else
             {
-                m_tasks.Enqueue((task, callback));
+                m_tasks.Enqueue(task);
             }
 
             return task;
         }
 
-        private void DispatchWorker(Worker.Task task, OnMeshGenerated callback) => StartCoroutine(DispatchWorkerCoroutine(task, callback));
-
-        private IEnumerator DispatchWorkerCoroutine(Worker.Task task, OnMeshGenerated callback)
+        private void DispatchWorker(Worker.Task task)
         {
-            Worker worker = m_workers.Pop();
+            if (task.Canceled)
+            {
+                m_taskPool.Release(task);
+
+                return;
+            }
+
+           DispatchWorkerUniTask(task).Forget();
+        }
+
+        private async UniTaskVoid DispatchWorkerUniTask(Worker.Task task)
+        {
+            Worker worker = m_availableWorkers.Pop();
             worker.GenerateMeshAsync(task);
-            Worker.Status status;
 
-            while ((status = worker.Process()) == Worker.Status.WaitingForGPUReadback)
+            do
             {
-                yield return null;
+                await UniTask.NextFrame(this.GetCancellationTokenOnDestroy());
             }
+            while (worker.Process() == Worker.Status.WaitingForGPUReadback);
 
-            switch (status)
+            // Only call the callback if the task hasn't been canceled.
+            if (!task.Canceled)
             {
-                case Worker.Status.GPUReadbackError:
-                    if (Debug.isDebugBuild)
-                    {
-                        Debug.LogWarning("GPU readback error detected.");
-                    }
-
-                    if (!task.Canceled)
-                    {
-                        // If we encountered a GPU readback error, just try again.
-                        m_tasks.Enqueue((task, callback));
-                    }
-                    else
-                    {
-                        m_taskPool.Release(task);
-                    }
-                    break;
-
-                default:
-                    // Only call the callback if the task hasn't been canceled.
-                    if (!task.Canceled)
-                    {
-                        callback(worker.Vertices, worker.VertexCount, 0, worker.Triangles, worker.TriangleCount, 2);
-                    }
-                    m_taskPool.Release(task);
-                    break;
+                task.Callback(worker.Vertices, worker.VertexCount, 0, worker.Triangles, worker.TriangleCount, 2);
             }
+            m_taskPool.Release(task);
 
-            if (m_workers.Count < m_numberOfWorkers)
+            if (m_availableWorkers.Count < m_numberOfWorkers)
             {
-                m_workers.Push(worker);
+                m_availableWorkers.Push(worker);
             }
             else
             {
@@ -208,18 +181,17 @@ namespace Tuntenfisch.Voxels.DC
                     VertexCount = m_generatedTriangles[0];
                     TriangleCount = 3 * m_generatedTriangles[1];
 
-                    if (requestedVertexCount < VertexCount || requestedTriangleCount < TriangleCount)
+                    if (requestedVertexCount < VertexCount || requestedTriangleCount < TriangleCount || m_generatedVerticesBuffer0.HasError || m_generatedTrianglesBuffer.HasError)
                     {
+                        if (Debug.isDebugBuild && (m_generatedVerticesBuffer0.HasError || m_generatedTrianglesBuffer.HasError))
+                        {
+                            Debug.LogWarning("GPU readback error detected.");
+                        }
                         // If we retrieved too few vertices/triangles, we need to start another readback to retrieve the correct count.
                         m_generatedVerticesBuffer0.StartReadbackNonAlloc(ref m_generatedVertices, VertexCount);
                         m_generatedTrianglesBuffer.StartReadbackNonAlloc(ref m_generatedTriangles, TriangleCount + 2);
 
                         return Status.WaitingForGPUReadback;
-                    }
-
-                    if (m_generatedVerticesBuffer0.HasError || m_generatedTrianglesBuffer.HasError)
-                    {
-                        return Status.GPUReadbackError;
                     }
 
                     return Status.Done;
@@ -295,7 +267,6 @@ namespace Tuntenfisch.Voxels.DC
                 // So, best case equals one readback, worst case equals two readbacks, i.e. the worst case is as bad as the best case
                 // before and the best case is twice as good.
                 (int estimatedVertexCount, int estimatedTriangleCount) = EstimateVertexAndTriangleCounts(task);
-
 
                 // Copy the number of vertices/triangles generated into the start of the triangles buffer.
                 ComputeBuffer.CopyCount(m_generatedVerticesBuffer0, m_generatedTrianglesBuffer, 0);
@@ -428,7 +399,6 @@ namespace Tuntenfisch.Voxels.DC
             public enum Status
             {
                 WaitingForGPUReadback,
-                GPUReadbackError,
                 Done
             }
 
@@ -441,12 +411,14 @@ namespace Tuntenfisch.Voxels.DC
                 public int CurrentVertexCount { get; set; }
                 public int CurrentTriangleCount { get; set; }
                 public float3 VoxelVolumeToWorldSpaceOffset { get; set; }
+                public OnMeshGenerated Callback { get; set; }
 
                 public void OnAcquire() { }
 
                 public void OnRelease()
                 {
                     VoxelVolumeBuffer = null;
+                    Callback = null;
                     Canceled = false;
                 }
 

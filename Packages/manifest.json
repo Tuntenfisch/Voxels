@@ -9,6 +9,7 @@
     }
   ],
   "dependencies": {
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.github.siccity.xnode": "https://github.com/siccity/xNode.git",
     "com.unity.burst": "1.5.4",
     "com.unity.collab-proxy": "1.5.7",

@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tuntenfisch.Generics;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace Tuntenfisch.Voxels.Materials
@@ -38,27 +42,29 @@ namespace Tuntenfisch.Voxels.Materials
 
         private void ApplyMaterialConfig()
         {
+            Shader.SetGlobalTexture(ShaderProperties.MaterialAlbedoTextures, CreateTexture2DArray(MaterialInfos.Select((MaterialInfo materialInfo) => materialInfo.AlbedoTexture)));
+            Shader.SetGlobalTexture(ShaderProperties.MaterialNormalTextures, CreateTexture2DArray(MaterialInfos.Select((MaterialInfo materialInfo) => materialInfo.NormalTexture)));
+            Shader.SetGlobalTexture(ShaderProperties.MaterialMOHSTextures, CreateTexture2DArray(MaterialInfos.Select((MaterialInfo materialInfo) => materialInfo.MOHSTexture)));
+        }
+
+        private Texture2DArray CreateTexture2DArray(IEnumerable<Texture2D> textures)
+        {
             // The dimensions should be the same across all types of textures.
-            int width = MaterialInfos[0].AlbedoTexture.width;
-            int height = MaterialInfos[0].AlbedoTexture.height;
+            Texture2DArray textureArray = new Texture2DArray(textures.First().width, textures.First().height, MaterialInfos.Count, textures.First().format, true);
 
-            Texture2DArray materialAlbedoTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].AlbedoTexture.format, true);
-            Texture2DArray materialNormalTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].NormalTexture.format, true);
-            Texture2DArray materialMOHSTextures = new Texture2DArray(width, height, MaterialInfos.Count, MaterialInfos[0].MOHSTexture.format, true);
-
-            for (int index = 0; index < MaterialInfos.Count; index++)
+            foreach ((Texture2D texture, int index) iterator in textures.Select((texture, index) => (texture, index)))
             {
-                Graphics.CopyTexture(MaterialInfos[index].AlbedoTexture, 0, materialAlbedoTextures, index);
-                Graphics.CopyTexture(MaterialInfos[index].NormalTexture, 0, materialNormalTextures, index);
-                Graphics.CopyTexture(MaterialInfos[index].MOHSTexture, 0, materialMOHSTextures, index);
+#if UNITY_EDITOR
+                if (!iterator.texture.isReadable)
+                {
+                    Debug.LogWarning($"Please enable read/write for \"{AssetDatabase.GetAssetPath(iterator.texture)}\"! Otherwise material visuals won't display properly in standalone build.");
+                }
+#endif
+                Graphics.CopyTexture(iterator.texture, 0, textureArray, iterator.index);
             }
-            materialAlbedoTextures.Apply(false);
-            materialNormalTextures.Apply(false);
-            materialMOHSTextures.Apply(false);
+            textureArray.Apply(false);
 
-            Shader.SetGlobalTexture(ShaderProperties.MaterialAlbedoTextures, materialAlbedoTextures);
-            Shader.SetGlobalTexture(ShaderProperties.MaterialNormalTextures, materialNormalTextures);
-            Shader.SetGlobalTexture(ShaderProperties.MaterialMOHSTextures, materialMOHSTextures);
+            return textureArray;
         }
     }
 }

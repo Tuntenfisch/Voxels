@@ -30,15 +30,17 @@ namespace Tuntenfisch.World
         [SerializeField]
         private GameObject m_chunkPrefab;
         [SerializeField]
+        private int m_initialChunkPoolPopulation = 0;
+        [SerializeField]
         private float[] m_lodDistances;
 
         private VoxelConfig m_voxelConfig;
         private VoxelVolume m_voxelVolume;
         private DualContouring m_dualContouring;
         private CSGUtility m_csgUtility;
-        private ObjectPool<Chunk> m_sharedChunkPool;
+        private ObjectPool<Chunk> m_chunkPool;
         private Dictionary<int3, Chunk> m_chunks;
-        private HashSet<int3> m_oldChunkCoordinates;
+        private List<int3> m_chunksOutsideOfViewDistance;
         private Queue<(int3, float3, int)> m_chunksToProcess;
         private HashSet<int3> m_processedChunkCoordinates;
         private float3 m_chunkDimensions;
@@ -61,9 +63,9 @@ namespace Tuntenfisch.World
             m_dualContouring = GetComponent<DualContouring>();
             m_csgUtility = GetComponent<CSGUtility>();
 
-            m_sharedChunkPool = new ObjectPool<Chunk>(() => { return Instantiate(m_chunkPrefab, transform).GetComponent<Chunk>(); });
+            m_chunkPool = new ObjectPool<Chunk>(() => { return Instantiate(m_chunkPrefab, transform).GetComponent<Chunk>(); }, m_initialChunkPoolPopulation);
             m_chunks = new Dictionary<int3, Chunk>();
-            m_oldChunkCoordinates = new HashSet<int3>();
+            m_chunksOutsideOfViewDistance = new List<int3>();
             m_chunksToProcess = new Queue<(int3, float3, int)>();
             m_processedChunkCoordinates = new HashSet<int3>();
             m_chunkDimensions = CalculateChunkDimensions();
@@ -100,11 +102,13 @@ namespace Tuntenfisch.World
 
         public void ApplyCSGOperation(GPUCSGOperator csgOperator, GPUCSGPrimitive csgPrimitive, MaterialIndex materialIndex, float3 position, float3 scale)
         {
+            const float scaleInflationFactor = 1.5f;
+
             Matrix4x4 worldToObjectMatrix = Matrix4x4.TRS(position, quaternion.identity, scale).inverse;
 
             // Inflate the scale a bit to ensure CSG operations near the boundary of chunks are processed by all nearby chunks.
-            int3 minChunkCoordinate = CalculateChunkCoordinate(position - 1.5f * scale);
-            int3 maxChunkCoordinate = CalculateChunkCoordinate(position + 1.5f * scale);
+            int3 minChunkCoordinate = CalculateChunkCoordinate(position - 0.5f * scaleInflationFactor * scale);
+            int3 maxChunkCoordinate = CalculateChunkCoordinate(position + 0.5f * scaleInflationFactor * scale);
 
             for (int3 chunkCoordinate = minChunkCoordinate; chunkCoordinate.z <= maxChunkCoordinate.z; chunkCoordinate.z++)
             {
@@ -148,24 +152,22 @@ namespace Tuntenfisch.World
 
         private void DestroyChunksOutsideViewDistance(float3 viewerPosition)
         {
-            m_oldChunkCoordinates.UnionWith(m_chunks.Keys);
-
             foreach (KeyValuePair<int3, Chunk> pair in m_chunks)
             {
                 float viewerToChunkDistanceSquared = math.lengthsq((float3)pair.Value.transform.position - viewerPosition);
 
-                if (viewerToChunkDistanceSquared <= ViewDistanceSquared)
+                if (viewerToChunkDistanceSquared > ViewDistanceSquared)
                 {
-                    m_oldChunkCoordinates.Remove(pair.Key);
+                    m_chunksOutsideOfViewDistance.Add(pair.Key);
                 }
             }
 
-            foreach (int3 chunkCoordinate in m_oldChunkCoordinates)
+            foreach (int3 chunkCoordinate in m_chunksOutsideOfViewDistance)
             {
-                m_sharedChunkPool.Release(m_chunks[chunkCoordinate]);
+                m_chunkPool.Release(m_chunks[chunkCoordinate]);
                 m_chunks.Remove(chunkCoordinate);
             }
-            m_oldChunkCoordinates.Clear();
+            m_chunksOutsideOfViewDistance.Clear();
         }
 
         private void CreateChunksWithinViewDistance(float3 viewerPosition)
@@ -191,14 +193,10 @@ namespace Tuntenfisch.World
                 else
                 {
                     // Create new chunk.
-                    chunk = m_sharedChunkPool.Acquire((chunk) =>
-                    {
-                        chunk.transform.position = chunkPosition;
-                        chunk.RegenerateVoxelVolume();
-                        chunk.RegenerateMesh(lod);
-
-                        return chunk;
-                    });
+                    chunk = m_chunkPool.Acquire();
+                    chunk.transform.position = chunkPosition;
+                    chunk.RegenerateVoxelVolume();
+                    chunk.RegenerateMesh(lod);
                     m_chunks[chunkCoordinate] = chunk;
                 }
 
@@ -233,7 +231,7 @@ namespace Tuntenfisch.World
             return VoxelConfig.VoxelVolumeConfig.VoxelVolumeDimensions / inflationFactor;
         }
 
-        private int3 CalculateChunkCoordinate(float3 position) => (int3)math.round(position / m_chunkDimensions);
+        private int3 CalculateChunkCoordinate(float3 position) => new int3((int)math.round(position.x / m_chunkDimensions.x), 0, (int)math.round(position.z / m_chunkDimensions.z));
 
         private float[] CalculateLodDistancesSquared()
         {
@@ -277,7 +275,7 @@ namespace Tuntenfisch.World
 
             foreach (Chunk chunk in m_chunks.Values)
             {
-                m_sharedChunkPool.Release(chunk);
+                m_chunkPool.Release(chunk);
             }
             m_chunks.Clear();
 
