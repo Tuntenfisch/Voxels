@@ -49,20 +49,20 @@ namespace Tuntenfisch.World
                 return;
             }
 
-            if (m_flags.HasFlag(ChunkFlags.VoxelVolumeRegenerationRequested))
+            if ((m_flags & ChunkFlags.VoxelVolumeRegenerationRequested) == ChunkFlags.VoxelVolumeRegenerationRequested)
             {
                 m_flags &= ~ChunkFlags.VoxelVolumeRegenerationRequested;
                 WorldManager.VoxelVolume.GenerateVoxelVolume(m_voxelVolumeBuffer, transform.position);
             }
 
-            if (m_flags.HasFlag(ChunkFlags.CSGOperationPerformed))
+            if ((m_flags & ChunkFlags.CSGOperationPerformed) == ChunkFlags.CSGOperationPerformed)
             {
                 m_flags &= ~ChunkFlags.CSGOperationPerformed;
                 WorldManager.VoxelVolume.ApplyVoxelVolumeCSGOperations(m_voxelVolumeBuffer, transform.position, m_voxelVolumeCSGOperations);
                 m_voxelVolumeCSGOperations.Clear();
             }
 
-            if (m_flags.HasFlag(ChunkFlags.MeshRegenerationRequested) && !m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_request == null)
+            if ((m_flags & ChunkFlags.MeshRegenerationRequested) == ChunkFlags.MeshRegenerationRequested && (m_flags & ChunkFlags.IsBakingMesh) != ChunkFlags.IsBakingMesh && m_request == null)
             {
                 m_flags &= ~ChunkFlags.MeshRegenerationRequested;
                 m_request = WorldManager.DualContouring.RequestMeshAsync
@@ -77,7 +77,7 @@ namespace Tuntenfisch.World
                 );
             }
 
-            if (m_flags.HasFlag(ChunkFlags.IsBakingMesh) && m_bakeJobHandle.IsCompleted)
+            if ((m_flags & ChunkFlags.IsBakingMesh) == ChunkFlags.IsBakingMesh && m_bakeJobHandle.IsCompleted)
             {
                 m_flags &= ~ChunkFlags.IsBakingMesh;
                 m_meshCollider.sharedMesh = null;
