@@ -12,7 +12,7 @@ namespace Tuntenfisch.Generics
         public int Count => m_buffer.count;
         public int Stride => m_buffer.stride;
         public bool HasError => m_request.hasError;
-        public bool ReadbackInProgress => m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress);
+        public bool ReadbackInProgress => (m_flags & AsyncComputeBufferFlags.ReadbackInProgress) == AsyncComputeBufferFlags.ReadbackInProgress;
 
         private readonly ComputeBuffer m_buffer;
         private AsyncGPUReadbackRequest m_request;
@@ -54,7 +54,7 @@ namespace Tuntenfisch.Generics
 
         public bool IsDataAvailable()
         {
-            if (!m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress))
+            if ((m_flags & AsyncComputeBufferFlags.ReadbackInProgress) != AsyncComputeBufferFlags.ReadbackInProgress)
             {
                 return false;
             }
@@ -64,7 +64,7 @@ namespace Tuntenfisch.Generics
 
         public int EndReadback()
         {
-            if (!m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress))
+            if ((m_flags & AsyncComputeBufferFlags.ReadbackInProgress) != AsyncComputeBufferFlags.ReadbackInProgress)
             {
                 throw new InvalidOperationException($"No readback is currently in progress. Did you forget to start one?");
             }
@@ -91,7 +91,7 @@ namespace Tuntenfisch.Generics
 
         private void ValidateCountAndStateForDataRequest(int count)
         {
-            if (m_flags.HasFlag(AsyncComputeBufferFlags.ReadbackInProgress))
+            if ((m_flags & AsyncComputeBufferFlags.ReadbackInProgress) == AsyncComputeBufferFlags.ReadbackInProgress)
             {
                 throw new InvalidOperationException($"A readback is already in progress. Did you forget to call {nameof(EndReadback)}?");
             }
