@@ -5,9 +5,6 @@ namespace Tuntenfisch.Generics.Pool
 {
     public class ObjectPool<T> where T : IPoolable
     {
-        public int NumberOfAvailableObjects => m_available.Count;
-        public int NumberOfObjectsGenerated { get; private set; }
-
         private readonly Stack<T> m_available;
         private readonly Func<T> m_generator;
 
@@ -47,9 +44,7 @@ namespace Tuntenfisch.Generics.Pool
         {
             for (int index = 0; index < count; index++)
             {
-                T obj = m_generator();
-                m_available.Push(obj);
-                NumberOfObjectsGenerated++;
+                m_available.Push(m_generator());
             }
         }
     }

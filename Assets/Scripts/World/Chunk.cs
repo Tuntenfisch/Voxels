@@ -99,7 +99,7 @@ namespace Tuntenfisch.World
 
         public void OnAcquire()
         {
-            m_targetLOD = -1;
+            m_currentLOD = m_targetLOD = m_vertexCount = m_triangleCount = -1;
             CreateBuffers();
             gameObject.SetActive(true);
         }
