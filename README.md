@@ -58,3 +58,12 @@ Features include:
 
 The implementation for LOD is inspired by [Sebastian Lague's video "Procedural Landmass Generation (E21: fixing gaps)"](https://www.youtube.com/watch?v=c2BUgXdjZkg). Just like in the video, the skirts of a chunk are always generated at the highest level of detail, ensuring that there are no gaps between different level of details.
 The actual implementation obviously differs quite a lot since I'm not dealing with heightmap terrain.
+
+## Why publish it for free?
+
+I spent quite some time on implementing various voxel terrain algorithms (Marching Cubes, Cubical Marching Squares, Dual Contouring) and noticed during the process that although there are implementations online, they often lack features like level of detail or multiple material support.
+
+Furthermore, getting voxel terrain to be performant can be quite hard although I'm sure my implementation can be improved, too.
+That being said, the whole GPU-based approach might be suboptimal in the first since I have to read back the Mesh to the CPU.
+
+In the end I kind of lost motivation to continue working on this project and decided to move on. The project is nowhere near feature-complete to be released as an asset. Besides, I do not want to deal with providing customer support. Releasing it for free was basically the easiest way of getting it out to the public.
