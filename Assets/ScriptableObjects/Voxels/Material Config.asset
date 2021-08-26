@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_renderMaterial: {fileID: 2100000, guid: 4c49ef764df32ef468e58bab85d32fcb, type: 2}
   m_materialInfos:
-  - m_albedoTexture: {fileID: 2800000, guid: a390d5ad79ea30348bdb931cf7a0ff57, type: 3}
-    m_normalTexture: {fileID: 2800000, guid: 8bb17a6e834e49846b2e95c8e60396fd, type: 3}
-    m_mohsTexture: {fileID: 2800000, guid: 88e5051178ca1f245bc4a25f8f2b6857, type: 3}
-  - m_albedoTexture: {fileID: 2800000, guid: 9f9eda6491cb6a841b916fb72277bce6, type: 3}
-    m_normalTexture: {fileID: 2800000, guid: 2a55a094ad5dd004785e5e3f238bea51, type: 3}
-    m_mohsTexture: {fileID: 2800000, guid: 02e09fc423a7acb44aa5fd93c2a18bbc, type: 3}
-  - m_albedoTexture: {fileID: 2800000, guid: b019fc8bdd6fe454c86d8fac9e134acf, type: 3}
-    m_normalTexture: {fileID: 2800000, guid: 2503038aca3fbbe43a3399177766d064, type: 3}
-    m_mohsTexture: {fileID: 2800000, guid: dfb790f92c2a0444cb7a14b101af9ca0, type: 3}
-  - m_albedoTexture: {fileID: 2800000, guid: f1f2ed79b26fc7e4a9249b0bfda382e1, type: 3}
-    m_normalTexture: {fileID: 2800000, guid: f15639621318ece4cbc6982864676181, type: 3}
-    m_mohsTexture: {fileID: 2800000, guid: a85eeb977bb142c4394b07f0583e7716, type: 3}
+  - m_albedoTexture: {fileID: 2800000, guid: 234b3af2aa6a10f46b23f16bdd86b6ac, type: 3}
+    m_normalTexture: {fileID: 2800000, guid: 1868898f7e67ea64791d84563144ea9a, type: 3}
+    m_mohsTexture: {fileID: 2800000, guid: 82b1c8a2340f6394ba6f0736270e1d65, type: 3}
+  - m_albedoTexture: {fileID: 2800000, guid: 74785ce41fd84194cba6ce5e8dabc4d9, type: 3}
+    m_normalTexture: {fileID: 2800000, guid: 2aaf179f95a78f046b16cb0828da3ac7, type: 3}
+    m_mohsTexture: {fileID: 2800000, guid: 0b680ac74c79b3a4f86897e2e5196b8a, type: 3}
+  - m_albedoTexture: {fileID: 2800000, guid: 83f8f83ab396bbf4ba6d915315a1bb6e, type: 3}
+    m_normalTexture: {fileID: 2800000, guid: 9dd431c8fb0b1c5418d6e6e841c3a8be, type: 3}
+    m_mohsTexture: {fileID: 2800000, guid: 9ad48a053aca3474b85859944d32b6e7, type: 3}
+  - m_albedoTexture: {fileID: 2800000, guid: 7bc455ec248ae894e88bfeeecf989db1, type: 3}
+    m_normalTexture: {fileID: 2800000, guid: 1868898f7e67ea64791d84563144ea9a, type: 3}
+    m_mohsTexture: {fileID: 2800000, guid: 82b1c8a2340f6394ba6f0736270e1d65, type: 3}

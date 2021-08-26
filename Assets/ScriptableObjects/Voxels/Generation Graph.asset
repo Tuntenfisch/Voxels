@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CSG Operation
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: 120, y: -136}
+  position: {x: 56, y: -184}
   ports:
     keys:
     - m_voxelA
@@ -71,57 +71,6 @@ MonoBehaviour:
   m_csgOperator:
     m_operatorIndex: 3
     m_smoothing: 20
---- !u!114 &-6683266073455321263
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 25e2bd3a7378b0a48bc020065a879054, type: 3}
-  m_Name: Material
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: -136, y: 632}
-  ports:
-    keys:
-    - m_valueAndGradient
-    - m_voxel
-    values:
-    - _fieldName: m_valueAndGradient
-      _node: {fileID: -6683266073455321263}
-      _typeQualifiedName: Unity.Mathematics.float2, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_voxel
-        node: {fileID: 586786969872821865}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_voxel
-      _node: {fileID: -6683266073455321263}
-      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_voxelB
-        node: {fileID: -507755536042505212}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_valueAndGradient:
-    x: 0
-    y: 0
-  m_voxel:
-    x: 0
-    y: 0
-    z: 0
-  m_materialIndex: 0
 --- !u!114 &-6033972957997777016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184,37 +133,6 @@ MonoBehaviour:
       x: 2
       y: 2
       z: 2
---- !u!114 &-5714990909202737517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60cd43415ae3fa4190b870e0cab4484, type: 3}
-  m_Name: Position
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: -1032, y: 632}
-  ports:
-    keys:
-    - m_position
-    values:
-    - _fieldName: m_position
-      _node: {fileID: -5714990909202737517}
-      _typeQualifiedName: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-      connections:
-      - fieldName: m_position
-        node: {fileID: 135537482982759666}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_position: 0
 --- !u!114 &-4801048335892674458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -228,7 +146,7 @@ MonoBehaviour:
   m_Name: Noise
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -456, y: -136}
+  position: {x: -456, y: -184}
   ports:
     keys:
     - m_position
@@ -290,7 +208,7 @@ MonoBehaviour:
   m_Name: Output
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: 888, y: 632}
+  position: {x: 504, y: 184}
   ports:
     keys:
     - m_voxel
@@ -301,7 +219,7 @@ MonoBehaviour:
         Culture=neutral, PublicKeyToken=null
       connections:
       - fieldName: m_voxel
-        node: {fileID: -507755536042505212}
+        node: {fileID: -1748796865420827563}
         reroutePoints: []
       _direction: 0
       _connectionType: 1
@@ -324,7 +242,7 @@ MonoBehaviour:
   m_Name: Transform
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -1032, y: 248}
+  position: {x: -968, y: 152}
   ports:
     keys:
     - m_position
@@ -382,7 +300,7 @@ MonoBehaviour:
   m_Name: Material
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -136, y: -520}
+  position: {x: -168, y: -520}
   ports:
     keys:
     - m_valueAndGradient
@@ -433,7 +351,7 @@ MonoBehaviour:
   m_Name: Material
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -136, y: 248}
+  position: {x: -168, y: 152}
   ports:
     keys:
     - m_valueAndGradient
@@ -484,7 +402,7 @@ MonoBehaviour:
   m_Name: CSG Operation
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: 376, y: 248}
+  position: {x: 280, y: 152}
   ports:
     keys:
     - m_voxelA
@@ -520,8 +438,8 @@ MonoBehaviour:
       _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
         Culture=neutral, PublicKeyToken=null
       connections:
-      - fieldName: m_voxelA
-        node: {fileID: -507755536042505212}
+      - fieldName: m_voxel
+        node: {fileID: -4527227182196153878}
         reroutePoints: []
       _direction: 1
       _connectionType: 1
@@ -555,7 +473,7 @@ MonoBehaviour:
   m_Name: Transform
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -712, y: -520}
+  position: {x: -680, y: -520}
   ports:
     keys:
     - m_position
@@ -600,77 +518,6 @@ MonoBehaviour:
     y: 1
     z: 1
   m_invert: 1
---- !u!114 &-507755536042505212
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 860e16ba61c44d242a823aca0c049d4d, type: 3}
-  m_Name: CSG Operation
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: 632, y: 632}
-  ports:
-    keys:
-    - m_voxelA
-    - m_voxelB
-    - m_voxel
-    values:
-    - _fieldName: m_voxelA
-      _node: {fileID: -507755536042505212}
-      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_voxel
-        node: {fileID: -1748796865420827563}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_voxelB
-      _node: {fileID: -507755536042505212}
-      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_voxel
-        node: {fileID: -6683266073455321263}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_voxel
-      _node: {fileID: -507755536042505212}
-      _typeQualifiedName: Unity.Mathematics.float3, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_voxel
-        node: {fileID: -4527227182196153878}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_voxelA:
-    x: 0
-    y: 0
-    z: 0
-  m_voxelB:
-    x: 0
-    y: 0
-    z: 0
-  m_voxel:
-    x: 0
-    y: 0
-    z: 0
-  m_csgOperator:
-    m_operatorIndex: 0
-    m_smoothing: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -699,11 +546,6 @@ MonoBehaviour:
   - {fileID: 2363233083579071820}
   - {fileID: -3082375377624245464}
   - {fileID: 9117170654364883070}
-  - {fileID: -5714990909202737517}
-  - {fileID: 135537482982759666}
-  - {fileID: 586786969872821865}
-  - {fileID: -507755536042505212}
-  - {fileID: -6683266073455321263}
   m_nodes:
   - m_nodeType: 0
     m_transformMatrix:
@@ -1485,64 +1327,6 @@ MonoBehaviour:
     m_csgOperator:
       m_operatorIndex: 0
       m_smoothing: 0
---- !u!114 &135537482982759666
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fad4100241decd24fa79ae010bc6f528, type: 3}
-  m_Name: Transform
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: -712, y: 632}
-  ports:
-    keys:
-    - m_position
-    - m_transformedPosition
-    values:
-    - _fieldName: m_position
-      _node: {fileID: 135537482982759666}
-      _typeQualifiedName: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-      connections:
-      - fieldName: m_position
-        node: {fileID: -5714990909202737517}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_transformedPosition
-      _node: {fileID: 135537482982759666}
-      _typeQualifiedName: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-      connections:
-      - fieldName: m_position
-        node: {fileID: 586786969872821865}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_position: 0
-  m_transformedPosition: 0
-  m_translation:
-    x: 0
-    y: 10
-    z: 0
-  m_rotation:
-    x: 0
-    y: 0
-    z: 0
-  m_scale:
-    x: 10
-    y: 10
-    z: 10
-  m_invert: 1
 --- !u!114 &281790846129076961
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1556,7 +1340,7 @@ MonoBehaviour:
   m_Name: Position
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -968, y: -520}
+  position: {x: -904, y: -520}
   ports:
     keys:
     - m_position
@@ -1574,55 +1358,6 @@ MonoBehaviour:
       _typeConstraint: 2
       _dynamic: 0
   m_position: 0
---- !u!114 &586786969872821865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 769a151f07fb9064f9bbdfdcabc830b2, type: 3}
-  m_Name: CSG Primitive
-  m_EditorClassIdentifier: 
-  graph: {fileID: 11400000}
-  position: {x: -392, y: 632}
-  ports:
-    keys:
-    - m_position
-    - m_voxel
-    values:
-    - _fieldName: m_position
-      _node: {fileID: 586786969872821865}
-      _typeQualifiedName: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-      connections:
-      - fieldName: m_transformedPosition
-        node: {fileID: 135537482982759666}
-        reroutePoints: []
-      _direction: 0
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-    - _fieldName: m_voxel
-      _node: {fileID: 586786969872821865}
-      _typeQualifiedName: Unity.Mathematics.float2, Unity.Mathematics, Version=1.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      connections:
-      - fieldName: m_valueAndGradient
-        node: {fileID: -6683266073455321263}
-        reroutePoints: []
-      _direction: 1
-      _connectionType: 1
-      _typeConstraint: 2
-      _dynamic: 0
-  m_position: 0
-  m_voxel:
-    x: 0
-    y: 0
-  m_csgPrimitive:
-    m_primitiveType: 1
 --- !u!114 &2144961217543914969
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1636,7 +1371,7 @@ MonoBehaviour:
   m_Name: Position
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -712, y: -136}
+  position: {x: -680, y: -184}
   ports:
     keys:
     - m_position
@@ -1667,7 +1402,7 @@ MonoBehaviour:
   m_Name: Position
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -1288, y: 248}
+  position: {x: -1192, y: 152}
   ports:
     keys:
     - m_position
@@ -1698,7 +1433,7 @@ MonoBehaviour:
   m_Name: Noise
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -456, y: 248}
+  position: {x: -456, y: 152}
   ports:
     keys:
     - m_position
@@ -1760,7 +1495,7 @@ MonoBehaviour:
   m_Name: Material
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -136, y: -136}
+  position: {x: -168, y: -184}
   ports:
     keys:
     - m_valueAndGradient
@@ -1811,7 +1546,7 @@ MonoBehaviour:
   m_Name: Domain Warp
   m_EditorClassIdentifier: 
   graph: {fileID: 11400000}
-  position: {x: -776, y: 248}
+  position: {x: -744, y: 152}
   ports:
     keys:
     - m_position
