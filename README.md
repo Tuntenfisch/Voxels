@@ -1,4 +1,4 @@
-![Voxels](/Images/Voxels.PNG?raw=true)
+![Voxels](/Images/Voxels.png?raw=true)
 
 # Voxels
 
@@ -16,7 +16,7 @@ The voxel terrain can be made up of a practically infinite amount of different m
 
 Each material can be assigned a different texture through a [ScriptableObject](/Assets/Scripts/Voxels/Materials/MaterialConfig.cs):
 
-![Material Config](/Images/Material_Config.PNG?raw=true)
+![Material Config](/Images/Material_Config.png?raw=true)
 
 The material index of a voxel is encoded as an unsigned integer and is used later on (as a custom VertexAttribute) to render the generated mesh with the correct textures. The material index can be queried from [scripting](https://github.com/Tuntenfisch/Voxels/blob/release/Assets/Scripts/World/WorldManager.cs#L128), as well.
 
@@ -40,7 +40,7 @@ I'm using a custom shader because Unity's shader graph doesn't support a geometr
 
 Terrain generation can be configured through a graph-based editor:
 
-![Generation Graph](/Images/Generation_Graph.PNG?raw=true)
+![Generation Graph](/Images/Generation_Graph.png?raw=true)
 
 Features include:
 - [Fractional Brownian Motion](https://iquilezles.org/www/articles/fbm/fbm.htm) nodes
