@@ -12,7 +12,8 @@ The core features are:
 **Note:** Sharp voxel terrain features are preserved, not by solving the [QEF](https://en.wikipedia.org/wiki/Mean_squared_error) as described in the paper above, but by using the [Schmitz Particle method](https://www.inf.ufrgs.br/~comba/papers/thesis/diss-leonardo.pdf#page=42) instead, which is much easier to implement and supposedly faster.
 
 ## Materials
-The voxel terrain can be made up of a practically infinite amount of different materials. Materials are defined via a simple enumeration called [```MaterialIndex```](/Assets/Scripts/Voxels/Materials/MaterialIndex.cs). Since the implementation is leveraging the GPU for generating the mesh, some structures have been defined multiple times, once in C# and once in HLSL. This is the case for the ```MaterialIndex```. The HLSL implementation can be found [here](/Assets/Compute/Voxels/Include/Material.hlsl).
+The voxel terrain can be made up of a practically infinite amount of different materials. Materials are defined via a simple enumeration called [```MaterialIndex```](/Assets/Scripts/Voxels/Materials/MaterialIndex.cs). Since the implementation is leveraging the GPU for generating the mesh, some structures have been defined multiple times, once in C# and once in HLSL. This is also
+the case for the ```MaterialIndex```. The HLSL implementation can be found [here](/Assets/Compute/Voxels/Include/Material.hlsl).
 
 Each material can be assigned a different texture through a [ScriptableObject](/Assets/Scripts/Voxels/Materials/MaterialConfig.cs):
 
