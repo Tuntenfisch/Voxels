@@ -11,6 +11,8 @@ The core features are:
 
 **Note:** Sharp voxel terrain features are preserved, not by solving the [QEF](https://en.wikipedia.org/wiki/Mean_squared_error) as described in the paper above, but by using the [Schmitz Particle method](https://www.inf.ufrgs.br/~comba/papers/thesis/diss-leonardo.pdf#page=42) instead, which is much easier to implement and supposedly faster.
 
+**Note:** The Unity version used is 2021.1.16f1.
+
 ## Materials
 The voxel terrain can be made up of a practically infinite amount of different materials. Materials are defined via a simple enumeration called [```MaterialIndex```](/Assets/Scripts/Voxels/Materials/MaterialIndex.cs). Since the implementation is leveraging the GPU for generating the mesh, some structures have been defined multiple times, once in C# and once in HLSL. This is also
 the case for the ```MaterialIndex```. The HLSL implementation can be found [here](/Assets/Compute/Voxels/Include/Material.hlsl).
@@ -23,7 +25,7 @@ The material index of a voxel is encoded as an unsigned integer and is used late
 
 ## Texturing
 
-Texturing of the voxel terrain is done with a custom URP PBR shader and supports:
+Texturing of the voxel terrain is done with a [custom URP PBR shader](/Assets/Shaders/Voxels/Voxel.shader) and supports:
 - albedo mapping
 - normal mapping
 - metallic mapping
