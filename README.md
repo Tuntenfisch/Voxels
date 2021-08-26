@@ -60,6 +60,8 @@ Features include:
 
 ## Level of Detail
 
+![LOD](/Images/LOD.png?raw=true)
+
 The implementation for LOD is inspired by [Sebastian Lague's video "Procedural Landmass Generation (E21: fixing gaps)"](https://www.youtube.com/watch?v=c2BUgXdjZkg). Just like in the video, the skirts of a chunk are always generated at the highest level of detail, ensuring that there are no gaps between different level of details.
 The actual implementation obviously differs quite a lot since I'm not dealing with heightmap terrain.
 
