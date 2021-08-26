@@ -5,6 +5,7 @@
 GPU-based implementation of [Dual Contouring](https://www.cs.rice.edu/~jwarren/papers/dualcontour.pdf) in Unity for destructible voxel terrain.
 
 The core features are:
+- Infinite procedural world
 - Seamless chunked level of detail
 - Multiple materials with smooth material transitions
 - Graph-based terrain generation using [XNode](https://github.com/Siccity/xNode)
@@ -67,6 +68,8 @@ The actual implementation obviously differs quite a lot since I'm not dealing wi
 I spent quite some time on implementing various voxel terrain algorithms (Marching Cubes, Cubical Marching Squares, Dual Contouring) and noticed during the process that although there are implementations online, they often lack features like level of detail or multiple material support.
 
 Furthermore, getting voxel terrain to be performant can be quite hard although I'm sure my implementation can be improved, too.
-That being said, the whole GPU-based approach might be suboptimal in the first place since I have to read back the mesh to the CPU.
+That being said, my whole GPU-based approach might be suboptimal in the first place since I have to read back the mesh to the CPU.
 
 In the end I kind of lost motivation to continue working on this project and decided to move on. The project is nowhere near feature-complete to be released as an asset. Besides, I do not want to deal with providing customer support. Releasing it for free was basically the easiest way of getting it out to the public.
+
+I hope by making this publicly available I can help some people interested in voxel terrain.
