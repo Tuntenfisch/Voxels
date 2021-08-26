@@ -14,7 +14,9 @@ The voxel terrain can be made up of a practically infinite amount of different m
 
 Each material can be assigned a different texture through a [ScriptableObject](/Assets/Scripts/Voxels/Materials/MaterialConfig.cs):
 
-The type of material of a voxel is encoded as an unsigned integer and is used later on (as a custom VertexAttribute) to render the generated mesh with the correct textures. The material type can be queried from [scripting](https://github.com/Tuntenfisch/Voxels/blob/release/Assets/Scripts/World/WorldManager.cs#L128), as well.
+![Material Config](/Images/Material_Config.PNG?raw=true)
+
+The material index of a voxel is encoded as an unsigned integer and is used later on (as a custom VertexAttribute) to render the generated mesh with the correct textures. The material index can be queried from [scripting](https://github.com/Tuntenfisch/Voxels/blob/release/Assets/Scripts/World/WorldManager.cs#L128), as well.
 
 ## Texturing
 
@@ -32,3 +34,4 @@ A custom shader is used because Unity's shader graph doesn't support a geometry 
 
 ## Terrain Generation
 
+![Material Config](/Images/Generation_Graph.PNG?raw=true)
