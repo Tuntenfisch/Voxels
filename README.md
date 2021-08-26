@@ -35,7 +35,7 @@ Texturing of the voxel terrain is done with a [custom URP PBR shader](/Assets/Sh
 
 Since the procedurally generated terrain doesn't have any UV coordinates, [Triplanar mapping](https://catlikecoding.com/unity/tutorials/advanced-rendering/triplanar-mapping/) is used to apply the various textures.
 
-I'm using a custom shader because Unity's shader graph doesn't support a geometry pass, which I need to enable smooth transitions between different voxel materials.  
+**Note:** I'm using a custom shader because Unity's shader graph doesn't support a geometry pass, which I need to enable smooth transitions between different voxel materials.  
 
 **Note:** Textures are taken from https://ambientcg.com/ and fall under the [Creative Commons CC0 1.0 Universal License](https://creativecommons.org/publicdomain/zero/1.0/).
 
