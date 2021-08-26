@@ -1,3 +1,5 @@
+![Voxels](/Images/Voxels.PNG?raw=true)
+
 # Voxels
 
 GPU-based implementation of the [Dual Contouring algorithm](https://www.cs.rice.edu/~jwarren/papers/dualcontour.pdf) in Unity to enable destructible voxel terrain.
@@ -54,5 +56,5 @@ Features include:
 
 ## Level of Detail
 
-The implementation for LOD is inspired by Sebastian Lague's video ["Procedural Landmass Generation (E21: fixing gaps)"](https://www.youtube.com/watch?v=c2BUgXdjZkg). Just like in the video, the skirts of a chunk are always generated at the highest level of detail, ensuring that there are no gaps between different level of details.
+The implementation for LOD is inspired by [Sebastian Lague's video "Procedural Landmass Generation (E21: fixing gaps)"](https://www.youtube.com/watch?v=c2BUgXdjZkg). Just like in the video, the skirts of a chunk are always generated at the highest level of detail, ensuring that there are no gaps between different level of details.
 The actual implementation obviously differs quite a lot since I'm not dealing with heightmap terrain.
