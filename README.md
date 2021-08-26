@@ -52,7 +52,7 @@ Features include:
 
 **Note:** [Keijiro's Noise Shader Library](https://github.com/keijiro/NoiseShader) is used to generate simplex noise on the GPU.
 
-**Note:** See this [question](https://gamedev.stackexchange.com/questions/193938/how-to-evaluate-a-binary-expression-tree-in-hlsl-without-recursion-or-a-stack) for more insight on how I evaluate the graph to generate the terrain.
+**Note:** See this [question](https://gamedev.stackexchange.com/questions/193938/how-to-evaluate-a-binary-expression-tree-in-hlsl-without-recursion-or-a-stack) for more insight on how I evaluate the graph to generate the terrain on the GPU.
 
 ## Level of Detail
 
