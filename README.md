@@ -72,4 +72,4 @@ That being said, my whole GPU-based approach might be suboptimal in the first pl
 
 In the end I kind of lost motivation to continue working on this project and decided to move on. The project is nowhere near feature-complete to be released as an asset. Besides, I do not want to deal with providing customer support. Releasing it for free was basically the easiest way of getting it out to the public.
 
-I hope by making this publicly available I can help some people interested in voxel terrain.
+I hope - by making this publicly available - I can help some people who are interested in voxel terrain.
