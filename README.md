@@ -2,7 +2,7 @@
 
 # Voxels
 
-GPU-based implementation of the [Dual Contouring algorithm](https://www.cs.rice.edu/~jwarren/papers/dualcontour.pdf) in Unity to enable destructible voxel terrain.
+GPU-based implementation of [Dual Contouring](https://www.cs.rice.edu/~jwarren/papers/dualcontour.pdf) in Unity to enable destructible voxel terrain.
 
 The core features are:
 - Seamless chunked level of detail
