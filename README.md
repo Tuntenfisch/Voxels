@@ -48,6 +48,8 @@ One challenged I faced was getting different material textures to smoothly blend
 
 To be honest, just the first bullet point above was enough for me to not further pursue this approach. I wanted something that supported a theoretically unlimited amount of materials in a single chunk. 
 
+### Hard Transitions
+
 Achieving this with **hard** material transitions is pretty easy: Each of my vertices has a material index. To ensure that any given triangle, which consists of 3 vertices each, has only one specific material index associated with it. I simply need to duplicate certain vertices on material boundaries while generating the mesh with dual contouring:
 
 ![image](https://user-images.githubusercontent.com/11965324/131113079-7668de4f-f014-4b4a-a850-d203475eb16d.png)
