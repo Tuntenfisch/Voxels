@@ -58,6 +58,8 @@ Essentially, the red and green triangles represent two materials which are part 
 
 During shading, you use the vertex's material index as a lookup into a [```2DTextureArray```](https://docs.unity3d.com/ScriptReference/Texture2DArray.html) - which you populated with the corresponding textures for each material, beforehand - and apply whichever texture you've got out of the lookup to the triangle. This approach can be implemented in Unity's shader graph, too.
 
+### Smooth Transitions
+
 But to get smooth transitions between textures of different materials you need two things for each fragment/pixel you want to shade:
 - The three (potentially different) material indices of the triangle.
 - Three weights that (for each pixel of the triangle) gives you the amount each vertice's material is active. This weight should then smoothly blend between the triangles vertices based on the fragment/pixel you're working on.
