@@ -50,7 +50,7 @@ To be honest, just the first bullet point above was enough for me to not further
 
 ### Hard Transitions
 
-Achieving this with **hard** material transitions is pretty easy: Each of my vertices has a material index. To ensure that any given triangle, which consists of 3 vertices each, has only one specific material index associated with it. I simply need to duplicate certain vertices on material boundaries while generating the mesh with dual contouring:
+Achieving this with **hard** material transitions is pretty easy: Each of my vertices has a material index. To ensure that any given triangle, which consists of 3 vertices each, has only one specific material index associated with it. I simply need to duplicate certain vertices on material boundaries while generating the mesh with dual contouring. Here's an example:
 
 ![image](https://user-images.githubusercontent.com/11965324/131113079-7668de4f-f014-4b4a-a850-d203475eb16d.png)
 
