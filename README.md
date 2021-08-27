@@ -42,7 +42,11 @@ Since the procedurally generated terrain doesn't have any UV coordinates, [Tripl
 
 ## Smooth Material Transitions
 
-One challenged I faced was getting different material textures to smoothly blend between each other. One approach would be to use something like a splat map to support multiple materials. [Catlike Coding's "Rendering 3"](https://catlikecoding.com/unity/tutorials/rendering/part-3/) provides an introduction into those if you don't know what they are. But there are a number of issues with splat maps:
+One challenged I faced was getting different material textures to smoothly blend between each other. One approach would be to use something like a splat map to support multiple materials.
+
+**Note:** [Catlike Coding's "Rendering 3"](https://catlikecoding.com/unity/tutorials/rendering/part-3/) provides an introduction into those if you don't know what they are.
+
+But there are a number of issues with splat maps:
 - Only supports up to 5 different textures. Either I limit the voxel terrain to only 5 different materials (way too few) or I somehow ensure that each terrain chunk doesn't have more than 5 different materials in it and do some sort of on the fly texture switching to render the correct material textures for each chunk?!
 - Can't exactly use a 2D texture as a splat map for voxel terrain. So maybe something like a 3D texture could work?
 
