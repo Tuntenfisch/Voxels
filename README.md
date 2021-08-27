@@ -20,7 +20,7 @@ the case for the ```MaterialIndex```. The HLSL implementation can be found [here
 
 Each material can be assigned a different texture through a [ScriptableObject](/Assets/Scripts/Voxels/Materials/MaterialConfig.cs):
 
-![Material Config](/Images/Material_Config.PNG?raw=true)
+![Material_Config](https://user-images.githubusercontent.com/11965324/131109618-e9016c6b-f9aa-46a3-8cba-f50279ddb899.png)
 
 The material index of a voxel is encoded as an unsigned integer and is used later on (as a custom VertexAttribute) to render the generated mesh with the correct textures. The material index can be queried from [scripting](https://github.com/Tuntenfisch/Voxels/blob/release/Assets/Scripts/World/WorldManager.cs#L128), as well.
 
@@ -44,7 +44,7 @@ Since the procedurally generated terrain doesn't have any UV coordinates, [Tripl
 
 Terrain generation can be configured through a graph-based editor:
 
-![Generation Graph](/Images/Generation_Graph.PNG?raw=true)
+![Generation_Graph](https://user-images.githubusercontent.com/11965324/131109547-9a2bf3f9-ce7a-4aa5-9e97-18fbd69ffbf0.png)
 
 Features include:
 - [Fractional Brownian Motion](https://iquilezles.org/www/articles/fbm/fbm.htm) nodes
@@ -60,7 +60,7 @@ Features include:
 
 ## Level of Detail
 
-![LOD](/Images/LOD.png?raw=true)
+![LOD](https://user-images.githubusercontent.com/11965324/131109509-18c113d0-4fba-4c01-9ab5-d058440f7812.png)
 
 The implementation for LOD is inspired by [Sebastian Lague's video "Procedural Landmass Generation (E21: fixing gaps)"](https://www.youtube.com/watch?v=c2BUgXdjZkg). Just like in the video, the skirts of a chunk are always generated at the highest level of detail, ensuring that there are no gaps between different level of details.
 The actual implementation obviously differs quite a lot since I'm not dealing with heightmap terrain.
