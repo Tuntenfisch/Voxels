@@ -66,7 +66,7 @@ During shading, you use the vertex's material index as a lookup into a [```2DTex
 
 But to get smooth transitions between textures of different materials you need two things for each fragment/pixel you want to shade:
 - The three (potentially different) material indices of the triangle.
-- Three weights that (for each pixel of the triangle) gives you the amount each vertice's material is active. This weight should then smoothly blend between the triangles vertices based on the fragment/pixel you're working on.
+- Three weights that (for each pixel of the triangle) give you the amount each vertice's material is active. This weight should then smoothly blend between the triangles vertices based on the fragment/pixel you're working on.
 
 This is where the geometry shader stage comes into play (and also why I can't use Unity's shader graph). The geometry shader stage runs after the vertex shader stage and before the fragment/pixel shader stage. It let's me work, not on individual vertices, but on (in my case) triangles as a whole, i.e. a set of 3 vertices. 
 
