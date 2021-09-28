@@ -72,13 +72,21 @@ This is where the geometry shader stage comes into play (and also why I can't us
 
 **Note:** If you're unfamiliar with the geometry shader stage you can get an introduction [here](https://gamedevbill.com/unity-vertex-shader-and-geometry-shader-tutorial/).
 
-My geometry shader stage is largely a passthrough stage, meaning I have 3 vertices as an input and I output 3 vertices, too. The inputs are the 3 vertices making up a triangle. Each of these vertices has a material index associated with it. For each triangle passed into the gemoetry shader stage, I gather the 3 material indices of the triangle's vertices and construct a ```uint3``` where the first material index is assigned to the first entry of the vector, the second to the second entry and so on. Each vertex I output gets this ```uint3``` assigned. This alone doesn't enable blending yet, tho. Additionally each vertex I output gets a ```half3``` called ```materialWeights``` assigned, as well, as follows:
+My geometry shader stage is largely a passthrough stage, meaning I have 3 vertices as an input and I output 3 vertices, too. The inputs are the 3 vertices making up a triangle. Each of these vertices has a material index associated with it. 
 
-* The first vertex gets the vector (1, 0, 0) assigned.
-* The second vertex gets the vector (0, 1, 0) assigned.
-* The third vertex gets the vector (0, 0, 1) assigned.
+For each triangle passed into the gemoetry shader stage, I gather the 3 material indices of the triangle's vertices and construct a ```uint3``` where the first material index is assigned to the first entry of the vector, the second to the second entry and so on. Each vertex I output gets this ```uint3``` assigned. 
 
-Between the geometry shader stage and the final fragment/pixel shader stage these material weights will get interpolated based on the position of the current fragment/pixel inside the triangle. In addition with the material indices, which are also provided by my geometry shader stage (as explained), I can then sample a ```TEXTURE2D_ARRAY``` 3 times (using each material index as the index into the array once) and add those texture samples together using the material weights.
+This alone doesn't enable smooth transitions yet, tho. Additionally each vertex I output gets a ```half3``` called ```materialWeights``` assigned as follows:
+
+* The first vertex gets the vector ```(1, 0, 0)``` assigned.
+* The second vertex gets the vector ```(0, 1, 0)``` assigned.
+* The third vertex gets the vector ```(0, 0, 1)``` assigned.
+
+Between the geometry shader stage and the final fragment/pixel shader stage these material weights will get interpolated based on the position of the current fragment/pixel inside the triangle. 
+
+In addition with the material indices, which are also provided by my geometry shader stage (as explained), I can then sample a ```TEXTURE2D_ARRAY``` 3 times (using each material index as the index into the array once) and add those texture samples together using the material weights to arrive at the final color.
+
+**Note:** The material indices are not interpolated between the geometry and fragment/pixel stage!
 
 ## Terrain Generation
 
