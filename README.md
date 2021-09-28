@@ -74,7 +74,7 @@ This is where the geometry shader stage comes into play (and also why I can't us
 
 My geometry shader stage is largely a passthrough stage, meaning I have 3 vertices as an input and I output 3 vertices, too. The inputs are the 3 vertices making up a triangle. Each of these vertices has a material index associated with it. 
 
-For each triangle passed into the gemoetry shader stage, I gather the 3 material indices of the triangle's vertices and construct a ```uint3``` where the first material index is assigned to the first entry of the vector, the second to the second entry and so on. Each vertex I output gets this ```uint3``` assigned. 
+For each triangle passed into the geometry shader stage, I gather the 3 material indices of the triangle's vertices and construct a ```uint3``` where the first material index is assigned to the first entry of the vector, the second to the second entry and so on. Each vertex I output gets this ```uint3``` assigned. 
 
 This alone doesn't enable smooth transitions yet, tho. Additionally each vertex I output gets a ```half3``` called ```materialWeights``` assigned as follows:
 
