@@ -70,7 +70,7 @@ But to get smooth transitions between textures of different materials you need t
 
 This is where the geometry shader stage comes into play (and also why I can't use Unity's shader graph). The geometry shader stage runs after the vertex shader stage and before the fragment/pixel shader stage. It let's me work, not on individual vertices, but on (in my case) triangles as a whole, i.e. a set of 3 vertices. 
 
-**Note:** If you're unfamiliar with the geometry shader stage you can get an introduction [here](https://gamedevbill.com/unity-vertex-shader-and-geometry-shader-tutorial/).
+**Note:** If you're unfamiliar with the geometry shader stage you can get an introduction [here](https://gamedevbill.com/unity-vertex-shader-and-geometry-shader-tutorial/). One important thing to know tho, is that for each triangle the geometry shader stage works on the original vertices from the vertex shader stage, meaning modifying one vertex in the geometry shader stage doesn't affect any neigbhouring triangles which also share that vertex. It's like having a mesh where each triangle has it's own vertices, i.e. a flat shaded mesh.
 
 My geometry shader stage is largely a passthrough stage, meaning I have 3 vertices as an input and I output 3 vertices, too. The inputs are the 3 vertices making up a triangle. Each of these vertices has a material index associated with it. 
 
