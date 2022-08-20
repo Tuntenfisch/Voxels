@@ -14,6 +14,8 @@ The core features are:
 
 **Note:** The Unity version used is 2021.1.16f1.
 
+**Note:** This repository uses [Git Large File Storage](https://github.com/git-lfs/git-lfs/wiki/Tutorial). If you want to clone this repository, make sure you have Git Large File Storage installed on your PC.
+
 ## Materials
 The voxel terrain can be made up of a practically infinite amount of different materials. Materials are defined via a simple enumeration called [```MaterialIndex```](/Assets/Scripts/Voxels/Materials/MaterialIndex.cs). Since the implementation is leveraging the GPU for generating the mesh, some structures have been defined multiple times, once in C# and once in HLSL. This is also
 the case for the material index. The HLSL implementation can be found [here](/Assets/Compute/Voxels/Include/Material.hlsl).
